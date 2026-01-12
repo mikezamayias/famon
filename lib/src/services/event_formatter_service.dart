@@ -1,5 +1,6 @@
 import 'package:firebase_analytics_monitor/src/constants.dart';
 import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
+import 'package:firebase_analytics_monitor/src/services/interfaces/event_formatter_interface.dart';
 import 'package:firebase_analytics_monitor/src/shared/log_timestamp_parser.dart';
 import 'package:mason_logger/mason_logger.dart';
 
@@ -7,7 +8,9 @@ import 'package:mason_logger/mason_logger.dart';
 ///
 /// Combines the functionality of LogFormatterService (FA warning buffering)
 /// and CliFormatter (color support, raw output) into a single service.
-class EventFormatterService {
+///
+/// Implements [EventFormatterInterface] for dependency injection and testing.
+class EventFormatterService implements EventFormatterInterface {
   /// Creates a new EventFormatterService.
   ///
   /// The [_logger] is used for output. Options:
@@ -31,10 +34,7 @@ class EventFormatterService {
   String? _faBufLastTsStr;
   final Map<String, String> _faBufParams = {};
 
-  /// Formats and prints the given [event] to the console.
-  ///
-  /// Handles FA warning buffering and respects the `rawOutput` and
-  /// `colorEnabled` settings.
+  @override
   void formatAndPrint(AnalyticsEvent event) {
     // Handle FA invalid param warnings with buffering
     if (event.eventName == 'fa_invalid_default_param') {
@@ -96,10 +96,10 @@ class EventFormatterService {
     _logger.info('');
   }
 
-  /// Flushes any pending accumulated FA warnings to the output.
+  @override
   void flushPending() => _flushFaWarningBuffer();
 
-  /// Resets the internal state used for tracking FA warning buffering.
+  @override
   void resetTracking() {
     _faBufStartTime = null;
     _faBufLastTime = null;
@@ -150,7 +150,7 @@ class EventFormatterService {
     resetTracking();
   }
 
-  /// Prints the provided [stats] to the console.
+  @override
   void printStats(Map<String, dynamic> stats) {
     _logger
       ..info('📊 Session Statistics:')
@@ -169,22 +169,22 @@ class EventFormatterService {
     }
   }
 
-  /// Prints an error [message] with a red cross icon.
+  @override
   void printError(String message) {
     _logger.err('❌ $message');
   }
 
-  /// Prints a success [message] with a green checkmark icon.
+  @override
   void printSuccess(String message) {
     _logger.success('✅ $message');
   }
 
-  /// Prints an informational [message] with an info icon.
+  @override
   void printInfo(String message) {
     _logger.info('ℹ️  $message');
   }
 
-  /// Prints a warning [message] with a warning icon.
+  @override
   void printWarning(String message) {
     _logger.warn('⚠️  $message');
   }

@@ -1,0 +1,43 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g. 1.0.2)"
+        required: true
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: 🚀 Create release tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📚 Git Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: 🧪 Verify version files
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          grep -q "version: $VERSION" pubspec.yaml || (echo "pubspec.yaml version mismatch" && exit 1)
+          grep -q "## \\[$VERSION\\]" CHANGELOG.md || (echo "CHANGELOG.md missing section for $VERSION" && exit 1)
+
+      - name: 🚀 Merge, tag and push
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          bash tool/release.sh "$VERSION"
+

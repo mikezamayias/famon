@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:firebase_analytics_monitor/src/services/event_formatter_service.dart';
@@ -91,174 +92,296 @@ class MonitorCommand extends Command<int> {
   final EventCacheInterface _eventCache;
   late final EventFormatterService _formatter;
 
+  // Regex for detecting Firebase-related log lines in verbose mode
+  static final RegExp _firebaseLogPattern = RegExp(
+    r'\bFA-SVC\b|\bFA\b|I/FA|D/FA|V/FA|W/FA|E/FA|FirebaseCrashlytics|Crashlytics',
+  );
+
   @override
   Future<int> run() async {
-    final hideEvents = (argResults?['hide'] as List<String>?) ?? <String>[];
-    final showOnlyEvents =
-        (argResults?['show-only'] as List<String>?) ?? <String>[];
-    final showSuggestions = argResults?['suggestions'] as bool? ?? false;
-    final showStats = argResults?['stats'] as bool? ?? false;
-    final rawOutput = argResults?['raw'] as bool? ?? false;
-    final noColor = argResults?['no-color'] as bool? ?? false;
-    final verbose = argResults?['verbose'] as bool? ?? false;
-    final enableDebugFor = argResults?['enable-debug'] as String?;
-    final raiseLogLevels = argResults?['raise-log-levels'] as bool? ?? false;
+    final config = _parseArguments();
 
-    // Ensure verbose logs are visible when monitor --verbose is used
-    if (verbose) {
+    _initializeSession(config);
+    await _setupDebugMode(config);
+    _logFilterConfiguration(config);
+
+    _logger.info('Press Ctrl+C to stop monitoring\n');
+
+    try {
+      final process = await _startLogcatProcess(config.verbose);
+      final timers = _setupTimers(config);
+
+      await _processLogStream(process, config);
+
+      _cleanupTimers(timers);
+    } on Object catch (e) {
+      return _handleError(e);
+    }
+
+    return 0;
+  }
+
+  /// Parses command line arguments into a configuration record.
+  ({
+    List<String> hideEvents,
+    List<String> showOnlyEvents,
+    bool showSuggestions,
+    bool showStats,
+    bool rawOutput,
+    bool noColor,
+    bool verbose,
+    String? enableDebugFor,
+    bool raiseLogLevels,
+  }) _parseArguments() {
+    return (
+      hideEvents: (argResults?['hide'] as List<String>?) ?? <String>[],
+      showOnlyEvents: (argResults?['show-only'] as List<String>?) ?? <String>[],
+      showSuggestions: argResults?['suggestions'] as bool? ?? false,
+      showStats: argResults?['stats'] as bool? ?? false,
+      rawOutput: argResults?['raw'] as bool? ?? false,
+      noColor: argResults?['no-color'] as bool? ?? false,
+      verbose: argResults?['verbose'] as bool? ?? false,
+      enableDebugFor: argResults?['enable-debug'] as String?,
+      raiseLogLevels: argResults?['raise-log-levels'] as bool? ?? false,
+    );
+  }
+
+  /// Initializes the session: formatter, cache, and startup messages.
+  void _initializeSession(
+    ({
+      List<String> hideEvents,
+      List<String> showOnlyEvents,
+      bool showSuggestions,
+      bool showStats,
+      bool rawOutput,
+      bool noColor,
+      bool verbose,
+      String? enableDebugFor,
+      bool raiseLogLevels,
+    }) config,
+  ) {
+    if (config.verbose) {
       _logger.level = Level.verbose;
     }
 
-    // Initialize formatter with color and raw settings
     _formatter = EventFormatterService(
       _logger,
-      rawOutput: rawOutput,
-      colorEnabled: !noColor,
+      rawOutput: config.rawOutput,
+      colorEnabled: !config.noColor,
     );
-
-    // Reset tracking for new session
     _formatter.resetTracking();
-
-    // Clear cache for new session
     _eventCache.clear();
 
     _logger
       ..info('🔥 ${lightCyan.wrap('Firebase Analytics Monitor Started')}')
       ..info('📱 Connecting to adb logcat...')
-      ..detail('Verbose mode: ${verbose ? 'ON' : 'OFF'}');
-    // Optionally enable analytics debug and raise log levels
-    if (enableDebugFor != null && enableDebugFor.isNotEmpty) {
-      await _enableAnalyticsDebug(enableDebugFor);
+      ..detail('Verbose mode: ${config.verbose ? 'ON' : 'OFF'}');
+  }
+
+  /// Sets up debug mode and log levels if requested.
+  Future<void> _setupDebugMode(
+    ({
+      List<String> hideEvents,
+      List<String> showOnlyEvents,
+      bool showSuggestions,
+      bool showStats,
+      bool rawOutput,
+      bool noColor,
+      bool verbose,
+      String? enableDebugFor,
+      bool raiseLogLevels,
+    }) config,
+  ) async {
+    if (config.enableDebugFor != null && config.enableDebugFor!.isNotEmpty) {
+      await _enableAnalyticsDebug(config.enableDebugFor!);
     }
-    if (raiseLogLevels || enableDebugFor != null) {
+    if (config.raiseLogLevels || config.enableDebugFor != null) {
       await _raiseFaLogLevels();
     }
+  }
 
-    if (hideEvents.isNotEmpty) {
-      _logger.info('🙈 Hiding events: ${hideEvents.join(', ')}');
+  /// Logs the current filter configuration to the user.
+  void _logFilterConfiguration(
+    ({
+      List<String> hideEvents,
+      List<String> showOnlyEvents,
+      bool showSuggestions,
+      bool showStats,
+      bool rawOutput,
+      bool noColor,
+      bool verbose,
+      String? enableDebugFor,
+      bool raiseLogLevels,
+    }) config,
+  ) {
+    if (config.hideEvents.isNotEmpty) {
+      _logger.info('🙈 Hiding events: ${config.hideEvents.join(', ')}');
+    }
+    if (config.showOnlyEvents.isNotEmpty) {
+      _logger.info('👀 Showing only: ${config.showOnlyEvents.join(', ')}');
+    }
+  }
+
+  /// Starts the adb logcat process with appropriate arguments.
+  Future<Process> _startLogcatProcess(bool verbose) async {
+    final args = <String>['adb', 'logcat', '-v', 'time'];
+    if (!verbose) {
+      args.addAll([
+        '-s',
+        'FA',
+        'FA-SVC',
+        'FA-Ads',
+        'FirebaseCrashlytics',
+        'Crashlytics',
+      ]);
+    }
+    return _processManager.start(args);
+  }
+
+  /// Sets up periodic timers for stats and suggestions display.
+  ({Timer? stats, Timer? suggestions, Timer troubleshooting})
+      _setupTimers(
+    ({
+      List<String> hideEvents,
+      List<String> showOnlyEvents,
+      bool showSuggestions,
+      bool showStats,
+      bool rawOutput,
+      bool noColor,
+      bool verbose,
+      String? enableDebugFor,
+      bool raiseLogLevels,
+    }) config,
+  ) {
+    // Troubleshooting timer - shows tips if no logs detected after 12 seconds
+    final troubleshootingTimer = Timer(
+      const Duration(seconds: 12),
+      _showTroubleshootingTips,
+    );
+
+    Timer? statsTimer;
+    if (config.showStats) {
+      statsTimer = Timer.periodic(
+        const Duration(seconds: 30),
+        (_) => _showSessionStats(),
+      );
     }
 
-    if (showOnlyEvents.isNotEmpty) {
-      _logger.info('👀 Showing only: ${showOnlyEvents.join(', ')}');
+    Timer? suggestionsTimer;
+    if (config.showSuggestions) {
+      suggestionsTimer = Timer.periodic(
+        const Duration(minutes: 5),
+        (_) => _showSmartSuggestions(),
+      );
     }
 
-    _logger.info('Press Ctrl+C to stop monitoring\n');
+    return (
+      stats: statsTimer,
+      suggestions: suggestionsTimer,
+      troubleshooting: troubleshootingTimer,
+    );
+  }
 
-    try {
-      // Start adb logcat process
-      // In verbose mode, stream all output; otherwise filter to common
-      // FA/Crashlytics tags
-      final args = <String>['adb', 'logcat', '-v', 'time'];
-      if (!verbose) {
-        args.addAll([
-          '-s',
-          'FA',
-          'FA-SVC',
-          'FA-Ads',
-          'FirebaseCrashlytics',
-          'Crashlytics',
-        ]);
-      }
-      final process = await _processManager.start(args);
+  /// Cleans up all active timers.
+  void _cleanupTimers(
+    ({Timer? stats, Timer? suggestions, Timer troubleshooting}) timers,
+  ) {
+    timers.stats?.cancel();
+    timers.suggestions?.cancel();
+    timers.troubleshooting.cancel();
+  }
 
-      // If nothing shows up for a while, guide the user
-      // Using inline value (12 seconds) to allow const Duration
-      var sawRelevantLine = false;
-      Timer(const Duration(seconds: 12), () {
-        if (!sawRelevantLine) {
-          _logger
-            ..warn('No Firebase Analytics/Crashlytics logs detected yet...')
-            ..info('Troubleshooting steps:')
-            ..info('  1) Confirm device is connected: adb devices')
-            ..info('  2) Enable Analytics debug for your app:')
-            ..info(
-              '     adb shell setprop debug.firebase.analytics.app '
-              '<your.package>',
-            )
-            ..info('  3) Optionally raise FA log level:')
-            ..info('     adb shell setprop log.tag.FA VERBOSE')
-            ..info('     adb shell setprop log.tag.FA-SVC VERBOSE')
-            ..info('  4) Open your app and trigger events; then try again.');
-        }
-      });
+  /// Processes the logcat output stream.
+  Future<void> _processLogStream(
+    Process process,
+    ({
+      List<String> hideEvents,
+      List<String> showOnlyEvents,
+      bool showSuggestions,
+      bool showStats,
+      bool rawOutput,
+      bool noColor,
+      bool verbose,
+      String? enableDebugFor,
+      bool raiseLogLevels,
+    }) config,
+  ) async {
+    await for (final line in process.stdout
+        .transform(const Utf8Decoder(allowMalformed: true))
+        .transform(const LineSplitter())) {
+      _processLogLine(line, config);
+    }
+  }
 
-      // Setup periodic stats display if requested
-      // Using inline value (30 seconds) to allow const Duration
-      Timer? statsTimer;
-      if (showStats) {
-        statsTimer = Timer.periodic(
-          const Duration(seconds: 30),
-          (_) => _showSessionStats(),
-        );
-      }
+  /// Processes a single log line from logcat.
+  void _processLogLine(
+    String line,
+    ({
+      List<String> hideEvents,
+      List<String> showOnlyEvents,
+      bool showSuggestions,
+      bool showStats,
+      bool rawOutput,
+      bool noColor,
+      bool verbose,
+      String? enableDebugFor,
+      bool raiseLogLevels,
+    }) config,
+  ) {
+    // In verbose mode, print all Firebase-related lines
+    if (config.verbose && _firebaseLogPattern.hasMatch(line)) {
+      _logger.detail(line);
+    }
 
-      // Setup suggestions display if requested
-      // Using inline value (5 minutes) to allow const Duration
-      Timer? suggestionsTimer;
-      if (showSuggestions) {
-        suggestionsTimer = Timer.periodic(
-          const Duration(minutes: 5),
-          (_) => _showSmartSuggestions(),
-        );
-      }
+    final event = _logParser.parse(line);
+    if (event == null) return;
 
-      await for (final line in process.stdout
-          .transform(const Utf8Decoder(allowMalformed: true))
-          .transform(const LineSplitter())) {
-        // If verbose, print all Firebase Analytics/Crashlytics related lines
-        if (verbose) {
-          // Filter to only FA/Crashlytics noise to keep it relevant
-          final isFirebaseRelated = RegExp(
-            r'\bFA-SVC\b|\bFA\b|I/FA|D/FA|V/FA|W/FA|E/FA|FirebaseCrashlytics|Crashlytics',
-          ).hasMatch(line);
-          if (isFirebaseRelated) {
-            sawRelevantLine = true;
-            _logger.detail(line);
-          }
-        }
+    _eventCache.addEvent(event.eventName);
 
-        final event = _logParser.parse(line);
+    if (EventFilterUtils.shouldSkipEvent(
+      event.eventName,
+      config.hideEvents,
+      config.showOnlyEvents,
+    )) {
+      return;
+    }
 
-        if (event != null) {
-          // Add to cache for suggestions
-          _eventCache.addEvent(event.eventName);
+    _formatter
+      ..flushPending()
+      ..formatAndPrint(event);
+  }
 
-          // Apply filtering using shared utility
-          if (EventFilterUtils.shouldSkipEvent(
-            event.eventName,
-            hideEvents,
-            showOnlyEvents,
-          )) {
-            continue;
-          }
+  /// Shows troubleshooting tips when no logs are detected.
+  void _showTroubleshootingTips() {
+    _logger
+      ..warn('No Firebase Analytics/Crashlytics logs detected yet...')
+      ..info('Troubleshooting steps:')
+      ..info('  1) Confirm device is connected: adb devices')
+      ..info('  2) Enable Analytics debug for your app:')
+      ..info(
+        '     adb shell setprop debug.firebase.analytics.app '
+        '<your.package>',
+      )
+      ..info('  3) Optionally raise FA log level:')
+      ..info('     adb shell setprop log.tag.FA VERBOSE')
+      ..info('     adb shell setprop log.tag.FA-SVC VERBOSE')
+      ..info('  4) Open your app and trigger events; then try again.');
+  }
 
-          // Format and display the event
-          // Ensure any buffered grouped output is flushed at end
-          _formatter.flushPending();
-          sawRelevantLine = true;
-          _formatter.formatAndPrint(event);
-        }
-      }
-
-      // Cleanup timers
-      statsTimer?.cancel();
-      suggestionsTimer?.cancel();
-    } on Object catch (e) {
-      if (e.toString().contains('adb')) {
-        _logger
-          ..err('❌ Failed to start adb. Make sure:')
-          ..info('   1. Android SDK platform-tools are installed')
-          ..info('   2. adb is in your PATH')
-          ..info('   3. An Android device/emulator is connected')
-          ..info('   4. USB debugging is enabled');
-        return 1;
-      }
-
-      _logger.err('❌ Unexpected error: $e');
+  /// Handles errors from the monitoring process.
+  int _handleError(Object e) {
+    if (e.toString().contains('adb')) {
+      _logger
+        ..err('❌ Failed to start adb. Make sure:')
+        ..info('   1. Android SDK platform-tools are installed')
+        ..info('   2. adb is in your PATH')
+        ..info('   3. An Android device/emulator is connected')
+        ..info('   4. USB debugging is enabled');
       return 1;
     }
 
-    return 0;
+    _logger.err('❌ Unexpected error: $e');
+    return 1;
   }
 
   /// Display session statistics

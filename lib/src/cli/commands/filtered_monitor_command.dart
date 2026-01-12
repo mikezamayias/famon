@@ -259,13 +259,14 @@ class FilteredMonitorCommand extends Command<int> {
         for (final entry in stats.topEvents.entries) {
           if (count >= maxTopEventsToDisplay) break;
 
-          final shouldSkip = EventFilterUtils.shouldSkipEvent(
-                entry.key,
-                hideEvents,
-                showOnlyEvents,
-              ) ||
-              (minFrequency != null && entry.value < minFrequency) ||
-              (maxFrequency != null && entry.value > maxFrequency);
+          final shouldSkip = EventFilterUtils.shouldSkipEventWithFrequency(
+            entry.key,
+            hideEvents,
+            showOnlyEvents,
+            eventFrequency: entry.value,
+            minFrequency: minFrequency,
+            maxFrequency: maxFrequency,
+          );
 
           if (!shouldSkip) {
             _logger.info('   ${entry.key}: ${entry.value} occurrences');

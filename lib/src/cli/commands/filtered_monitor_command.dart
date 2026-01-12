@@ -322,6 +322,16 @@ class FilteredMonitorCommand extends Command<int> {
     }
   }
 
+  /// Validates that a name follows Firebase Analytics naming conventions.
+  /// Names must be alphanumeric with underscores, start with a letter,
+  /// and be 1-40 characters long.
+  bool _isValidFirebaseName(String name) {
+    if (name.isEmpty || name.length > 40) return false;
+    // Must start with a letter and contain only alphanumeric/underscores
+    final validNamePattern = RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*$');
+    return validNamePattern.hasMatch(name);
+  }
+
   Map<String, Map<String, String>> _parseCustomParameters(
     List<String> customParams,
   ) {
@@ -329,14 +339,57 @@ class FilteredMonitorCommand extends Command<int> {
 
     for (final param in customParams) {
       final parts = param.split(':');
-      if (parts.length == 3) {
-        final eventName = parts[0];
-        final paramName = parts[1];
-        final paramValue = parts[2];
-
-        result.putIfAbsent(eventName, () => <String, String>{});
-        result[eventName]![paramName] = paramValue;
+      if (parts.length != 3) {
+        _logger.warn(
+          'Invalid parameter format: "$param". '
+          'Expected format: "event_name:param_name:param_value"',
+        );
+        continue;
       }
+
+      final eventName = parts[0].trim();
+      final paramName = parts[1].trim();
+      final paramValue = parts[2].trim();
+
+      // Validate event name
+      if (!_isValidFirebaseName(eventName)) {
+        _logger.warn(
+          'Invalid event name: "$eventName". '
+          'Must be 1-40 alphanumeric characters starting with a letter.',
+        );
+        continue;
+      }
+
+      // Validate parameter name
+      if (!_isValidFirebaseName(paramName)) {
+        _logger.warn(
+          'Invalid parameter name: "$paramName". '
+          'Must be 1-40 alphanumeric characters starting with a letter.',
+        );
+        continue;
+      }
+
+      // Validate parameter value is not empty
+      if (paramValue.isEmpty) {
+        _logger.warn(
+          'Empty parameter value for "$eventName:$paramName". Skipping.',
+        );
+        continue;
+      }
+
+      // Validate parameter value length (Firebase limit is 100 chars)
+      if (paramValue.length > 100) {
+        _logger.warn(
+          'Parameter value too long for "$eventName:$paramName" '
+          '(max 100 characters). Truncating.',
+        );
+        result.putIfAbsent(eventName, () => <String, String>{});
+        result[eventName]![paramName] = paramValue.substring(0, 100);
+        continue;
+      }
+
+      result.putIfAbsent(eventName, () => <String, String>{});
+      result[eventName]![paramName] = paramValue;
     }
 
     return result;
@@ -363,7 +416,18 @@ class FilteredMonitorCommand extends Command<int> {
   int? _parseIntOption(String optionName) {
     final value = argResults?[optionName] as String?;
     if (value == null) return null;
-    return int.tryParse(value);
+    final parsed = int.tryParse(value);
+    if (parsed == null) {
+      _logger.warn('Invalid integer value for --$optionName: "$value"');
+      return null;
+    }
+    if (parsed < 0) {
+      _logger.warn(
+        'Negative value for --$optionName: $parsed. Using 0 instead.',
+      );
+      return 0;
+    }
+    return parsed;
   }
 
   DateTime? _parseDateOption(String optionName) {

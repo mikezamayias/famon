@@ -24,3 +24,7 @@ const int statsDisplayIntervalSeconds = 30;
 
 /// Suggestions display interval in minutes
 const int suggestionsDisplayIntervalMinutes = 2;
+
+/// Delay in milliseconds between sequential adb commands to prevent
+/// overwhelming devices with rapid commands
+const int adbCommandDelayMs = 100;

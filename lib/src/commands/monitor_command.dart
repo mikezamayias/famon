@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:args/command_runner.dart';
+import 'package:firebase_analytics_monitor/src/constants.dart';
 import 'package:firebase_analytics_monitor/src/services/event_formatter_service.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
@@ -334,8 +335,11 @@ class MonitorCommand extends Command<int> {
 
     _logger.detail('Raising FA/Crashlytics log levels to VERBOSE...');
     await setLevel('FA');
+    await Future<void>.delayed(const Duration(milliseconds: adbCommandDelayMs));
     await setLevel('FA-SVC');
+    await Future<void>.delayed(const Duration(milliseconds: adbCommandDelayMs));
     await setLevel('FirebaseCrashlytics');
+    await Future<void>.delayed(const Duration(milliseconds: adbCommandDelayMs));
     await setLevel('Crashlytics');
   }
 }

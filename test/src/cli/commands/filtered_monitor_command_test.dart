@@ -27,6 +27,8 @@ class MockProcess extends Mock implements Process {}
 
 class FakeAnalyticsEvent extends Fake implements AnalyticsEvent {}
 
+class FakeProcessSignal extends Fake implements ProcessSignal {}
+
 void main() {
   group('FilteredMonitorCommand', () {
     late MockLogger mockLogger;
@@ -39,6 +41,7 @@ void main() {
 
     setUpAll(() {
       registerFallbackValue(FakeAnalyticsEvent());
+      registerFallbackValue(FakeProcessSignal());
     });
 
     setUp(() {

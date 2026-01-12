@@ -84,7 +84,7 @@ class _BackupSubcommand extends Command<int> {
 
       _logger.success('Backup created successfully: $filePath');
       return 0;
-    } catch (e) {
+    } on Object catch (e) {
       _logger.err('Failed to create backup: $e');
       return 1;
     }
@@ -127,7 +127,7 @@ class _RestoreSubcommand extends Command<int> {
 
       _logger.success('Database restored successfully');
       return 0;
-    } catch (e) {
+    } on Object catch (e) {
       _logger.err('Failed to restore backup: $e');
       return 1;
     }
@@ -203,7 +203,7 @@ class _ExportSubcommand extends Command<int> {
 
       _logger.success('Data exported successfully to: $outputPath');
       return 0;
-    } catch (e) {
+    } on Object catch (e) {
       _logger.err('Failed to export data: $e');
       return 1;
     }
@@ -246,7 +246,7 @@ class _ImportSubcommand extends Command<int> {
 
       _logger.success('Data imported successfully');
       return 0;
-    } catch (e) {
+    } on Object catch (e) {
       _logger.err('Failed to import data: $e');
       return 1;
     }
@@ -291,7 +291,7 @@ class _ClearSubcommand extends Command<int> {
 
       _logger.success('Database cleared successfully');
       return 0;
-    } catch (e) {
+    } on Object catch (e) {
       _logger.err('Failed to clear database: $e');
       return 1;
     }
@@ -332,7 +332,7 @@ class _InfoSubcommand extends Command<int> {
       }
 
       return 0;
-    } catch (e) {
+    } on Object catch (e) {
       _logger.err('Failed to get database info: $e');
       return 1;
     }

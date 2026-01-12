@@ -31,7 +31,7 @@
 /// # Filter events
 /// famon monitor --hide screen_view --show-only my_event
 /// ```
-library firebase_analytics_monitor;
+library;
 
 // Core domain entity
 export 'src/core/domain/entities/analytics_event.dart';

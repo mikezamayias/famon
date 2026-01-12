@@ -243,7 +243,7 @@ class MonitorCommand extends Command<int> {
       // Cleanup timers
       statsTimer?.cancel();
       suggestionsTimer?.cancel();
-    } catch (e) {
+    } on Object catch (e) {
       if (e.toString().contains('adb')) {
         _logger
           ..err('❌ Failed to start adb. Make sure:')
@@ -311,7 +311,7 @@ class MonitorCommand extends Command<int> {
         packageName,
       ]);
       await proc.exitCode;
-    } catch (e) {
+    } on Object catch (e) {
       _logger.warn('Failed to enable analytics debug: $e');
     }
   }
@@ -327,7 +327,7 @@ class MonitorCommand extends Command<int> {
           'VERBOSE',
         ]);
         await p.exitCode;
-      } catch (e) {
+      } on Object catch (e) {
         _logger.warn('Failed to set log level for $tag: $e');
       }
     }

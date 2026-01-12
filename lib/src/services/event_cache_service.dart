@@ -52,7 +52,7 @@ class EventCacheService implements EventCacheInterface {
       return List.unmodifiable(
         _uniqueEventNames.where(regex.hasMatch).toList()..sort(),
       );
-    } catch (e) {
+    } on Object catch (e) {
       _logger?.detail('Invalid regex pattern in searchEvents: $e');
       return [];
     }

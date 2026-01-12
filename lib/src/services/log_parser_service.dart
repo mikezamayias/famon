@@ -181,7 +181,7 @@ class LogParserService implements LogParserInterface {
       if (params.length < 3 && cleanParamsString.isNotEmpty) {
         _parseParamsAggressive(cleanParamsString, params);
       }
-    } catch (e) {
+    } on Object catch (e) {
       _logger?.detail('Parameter parsing error: $e');
     }
 
@@ -255,7 +255,7 @@ class LogParserService implements LogParserInterface {
           }
         }
       }
-    } catch (e) {
+    } on Object catch (e) {
       _logger?.detail('Items parsing error: $e');
     }
 

@@ -259,8 +259,7 @@ class FilteredMonitorCommand extends Command<int> {
         for (final entry in stats.topEvents.entries) {
           if (count >= maxTopEventsToDisplay) break;
 
-          final shouldSkip =
-              EventFilterUtils.shouldSkipEvent(
+          final shouldSkip = EventFilterUtils.shouldSkipEvent(
                 entry.key,
                 hideEvents,
                 showOnlyEvents,

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:firebase_analytics_monitor/src/services/event_formatter_service.dart';
@@ -243,18 +244,34 @@ class MonitorCommand extends Command<int> {
       // Cleanup timers
       statsTimer?.cancel();
       suggestionsTimer?.cancel();
-    } on Object catch (e) {
-      if (e.toString().contains('adb')) {
-        _logger
-          ..err('❌ Failed to start adb. Make sure:')
-          ..info('   1. Android SDK platform-tools are installed')
-          ..info('   2. adb is in your PATH')
-          ..info('   3. An Android device/emulator is connected')
-          ..info('   4. USB debugging is enabled');
-        return 1;
-      }
-
-      _logger.err('❌ Unexpected error: $e');
+    } on ProcessException catch (e, stackTrace) {
+      // Handle adb process failures with specific guidance
+      _logger
+        ..err('❌ Failed to start adb. Make sure:')
+        ..info('   1. Android SDK platform-tools are installed')
+        ..info('   2. adb is in your PATH')
+        ..info('   3. An Android device/emulator is connected')
+        ..info('   4. USB debugging is enabled')
+        ..detail('Process error: ${e.message}')
+        ..detail('Stack trace: $stackTrace');
+      return 1;
+    } on IOException catch (e, stackTrace) {
+      // Handle I/O errors (connection issues, pipe broken, etc.)
+      _logger
+        ..err('❌ I/O error while communicating with adb: $e')
+        ..detail('Stack trace: $stackTrace');
+      return 1;
+    } on FormatException catch (e, stackTrace) {
+      // Handle malformed data from logcat
+      _logger
+        ..err('❌ Failed to parse logcat output: $e')
+        ..detail('Stack trace: $stackTrace');
+      return 1;
+    } on Exception catch (e, stackTrace) {
+      // Handle other known exceptions
+      _logger
+        ..err('❌ Unexpected error: $e')
+        ..detail('Stack trace: $stackTrace');
       return 1;
     }
 
@@ -311,8 +328,14 @@ class MonitorCommand extends Command<int> {
         packageName,
       ]);
       await proc.exitCode;
-    } on Object catch (e) {
-      _logger.warn('Failed to enable analytics debug: $e');
+    } on ProcessException catch (e, stackTrace) {
+      _logger
+        ..warn('Failed to enable analytics debug: ${e.message}')
+        ..detail('Stack trace: $stackTrace');
+    } on IOException catch (e, stackTrace) {
+      _logger
+        ..warn('I/O error enabling analytics debug: $e')
+        ..detail('Stack trace: $stackTrace');
     }
   }
 
@@ -327,8 +350,14 @@ class MonitorCommand extends Command<int> {
           'VERBOSE',
         ]);
         await p.exitCode;
-      } on Object catch (e) {
-        _logger.warn('Failed to set log level for $tag: $e');
+      } on ProcessException catch (e, stackTrace) {
+        _logger
+          ..warn('Failed to set log level for $tag: ${e.message}')
+          ..detail('Stack trace: $stackTrace');
+      } on IOException catch (e, stackTrace) {
+        _logger
+          ..warn('I/O error setting log level for $tag: $e')
+          ..detail('Stack trace: $stackTrace');
       }
     }
 

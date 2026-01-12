@@ -17,9 +17,7 @@ coverage/
 # Android studio and IntelliJ
 .idea
 
-# Generated Dart files
-*.g.dart
-*.config.dart
+# Generated Dart files (freezed only - g.dart and config.dart are committed for pub.dev)
 *.freezed.dart
 
 # Binary files

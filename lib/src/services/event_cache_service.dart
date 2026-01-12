@@ -31,7 +31,7 @@ class EventCacheService implements EventCacheInterface {
   List<String> getEventsByFrequency() {
     final entries = _eventCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    return List.unmodifiable(entries.map((e) => e.key).toList());
+    return List.unmodifiable(entries.map((e) => e.key));
   }
 
   @override
@@ -40,7 +40,7 @@ class EventCacheService implements EventCacheInterface {
   @override
   List<String> getTopEvents(int count) {
     if (count < 0) return [];
-    return List.unmodifiable(getEventsByFrequency().take(count).toList());
+    return List.unmodifiable(getEventsByFrequency().take(count));
   }
 
   @override
@@ -63,8 +63,7 @@ class EventCacheService implements EventCacheInterface {
     return List.unmodifiable(
       _eventCounts.entries
           .where((entry) => entry.value > defaultHideThreshold)
-          .map((entry) => entry.key)
-          .toList(),
+          .map((entry) => entry.key),
     );
   }
 

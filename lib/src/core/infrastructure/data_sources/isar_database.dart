@@ -29,7 +29,7 @@ class IsarDatabase {
 
     final homeDir = Platform.environment['HOME'] ??
         Platform.environment['USERPROFILE'] ??
-        '.';
+        Directory.systemTemp.path;
     final dbDir = path.join(homeDir, '.firebase_analytics_monitor');
     final dir = Directory(dbDir);
 

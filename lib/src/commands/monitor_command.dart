@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:args/command_runner.dart';
+import 'package:firebase_analytics_monitor/src/constants.dart';
 import 'package:firebase_analytics_monitor/src/services/event_formatter_service.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
@@ -162,9 +163,8 @@ class MonitorCommand extends Command<int> {
       final process = await _processManager.start(args);
 
       // If nothing shows up for a while, guide the user
-      // Using inline value (12 seconds) to allow const Duration
       var sawRelevantLine = false;
-      Timer(const Duration(seconds: 12), () {
+      Timer(troubleshootingTimeout, () {
         if (!sawRelevantLine) {
           _logger
             ..warn('No Firebase Analytics/Crashlytics logs detected yet...')
@@ -183,21 +183,19 @@ class MonitorCommand extends Command<int> {
       });
 
       // Setup periodic stats display if requested
-      // Using inline value (30 seconds) to allow const Duration
       Timer? statsTimer;
       if (showStats) {
         statsTimer = Timer.periodic(
-          const Duration(seconds: 30),
+          statsDisplayInterval,
           (_) => _showSessionStats(),
         );
       }
 
       // Setup suggestions display if requested
-      // Using inline value (5 minutes) to allow const Duration
       Timer? suggestionsTimer;
       if (showSuggestions) {
         suggestionsTimer = Timer.periodic(
-          const Duration(minutes: 5),
+          suggestionsDisplayInterval,
           (_) => _showSmartSuggestions(),
         );
       }
@@ -280,7 +278,7 @@ class MonitorCommand extends Command<int> {
 
   /// Display smart suggestions based on session data
   void _showSmartSuggestions() {
-    final topEvents = _eventCache.getTopEvents(5);
+    final topEvents = _eventCache.getTopEvents(topEventsForSuggestions);
     final suggestedToHide = _eventCache.getSuggestedToHide();
 
     if (topEvents.isNotEmpty) {

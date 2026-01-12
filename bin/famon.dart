@@ -6,7 +6,7 @@ import 'package:firebase_analytics_monitor/src/injection.dart';
 Future<void> main(List<String> args) async {
   // Initialize dependency injection
   await configureDependencies();
-  
+
   await _flushThenExit(await FirebaseAnalyticsMonitorCommandRunner().run(args));
 }
 

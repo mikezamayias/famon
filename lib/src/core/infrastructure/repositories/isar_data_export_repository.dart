@@ -289,7 +289,7 @@ class IsarDataExportRepository implements DataExportRepository {
       return data.containsKey('version') &&
           data.containsKey('exportTimestamp') &&
           data.containsKey('data');
-    } catch (e) {
+    } on Object catch (_) {
       return false;
     }
   }

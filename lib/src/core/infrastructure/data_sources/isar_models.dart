@@ -115,7 +115,7 @@ class IsarEventMetadata {
   /// Average number of parameters per event.
   late int averageParameterCount;
 
-  /// JSON-serialized Map<String, int> of parameter frequencies.
+  /// JSON-serialized `Map<String, int>` of parameter frequencies.
   late String commonParametersJson;
 
   /// Whether this event is hidden from display.

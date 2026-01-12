@@ -13,7 +13,7 @@ dependencies:
   get_it: ">=7.6.7 <10.0.0"
   injectable: ^2.3.5
   isar: ^3.1.0+1
-  mason_logger: ^0.2.11
+  mason_logger: ">=0.2.11 <0.4.0"
   path: ^1.8.3
   process: ^5.0.2
   pub_updater: ">=0.4.0 <0.6.0"

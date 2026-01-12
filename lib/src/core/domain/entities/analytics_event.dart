@@ -92,12 +92,12 @@ class AnalyticsEvent extends Equatable {
 
   /// A string representation of the timestamp for display purposes.
   ///
-  /// Prefers the [rawTimestamp] if available; otherwise falls back to a 
+  /// Prefers the [rawTimestamp] if available; otherwise falls back to a
   /// formatted substring of [timestamp].
   String get displayTimestamp =>
       rawTimestamp ?? timestamp.toString().substring(11, 23);
 
-  /// Creates a copy of this [AnalyticsEvent] with the given fields replaced 
+  /// Creates a copy of this [AnalyticsEvent] with the given fields replaced
   /// with the new values.
   AnalyticsEvent copyWith({
     String? id,

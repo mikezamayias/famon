@@ -25,9 +25,9 @@ void main() {
       final progressLogs = <String>[];
       pubUpdater = MockPubUpdater();
       logger = MockLogger();
-      
+
       await setUpTestDependencies(logger: logger, pubUpdater: pubUpdater);
-      
+
       commandRunner = FirebaseAnalyticsMonitorCommandRunner(
         logger: logger,
         pubUpdater: pubUpdater,

@@ -209,7 +209,7 @@ class FilteredMonitorCommand extends Command<int> {
           }
         }
       }
-    } catch (e) {
+    } on Object catch (e) {
       if (e.toString().contains('adb')) {
         _logger
           ..err('❌ Failed to start adb. Make sure:')
@@ -259,8 +259,7 @@ class FilteredMonitorCommand extends Command<int> {
         for (final entry in stats.topEvents.entries) {
           if (count >= maxTopEventsToDisplay) break;
 
-          final shouldSkip =
-              EventFilterUtils.shouldSkipEvent(
+          final shouldSkip = EventFilterUtils.shouldSkipEvent(
                 entry.key,
                 hideEvents,
                 showOnlyEvents,
@@ -296,7 +295,7 @@ class FilteredMonitorCommand extends Command<int> {
       }
 
       return 0;
-    } catch (e) {
+    } on Object catch (e) {
       _logger.err('❌ Failed to get statistics: $e');
       return 1;
     }
@@ -317,7 +316,7 @@ class FilteredMonitorCommand extends Command<int> {
       if (maxFrequency != null && eventFrequency > maxFrequency) return true;
 
       return false;
-    } catch (e) {
+    } on Object catch (e) {
       _logger.detail('Failed to get frequency data: $e');
       return false;
     }

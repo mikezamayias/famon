@@ -24,3 +24,6 @@ const int statsDisplayIntervalSeconds = 30;
 
 /// Suggestions display interval in minutes
 const int suggestionsDisplayIntervalMinutes = 2;
+
+/// Timeout in seconds for adb connection
+const int adbConnectionTimeoutSeconds = 30;

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:firebase_analytics_monitor/src/constants.dart';
@@ -154,9 +155,12 @@ class FilteredMonitorCommand extends Command<int> {
 
     _logger.info('📱 Connecting to adb logcat...');
 
+    Process? adbProcess;
+    StreamSubscription<ProcessSignal>? sigintSubscription;
+
     try {
       // Start adb logcat process
-      final process = await _processManager.start([
+      adbProcess = await _processManager.start([
         'adb',
         'logcat',
         '-v',
@@ -165,8 +169,14 @@ class FilteredMonitorCommand extends Command<int> {
         'FA-SVC',
       ]);
 
+      // Handle Ctrl+C gracefully
+      sigintSubscription = ProcessSignal.sigint.watch().listen((_) {
+        _logger.info('\n🛑 Stopping monitor...');
+        adbProcess?.kill();
+      });
+
       var eventCount = 0;
-      await for (final line in process.stdout
+      await for (final line in adbProcess.stdout
           .transform(const Utf8Decoder(allowMalformed: true))
           .transform(const LineSplitter())) {
         final event = _logParser.parse(line);
@@ -222,6 +232,10 @@ class FilteredMonitorCommand extends Command<int> {
 
       _logger.err('❌ Unexpected error: $e');
       return 1;
+    } finally {
+      // Cleanup all resources
+      unawaited(sigintSubscription?.cancel());
+      adbProcess?.kill();
     }
 
     return 0;

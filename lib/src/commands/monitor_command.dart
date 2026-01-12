@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:firebase_analytics_monitor/src/services/event_formatter_service.dart';
@@ -144,6 +145,12 @@ class MonitorCommand extends Command<int> {
 
     _logger.info('Press Ctrl+C to stop monitoring\n');
 
+    Process? adbProcess;
+    Timer? troubleshootingTimer;
+    Timer? statsTimer;
+    Timer? suggestionsTimer;
+    StreamSubscription<ProcessSignal>? sigintSubscription;
+
     try {
       // Start adb logcat process
       // In verbose mode, stream all output; otherwise filter to common
@@ -159,12 +166,18 @@ class MonitorCommand extends Command<int> {
           'Crashlytics',
         ]);
       }
-      final process = await _processManager.start(args);
+      adbProcess = await _processManager.start(args);
+
+      // Handle Ctrl+C gracefully
+      sigintSubscription = ProcessSignal.sigint.watch().listen((_) {
+        _logger.info('\n🛑 Stopping monitor...');
+        adbProcess?.kill();
+      });
 
       // If nothing shows up for a while, guide the user
       // Using inline value (12 seconds) to allow const Duration
       var sawRelevantLine = false;
-      Timer(const Duration(seconds: 12), () {
+      troubleshootingTimer = Timer(const Duration(seconds: 12), () {
         if (!sawRelevantLine) {
           _logger
             ..warn('No Firebase Analytics/Crashlytics logs detected yet...')
@@ -184,7 +197,6 @@ class MonitorCommand extends Command<int> {
 
       // Setup periodic stats display if requested
       // Using inline value (30 seconds) to allow const Duration
-      Timer? statsTimer;
       if (showStats) {
         statsTimer = Timer.periodic(
           const Duration(seconds: 30),
@@ -194,7 +206,6 @@ class MonitorCommand extends Command<int> {
 
       // Setup suggestions display if requested
       // Using inline value (5 minutes) to allow const Duration
-      Timer? suggestionsTimer;
       if (showSuggestions) {
         suggestionsTimer = Timer.periodic(
           const Duration(minutes: 5),
@@ -202,7 +213,7 @@ class MonitorCommand extends Command<int> {
         );
       }
 
-      await for (final line in process.stdout
+      await for (final line in adbProcess.stdout
           .transform(const Utf8Decoder(allowMalformed: true))
           .transform(const LineSplitter())) {
         // If verbose, print all Firebase Analytics/Crashlytics related lines
@@ -239,10 +250,6 @@ class MonitorCommand extends Command<int> {
           _formatter.formatAndPrint(event);
         }
       }
-
-      // Cleanup timers
-      statsTimer?.cancel();
-      suggestionsTimer?.cancel();
     } on Object catch (e) {
       if (e.toString().contains('adb')) {
         _logger
@@ -256,6 +263,13 @@ class MonitorCommand extends Command<int> {
 
       _logger.err('❌ Unexpected error: $e');
       return 1;
+    } finally {
+      // Cleanup all resources
+      unawaited(sigintSubscription?.cancel());
+      troubleshootingTimer?.cancel();
+      statsTimer?.cancel();
+      suggestionsTimer?.cancel();
+      adbProcess?.kill();
     }
 
     return 0;

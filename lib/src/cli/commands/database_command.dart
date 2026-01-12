@@ -280,8 +280,17 @@ class _ClearSubcommand extends Command<int> {
         _logger
             .warn('This will permanently delete all data from the database.');
         stdout.write('Are you sure? (y/N): ');
-        final input = stdin.readLineSync()?.toLowerCase();
-        if (input != 'y' && input != 'yes') {
+        final input = stdin.readLineSync();
+
+        // Handle null input (EOF or non-interactive environment)
+        if (input == null) {
+          _logger.warn(
+            'No input received. Use --confirm flag in non-interactive mode.',
+          );
+          return 1;
+        }
+
+        if (input.toLowerCase() != 'y' && input.toLowerCase() != 'yes') {
           _logger.info('Operation cancelled.');
           return 0;
         }

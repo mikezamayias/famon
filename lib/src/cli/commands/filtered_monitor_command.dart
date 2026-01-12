@@ -227,6 +227,10 @@ class FilteredMonitorCommand extends Command<int> {
     return 0;
   }
 
+  /// Displays database statistics without starting live monitoring.
+  ///
+  /// Shows event counts, date ranges, and frequency-based suggestions.
+  /// Applies the same filtering rules as live monitoring to the statistics.
   Future<int> _showStatsOnly({
     required List<String> hideEvents,
     required List<String> showOnlyEvents,
@@ -301,6 +305,11 @@ class FilteredMonitorCommand extends Command<int> {
     }
   }
 
+  /// Determines if an event should be filtered based on frequency thresholds.
+  ///
+  /// Returns `true` if the event's historical frequency falls outside the
+  /// specified `minFrequency` and `maxFrequency` bounds. Returns `false` if
+  /// no frequency filters are set or if the frequency data is unavailable.
   Future<bool> _shouldSkipByFrequency(
     String eventName,
     int? minFrequency,
@@ -322,6 +331,11 @@ class FilteredMonitorCommand extends Command<int> {
     }
   }
 
+  /// Parses custom parameter strings into a structured map.
+  ///
+  /// Expects parameters in the format "event_name:param_name:param_value".
+  /// Returns a map where keys are event names and values are maps of
+  /// parameter name-value pairs to add to matching events.
   Map<String, Map<String, String>> _parseCustomParameters(
     List<String> customParams,
   ) {
@@ -342,6 +356,11 @@ class FilteredMonitorCommand extends Command<int> {
     return result;
   }
 
+  /// Adds custom parameters to an event if matching rules exist.
+  ///
+  /// Merges custom parameters from `customParamMap` into the event's
+  /// `manualParameters` field if the event name has associated custom params.
+  /// Returns the original event if no custom parameters apply.
   AnalyticsEvent _addCustomParameters(
     AnalyticsEvent event,
     Map<String, Map<String, String>> customParamMap,
@@ -360,12 +379,19 @@ class FilteredMonitorCommand extends Command<int> {
     );
   }
 
+  /// Parses an integer option from command-line arguments.
+  ///
+  /// Returns `null` if the option was not provided or cannot be parsed.
   int? _parseIntOption(String optionName) {
     final value = argResults?[optionName] as String?;
     if (value == null) return null;
     return int.tryParse(value);
   }
 
+  /// Parses a date option from command-line arguments.
+  ///
+  /// Expects ISO 8601 format. Returns `null` if the option was not provided
+  /// or cannot be parsed.
   DateTime? _parseDateOption(String optionName) {
     final value = argResults?[optionName] as String?;
     if (value == null) return null;

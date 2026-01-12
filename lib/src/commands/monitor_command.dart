@@ -300,6 +300,12 @@ class MonitorCommand extends Command<int> {
     }
   }
 
+  /// Enables Firebase Analytics debug mode for the specified package.
+  ///
+  /// Runs `adb shell setprop debug.firebase.analytics.app [packageName]`
+  /// to enable verbose Analytics logging on the connected device.
+  ///
+  /// Logs a warning if the operation fails but does not throw.
   Future<void> _enableAnalyticsDebug(String packageName) async {
     try {
       _logger.detail('Enabling Analytics debug for $packageName...');
@@ -316,6 +322,15 @@ class MonitorCommand extends Command<int> {
     }
   }
 
+  /// Raises log levels for Firebase Analytics and Crashlytics to VERBOSE.
+  ///
+  /// Sets the following log tags to VERBOSE level via adb:
+  /// - FA (Firebase Analytics)
+  /// - FA-SVC (Firebase Analytics Service)
+  /// - FirebaseCrashlytics
+  /// - Crashlytics
+  ///
+  /// Logs warnings for any tags that fail to update but continues with others.
   Future<void> _raiseFaLogLevels() async {
     Future<void> setLevel(String tag) async {
       try {

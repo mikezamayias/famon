@@ -52,6 +52,9 @@ class EventFormatterService {
     }
   }
 
+  /// Prints the event in a simple pipe-delimited format.
+  ///
+  /// Output format: "timestamp | eventName | {parameters}"
   void _printRaw(AnalyticsEvent event) {
     final timestamp = event.displayTimestamp;
     final eventName = event.eventName;
@@ -59,6 +62,10 @@ class EventFormatterService {
     _logger.info('$timestamp | $eventName | $params');
   }
 
+  /// Prints the event with structured formatting and optional colors.
+  ///
+  /// Displays timestamp, event name, parameters, and items in a
+  /// hierarchical, human-readable format.
   void _printFormatted(AnalyticsEvent event) {
     final timestamp = event.displayTimestamp;
     final eventName = event.eventName;
@@ -108,6 +115,10 @@ class EventFormatterService {
     _faBufParams.clear();
   }
 
+  /// Buffers FA invalid parameter warnings for grouped output.
+  ///
+  /// Warnings occurring within a short time window are accumulated and
+  /// printed together rather than individually, reducing output noise.
   void _bufferFaWarning(AnalyticsEvent event) {
     final tsStr = event.rawTimestamp ?? event.displayTimestamp;
     final ts = parseLogcatTimestamp(tsStr);
@@ -129,6 +140,10 @@ class EventFormatterService {
     }
   }
 
+  /// Outputs all buffered FA warnings and clears the buffer.
+  ///
+  /// Prints a grouped summary of invalid parameters with the time range
+  /// they were recorded, then resets the internal tracking state.
   void _flushFaWarningBuffer() {
     if (_faBufParams.isEmpty) return;
 

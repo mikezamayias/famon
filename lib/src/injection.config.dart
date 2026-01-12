@@ -9,28 +9,30 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:firebase_analytics_monitor/src/cli/commands/database_command.dart'
-    as _i20;
+    as _i21;
 import 'package:firebase_analytics_monitor/src/cli/commands/filtered_monitor_command.dart'
-    as _i19;
+    as _i20;
 import 'package:firebase_analytics_monitor/src/commands/monitor_command.dart'
-    as _i17;
-import 'package:firebase_analytics_monitor/src/core/application/services/event_filter_service.dart'
     as _i18;
-import 'package:firebase_analytics_monitor/src/core/application/use_cases/export_data_use_case.dart'
-    as _i15;
-import 'package:firebase_analytics_monitor/src/core/application/use_cases/import_data_use_case.dart'
-    as _i16;
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/data_export_repository.dart'
+import 'package:firebase_analytics_monitor/src/commands/update_command.dart'
     as _i11;
+import 'package:firebase_analytics_monitor/src/core/application/services/event_filter_service.dart'
+    as _i19;
+import 'package:firebase_analytics_monitor/src/core/application/use_cases/export_data_use_case.dart'
+    as _i16;
+import 'package:firebase_analytics_monitor/src/core/application/use_cases/import_data_use_case.dart'
+    as _i17;
+import 'package:firebase_analytics_monitor/src/core/domain/repositories/data_export_repository.dart'
+    as _i12;
 import 'package:firebase_analytics_monitor/src/core/domain/repositories/event_repository.dart'
-    as _i13;
+    as _i14;
 import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/isar_database.dart'
     as _i6;
 import 'package:firebase_analytics_monitor/src/core/infrastructure/repositories/isar_data_export_repository.dart'
-    as _i12;
+    as _i13;
 import 'package:firebase_analytics_monitor/src/core/infrastructure/repositories/isar_event_repository.dart'
-    as _i14;
-import 'package:firebase_analytics_monitor/src/di/register_module.dart' as _i21;
+    as _i15;
+import 'package:firebase_analytics_monitor/src/di/register_module.dart' as _i22;
 import 'package:firebase_analytics_monitor/src/services/event_cache_service.dart'
     as _i4;
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart'
@@ -65,38 +67,42 @@ extension GetItInjectableX on _i1.GetIt {
     gh.singleton<_i5.Logger>(() => registerModule.logger);
     gh.singleton<_i9.ProcessManager>(() => registerModule.processManager);
     gh.singleton<_i10.PubUpdater>(() => registerModule.pubUpdater);
-    gh.factory<_i11.DataExportRepository>(
-        () => _i12.IsarDataExportRepository(database: gh<_i6.IsarDatabase>()));
-    gh.factory<_i13.EventRepository>(
-        () => _i14.IsarEventRepository(database: gh<_i6.IsarDatabase>()));
-    gh.factory<_i15.ExportDataUseCase>(
-        () => _i15.ExportDataUseCase(gh<_i11.DataExportRepository>()));
-    gh.factory<_i16.ImportDataUseCase>(
-        () => _i16.ImportDataUseCase(gh<_i11.DataExportRepository>()));
-    gh.factory<_i17.MonitorCommand>(() => _i17.MonitorCommand(
+    gh.factory<_i11.UpdateCommand>(() => _i11.UpdateCommand(
+          logger: gh<_i5.Logger>(),
+          pubUpdater: gh<_i10.PubUpdater>(),
+        ));
+    gh.factory<_i12.DataExportRepository>(
+        () => _i13.IsarDataExportRepository(database: gh<_i6.IsarDatabase>()));
+    gh.factory<_i14.EventRepository>(
+        () => _i15.IsarEventRepository(database: gh<_i6.IsarDatabase>()));
+    gh.factory<_i16.ExportDataUseCase>(
+        () => _i16.ExportDataUseCase(gh<_i12.DataExportRepository>()));
+    gh.factory<_i17.ImportDataUseCase>(
+        () => _i17.ImportDataUseCase(gh<_i12.DataExportRepository>()));
+    gh.factory<_i18.MonitorCommand>(() => _i18.MonitorCommand(
           logger: gh<_i5.Logger>(),
           processManager: gh<_i9.ProcessManager>(),
           logParser: gh<_i7.LogParserInterface>(),
           eventCache: gh<_i3.EventCacheInterface>(),
         ));
-    gh.factory<_i18.EventFilterService>(() =>
-        _i18.EventFilterService(eventRepository: gh<_i13.EventRepository>()));
-    gh.factory<_i19.FilteredMonitorCommand>(() => _i19.FilteredMonitorCommand(
+    gh.factory<_i19.EventFilterService>(() =>
+        _i19.EventFilterService(eventRepository: gh<_i14.EventRepository>()));
+    gh.factory<_i20.FilteredMonitorCommand>(() => _i20.FilteredMonitorCommand(
           logger: gh<_i5.Logger>(),
           processManager: gh<_i9.ProcessManager>(),
           logParser: gh<_i7.LogParserInterface>(),
-          filterService: gh<_i18.EventFilterService>(),
-          eventRepository: gh<_i13.EventRepository>(),
+          filterService: gh<_i19.EventFilterService>(),
+          eventRepository: gh<_i14.EventRepository>(),
         ));
-    gh.factory<_i20.DatabaseCommand>(() => _i20.DatabaseCommand(
+    gh.factory<_i21.DatabaseCommand>(() => _i21.DatabaseCommand(
           logger: gh<_i5.Logger>(),
           database: gh<_i6.IsarDatabase>(),
-          exportUseCase: gh<_i15.ExportDataUseCase>(),
-          importUseCase: gh<_i16.ImportDataUseCase>(),
-          filterService: gh<_i18.EventFilterService>(),
+          exportUseCase: gh<_i16.ExportDataUseCase>(),
+          importUseCase: gh<_i17.ImportDataUseCase>(),
+          filterService: gh<_i19.EventFilterService>(),
         ));
     return this;
   }
 }
 
-class _$RegisterModule extends _i21.RegisterModule {}
+class _$RegisterModule extends _i22.RegisterModule {}

@@ -1,12 +1,12 @@
 import 'package:firebase_analytics_monitor/src/constants.dart';
 import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/shared/log_timestamp_parser.dart';
+import 'package:firebase_analytics_monitor/src/services/fa_warning_buffer.dart';
 import 'package:mason_logger/mason_logger.dart';
 
-/// Unified service for formatting and printing analytics events to the console.
+/// Service for formatting and printing analytics events to the console.
 ///
-/// Combines the functionality of LogFormatterService (FA warning buffering)
-/// and CliFormatter (color support, raw output) into a single service.
+/// Handles event formatting with color support and raw output modes.
+/// FA warning buffering is delegated to [FaWarningBuffer].
 class EventFormatterService {
   /// Creates a new EventFormatterService.
   ///
@@ -18,18 +18,16 @@ class EventFormatterService {
     bool rawOutput = false,
     bool colorEnabled = true,
   })  : _rawOutput = rawOutput,
-        _colorEnabled = colorEnabled;
+        _colorEnabled = colorEnabled {
+    _faWarningBuffer = FaWarningBuffer(onFlush: _printFaWarnings);
+  }
 
   final Logger _logger;
   final bool _rawOutput;
   final bool _colorEnabled;
 
-  // Instance variables for FA warning buffering
-  DateTime? _faBufStartTime;
-  DateTime? _faBufLastTime;
-  String? _faBufStartTsStr;
-  String? _faBufLastTsStr;
-  final Map<String, String> _faBufParams = {};
+  /// Buffer for grouping FA invalid parameter warnings.
+  late final FaWarningBuffer _faWarningBuffer;
 
   /// Formats and prints the given [event] to the console.
   ///
@@ -38,12 +36,12 @@ class EventFormatterService {
   void formatAndPrint(AnalyticsEvent event) {
     // Handle FA invalid param warnings with buffering
     if (event.eventName == 'fa_invalid_default_param') {
-      _bufferFaWarning(event);
+      _faWarningBuffer.add(event);
       return;
     }
 
     // Flush any pending FA warnings before printing normal event
-    _flushFaWarningBuffer();
+    _faWarningBuffer.flush();
 
     if (_rawOutput) {
       _printRaw(event);
@@ -97,57 +95,31 @@ class EventFormatterService {
   }
 
   /// Flushes any pending accumulated FA warnings to the output.
-  void flushPending() => _flushFaWarningBuffer();
+  void flushPending() => _faWarningBuffer.flush();
 
   /// Resets the internal state used for tracking FA warning buffering.
-  void resetTracking() {
-    _faBufStartTime = null;
-    _faBufLastTime = null;
-    _faBufStartTsStr = null;
-    _faBufLastTsStr = null;
-    _faBufParams.clear();
-  }
+  void resetTracking() => _faWarningBuffer.reset();
 
-  void _bufferFaWarning(AnalyticsEvent event) {
-    final tsStr = event.rawTimestamp ?? event.displayTimestamp;
-    final ts = parseLogcatTimestamp(tsStr);
-
-    if (_faBufLastTime != null && ts != null) {
-      final gap = ts.difference(_faBufLastTime!).inMilliseconds;
-      if (gap > faWarningGroupingThresholdMs) {
-        _flushFaWarningBuffer();
-      }
-    }
-
-    _faBufStartTime ??= ts;
-    _faBufLastTime = ts ?? _faBufLastTime;
-    _faBufStartTsStr ??= tsStr;
-    _faBufLastTsStr = tsStr;
-
-    for (final entry in event.parameters.entries) {
-      _faBufParams[entry.key] = entry.value;
-    }
-  }
-
-  void _flushFaWarningBuffer() {
-    if (_faBufParams.isEmpty) return;
-
-    final timeLabel = _faBufStartTsStr == null
+  /// Callback for printing buffered FA warnings.
+  void _printFaWarnings({
+    required String? startTimestamp,
+    required String? endTimestamp,
+    required Map<String, String> parameters,
+  }) {
+    final timeLabel = startTimestamp == null
         ? ''
-        : _faBufLastTsStr != null && _faBufLastTsStr != _faBufStartTsStr
-            ? '[$_faBufStartTsStr–$_faBufLastTsStr] '
-            : '[$_faBufStartTsStr] ';
+        : endTimestamp != null && endTimestamp != startTimestamp
+            ? '[$startTimestamp–$endTimestamp] '
+            : '[$startTimestamp] ';
     final header = '${timeLabel}fa_invalid_default_param'.trimLeft();
 
     _logger
       ..info(header)
       ..info('  Invalid default parameters:');
-    for (final entry in _faBufParams.entries) {
+    for (final entry in parameters.entries) {
       _logger.info('    ${entry.key}: ${entry.value}');
     }
     _logger.info('');
-
-    resetTracking();
   }
 
   /// Prints the provided [stats] to the console.

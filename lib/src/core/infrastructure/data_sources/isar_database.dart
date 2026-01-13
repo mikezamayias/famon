@@ -1,21 +1,27 @@
-import 'dart:io';
-
+import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/database_directory_resolver.dart';
 import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/isar_models.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar/isar.dart';
-import 'package:path/path.dart' as path;
 
-/// Database wrapper for Isar
+/// Database wrapper for Isar.
 ///
-/// Managed as a singleton by GetIt via @Singleton annotation
+/// Managed as a singleton by GetIt via @Singleton annotation.
+/// Uses `DatabaseDirectoryResolver` to determine the database location.
 @Singleton()
 class IsarDatabase {
-  /// Creates a new IsarDatabase instance
-  IsarDatabase();
+  /// Creates a new IsarDatabase instance.
+  ///
+  /// The `directoryResolver` is used to determine the database directory.
+  IsarDatabase(this._directoryResolver);
+
+  final DatabaseDirectoryResolver _directoryResolver;
+
+  /// The name used for the Isar database file.
+  static const String databaseName = 'firebase_analytics_monitor';
 
   Isar? _isar;
 
-  /// Gets the Isar database instance, initializing if needed
+  /// Gets the Isar database instance, initializing if needed.
   Future<Isar> get db async {
     _isar ??= await _initDatabase();
     return _isar!;
@@ -27,15 +33,7 @@ class IsarDatabase {
     // This will download the appropriate binary if not present.
     await Isar.initializeIsarCore(download: true);
 
-    final homeDir = Platform.environment['HOME'] ??
-        Platform.environment['USERPROFILE'] ??
-        '.';
-    final dbDir = path.join(homeDir, '.firebase_analytics_monitor');
-    final dir = Directory(dbDir);
-
-    if (!dir.existsSync()) {
-      dir.createSync(recursive: true);
-    }
+    final dbDirectory = _directoryResolver.resolve();
 
     return Isar.open(
       [
@@ -43,8 +41,8 @@ class IsarDatabase {
         IsarEventMetadataSchema,
         IsarSessionDataSchema,
       ],
-      directory: dir.path,
-      name: 'firebase_analytics_monitor',
+      directory: dbDirectory,
+      name: databaseName,
     );
   }
 

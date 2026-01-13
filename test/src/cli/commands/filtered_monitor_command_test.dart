@@ -57,13 +57,14 @@ void main() {
       when(() => mockLogger.detail(any())).thenReturn(null);
       when(() => mockLogger.write(any())).thenReturn(null);
 
-      command = FilteredMonitorCommand(
+      final dependencies = FilteredMonitorDependencies(
         logger: mockLogger,
         processManager: mockProcessManager,
         logParser: mockLogParser,
         filterService: mockFilterService,
         eventRepository: mockEventRepository,
       );
+      command = FilteredMonitorCommand(dependencies);
 
       runner = CommandRunner<int>('famon', 'Firebase Analytics Monitor')
         ..addCommand(command);

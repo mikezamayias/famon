@@ -105,14 +105,17 @@ Future<void> setUpTestDependencies({
         eventCache: resolvedEventCache,
       ),
     )
-    ..registerFactory<FilteredMonitorCommand>(
-      () => FilteredMonitorCommand(
+    ..registerFactory<FilteredMonitorDependencies>(
+      () => FilteredMonitorDependencies(
         logger: resolvedLogger,
         processManager: resolvedProcessManager,
         logParser: resolvedLogParser,
         filterService: resolvedFilterService,
         eventRepository: resolvedEventRepository,
       ),
+    )
+    ..registerFactory<FilteredMonitorCommand>(
+      () => FilteredMonitorCommand(getIt<FilteredMonitorDependencies>()),
     )
     ..registerFactory<DatabaseCommand>(
       () => DatabaseCommand(

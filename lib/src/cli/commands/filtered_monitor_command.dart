@@ -13,21 +13,50 @@ import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:process/process.dart';
 
+/// Bundles dependencies required by FilteredMonitorCommand.
+///
+/// This container groups related services to reduce constructor parameter count
+/// and improve testability. Create a mock of this class to test the command.
+@injectable
+class FilteredMonitorDependencies {
+  /// Creates a new FilteredMonitorDependencies with all required services.
+  const FilteredMonitorDependencies({
+    required this.logger,
+    required this.processManager,
+    required this.logParser,
+    required this.filterService,
+    required this.eventRepository,
+  });
+
+  /// Logger for output and debugging.
+  final Logger logger;
+
+  /// Process manager for starting adb commands.
+  final ProcessManager processManager;
+
+  /// Parser for converting logcat lines to events.
+  final LogParserInterface logParser;
+
+  /// Service for filtering events by frequency and statistics.
+  final EventFilterService filterService;
+
+  /// Repository for persisting events.
+  final EventRepository eventRepository;
+}
+
 /// Command for monitoring Firebase Analytics with advanced database filtering
 @injectable
 class FilteredMonitorCommand extends Command<int> {
-  /// Creates a new FilteredMonitorCommand with injected dependencies
-  FilteredMonitorCommand({
-    required Logger logger,
-    required ProcessManager processManager,
-    required LogParserInterface logParser,
-    required EventFilterService filterService,
-    required EventRepository eventRepository,
-  })  : _logger = logger,
-        _processManager = processManager,
-        _logParser = logParser,
-        _filterService = filterService,
-        _eventRepository = eventRepository {
+  /// Creates a new FilteredMonitorCommand with injected dependencies.
+  ///
+  /// Uses [FilteredMonitorDependencies] to bundle related services,
+  /// reducing constructor parameters and improving testability.
+  FilteredMonitorCommand(FilteredMonitorDependencies dependencies)
+      : _logger = dependencies.logger,
+        _processManager = dependencies.processManager,
+        _logParser = dependencies.logParser,
+        _filterService = dependencies.filterService,
+        _eventRepository = dependencies.eventRepository {
     argParser
       ..addMultiOption(
         'hide',

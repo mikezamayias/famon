@@ -61,8 +61,8 @@ void main() {
       await tearDownTestDependencies();
     });
 
-    test('can be instantiated without a pub updater', () {
-      final command = UpdateCommand(logger: logger);
+    test('can be instantiated with required dependencies', () {
+      final command = UpdateCommand(logger: logger, pubUpdater: pubUpdater);
       expect(command, isNotNull);
     });
 

@@ -58,7 +58,13 @@ class EventStatistics {
 /// A range between two [DateTime] values.
 class DateTimeRange {
   /// Creates a new [DateTimeRange] with the given [start] and [end].
-  DateTimeRange({required this.start, required this.end});
+  ///
+  /// Throws [ArgumentError] if [start] is after [end].
+  DateTimeRange({required this.start, required this.end}) {
+    if (start.isAfter(end)) {
+      throw ArgumentError('start must be before or equal to end');
+    }
+  }
 
   /// The start of the range.
   final DateTime start;

@@ -203,9 +203,27 @@ class MonitorCommand extends Command<int> {
         );
       }
 
+      var malformedByteCount = 0;
+      var lastMalformedWarning = DateTime.now();
+
       await for (final line in process.stdout
           .transform(const Utf8Decoder(allowMalformed: true))
           .transform(const LineSplitter())) {
+        // Detect malformed UTF-8 sequences (replacement character U+FFFD)
+        final replacementCount = '\uFFFD'.allMatches(line).length;
+        if (replacementCount > 0) {
+          malformedByteCount += replacementCount;
+          // Warn at most once per minute to avoid spam
+          final now = DateTime.now();
+          if (now.difference(lastMalformedWarning).inSeconds >= 60) {
+            _logger.warn(
+              'Detected $malformedByteCount malformed UTF-8 byte(s) in logcat '
+              'output. Some log data may be corrupted.',
+            );
+            lastMalformedWarning = now;
+          }
+        }
+
         // If verbose, print all Firebase Analytics/Crashlytics related lines
         if (verbose) {
           // Filter to only FA/Crashlytics noise to keep it relevant

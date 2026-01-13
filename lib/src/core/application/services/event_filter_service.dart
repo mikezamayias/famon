@@ -1,6 +1,7 @@
 import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
 import 'package:firebase_analytics_monitor/src/core/domain/repositories/event_repository.dart';
 import 'package:firebase_analytics_monitor/src/core/domain/value_objects/event_statistics.dart';
+import 'package:firebase_analytics_monitor/src/core/domain/value_objects/filter_criteria.dart';
 import 'package:injectable/injectable.dart';
 
 /// Service for filtering and analyzing analytics events
@@ -17,6 +18,9 @@ class EventFilterService {
   /// Supports filtering by [eventNames], date range ([fromDate] and [toDate]),
   /// frequency thresholds ([minFrequency] and [maxFrequency]),
   /// [excludeEvents], and an optional [limit].
+  ///
+  /// Filtering is pushed to the database level where possible for better
+  /// performance with large datasets.
   Future<List<AnalyticsEvent>> getFilteredEvents({
     List<String>? eventNames,
     DateTime? fromDate,
@@ -26,69 +30,74 @@ class EventFilterService {
     List<String>? excludeEvents,
     int? limit,
   }) async {
-    var events = await eventRepository.getAllEvents();
-
-    // Filter by event names
-    if (eventNames != null && eventNames.isNotEmpty) {
-      events = events
-          .where((AnalyticsEvent e) => eventNames.contains(e.eventName))
-          .toList();
-    }
-
-    // Filter by excluded events
-    if (excludeEvents != null && excludeEvents.isNotEmpty) {
-      events = events
-          .where((AnalyticsEvent e) => !excludeEvents.contains(e.eventName))
-          .toList();
-    }
-
-    // Filter by date range
-    if (fromDate != null) {
-      events = events
-          .where(
-            (AnalyticsEvent e) =>
-                e.timestamp.isAfter(fromDate) ||
-                e.timestamp.isAtSameMomentAs(fromDate),
-          )
-          .toList();
-    }
-    if (toDate != null) {
-      events = events
-          .where(
-            (AnalyticsEvent e) =>
-                e.timestamp.isBefore(toDate) ||
-                e.timestamp.isAtSameMomentAs(toDate),
-          )
-          .toList();
-    }
-
-    // Filter by frequency
-    if (minFrequency != null || maxFrequency != null) {
-      final eventCounts = <String, int>{};
-      for (final event in events) {
-        eventCounts[event.eventName] = (eventCounts[event.eventName] ?? 0) + 1;
-      }
-
-      events = events.where((AnalyticsEvent e) {
-        final count = eventCounts[e.eventName] ?? 0;
-        if (minFrequency != null && count < minFrequency) return false;
-        if (maxFrequency != null && count > maxFrequency) return false;
-        return true;
-      }).toList();
-    }
-
-    // Sort by timestamp (newest first)
-    events.sort(
-      (AnalyticsEvent a, AnalyticsEvent b) =>
-          b.timestamp.compareTo(a.timestamp),
+    // Build filter criteria for database-level filtering
+    final criteria = FilterCriteria(
+      eventNames: eventNames ?? const [],
+      excludeEventNames: excludeEvents ?? const [],
+      timeRange: _buildTimeRange(fromDate, toDate),
     );
 
-    // Apply limit
-    if (limit != null && limit > 0) {
-      events = events.take(limit).toList();
+    // Frequency filtering requires counting events first, so we need to
+    // fetch more events than the limit if frequency filters are applied
+    final needsFrequencyFilter = minFrequency != null || maxFrequency != null;
+    final fetchLimit = needsFrequencyFilter ? null : limit;
+
+    // Get events with database-level filtering
+    var events = await eventRepository.getEvents(
+      criteria: criteria.hasFilters ? criteria : null,
+      limit: fetchLimit,
+    );
+
+    // Apply frequency filter in memory (requires counting all matching events)
+    if (needsFrequencyFilter) {
+      events = _applyFrequencyFilter(
+        events,
+        minFrequency: minFrequency,
+        maxFrequency: maxFrequency,
+      );
+
+      // Apply limit after frequency filtering
+      if (limit != null && limit > 0) {
+        events = events.take(limit).toList();
+      }
     }
 
     return events;
+  }
+
+  /// Builds a TimeRange from optional start and end dates.
+  TimeRange? _buildTimeRange(DateTime? fromDate, DateTime? toDate) {
+    if (fromDate == null && toDate == null) {
+      return null;
+    }
+
+    // Use sensible defaults for open-ended ranges
+    final start = fromDate ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final end = toDate ?? DateTime.now().add(const Duration(days: 1));
+
+    return TimeRange(start: start, end: end);
+  }
+
+  /// Applies frequency filtering in memory.
+  ///
+  /// This requires counting events first, so it cannot be pushed to the
+  /// database level efficiently.
+  List<AnalyticsEvent> _applyFrequencyFilter(
+    List<AnalyticsEvent> events, {
+    int? minFrequency,
+    int? maxFrequency,
+  }) {
+    final eventCounts = <String, int>{};
+    for (final event in events) {
+      eventCounts[event.eventName] = (eventCounts[event.eventName] ?? 0) + 1;
+    }
+
+    return events.where((AnalyticsEvent e) {
+      final count = eventCounts[e.eventName] ?? 0;
+      if (minFrequency != null && count < minFrequency) return false;
+      if (maxFrequency != null && count > maxFrequency) return false;
+      return true;
+    }).toList();
   }
 
   /// Gets the frequency count for each event type.

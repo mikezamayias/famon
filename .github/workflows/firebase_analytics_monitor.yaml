@@ -28,7 +28,7 @@ jobs:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@v1
     with:
       setup: "dart run build_runner build --delete-conflicting-outputs"
-      min_coverage: 10
+      min_coverage: 30  # Target: 50%+ coverage
 
   spell-check:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1

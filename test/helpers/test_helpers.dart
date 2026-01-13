@@ -125,6 +125,12 @@ Future<void> setUpTestDependencies({
         importUseCase: resolvedImportUseCase,
         filterService: resolvedFilterService,
       ),
+    )
+    ..registerFactory<UpdateCommand>(
+      () => UpdateCommand(
+        logger: resolvedLogger,
+        pubUpdater: getIt<PubUpdater>(),
+      ),
     );
 }
 

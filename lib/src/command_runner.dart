@@ -51,11 +51,11 @@ class FirebaseAnalyticsMonitorCommandRunner
         help: 'Noisy logging, including all shell commands executed.',
       );
 
-    // Add sub commands - use DI for commands with dependencies
+    // Add sub commands - all use DI for consistency
     addCommand(getIt<MonitorCommand>());
     addCommand(getIt<FilteredMonitorCommand>());
     addCommand(getIt<DatabaseCommand>());
-    addCommand(UpdateCommand(logger: _logger, pubUpdater: _pubUpdater));
+    addCommand(getIt<UpdateCommand>());
   }
 
   @override

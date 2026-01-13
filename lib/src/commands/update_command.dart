@@ -3,17 +3,19 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:firebase_analytics_monitor/src/command_runner.dart';
 import 'package:firebase_analytics_monitor/src/version.dart';
+import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_updater/pub_updater.dart';
 
 /// {@template update_command}
 /// A command which updates the CLI.
 /// {@endtemplate}
+@injectable
 class UpdateCommand extends Command<int> {
   /// {@macro update_command}
-  UpdateCommand({required Logger logger, PubUpdater? pubUpdater})
+  UpdateCommand({required Logger logger, required PubUpdater pubUpdater})
       : _logger = logger,
-        _pubUpdater = pubUpdater ?? PubUpdater();
+        _pubUpdater = pubUpdater;
 
   final Logger _logger;
   final PubUpdater _pubUpdater;

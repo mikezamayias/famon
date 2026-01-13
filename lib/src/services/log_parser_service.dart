@@ -3,7 +3,44 @@ import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_in
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 
-/// Service for parsing Firebase Analytics log lines from adb logcat output
+/// Service for parsing Firebase Analytics log lines from adb logcat output.
+///
+/// ## Regex Pattern Matching Strategy
+///
+/// This service uses a collection of pre-compiled static regex patterns to
+/// parse various Firebase Analytics log formats from Android logcat output.
+/// The patterns are stored as `static final` to ensure they are compiled once
+/// at class load time, avoiding the overhead of regex compilation on each
+/// parse call.
+///
+/// ### Pattern Evaluation Order
+///
+/// Patterns are ordered by expected frequency of occurrence to minimize
+/// unnecessary regex evaluations:
+///
+/// 1. **Standard format** (`Logging event: origin=app,name=...`) - Most common
+///    format in modern Firebase Analytics implementations.
+/// 2. **FA-SVC tagged patterns** - Firebase Analytics Service logs, frequently
+///    seen in debug builds.
+/// 3. **FA tagged patterns** - General Firebase Analytics logs.
+/// 4. **I/FA patterns** - Info-level FA logs, less common but still used.
+/// 5. **Basic/legacy formats** - Older or simplified log formats.
+///
+/// ### Early Termination Optimization
+///
+/// Before evaluating any regex patterns, the parser performs a quick string
+/// containment check for common FA-related markers (`FA`, `Logging event`,
+/// `Event`). Lines that do not contain any of these markers are immediately
+/// rejected, avoiding unnecessary regex evaluations for the majority of
+/// logcat lines that are not Firebase Analytics related.
+///
+/// ### Performance Considerations
+///
+/// - All patterns are pre-compiled (`static final`) to avoid compilation
+///   overhead
+/// - Early termination check uses simple string containment (O(n) but fast)
+/// - Pattern order optimization reduces average number of regex evaluations
+/// - Failed matches short-circuit to the next pattern immediately
 @Injectable(as: LogParserInterface)
 class LogParserService implements LogParserInterface {
   /// Creates a new LogParserService
@@ -14,54 +51,87 @@ class LogParserService implements LogParserInterface {
   /// The logger instance used for reporting parsing errors.
   final Logger? _logger;
 
-  /// Regex patterns for different Firebase Analytics log formats
+  /// Set of markers that indicate a line may contain Firebase Analytics data.
+  ///
+  /// Used for early termination optimization to skip lines that cannot
+  /// possibly match any FA patterns.
+  static const _faMarkers = ['FA', 'Logging event', 'Event logged'];
+
+  /// Regex patterns for different Firebase Analytics log formats.
+  ///
+  /// Patterns are ordered by expected frequency of occurrence (most common
+  /// first) to minimize the average number of regex evaluations per line.
+  /// Each pattern captures:
+  /// - Group 1: Timestamp (MM-DD HH:MM:SS.mmm)
+  /// - Group 2: Event name
+  /// - Group 3: Parameters (Bundle format, optional in some patterns)
   static final List<RegExp> _logPatterns = [
-    // Standard format: Logging event:
-    // origin=app,name=event_name,params=Bundle[{...}]
+    // Pattern 1: Standard format (most common in modern FA implementations)
+    // Example: Logging event: origin=app,name=screen_view,params=Bundle[{...}]
     RegExp(
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*Logging event: '
       r'origin=app,name=([^,]+),params=(Bundle\[.*\])',
     ),
-    // Alternative format: Event logged: event_name
-    RegExp(
-      r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*Event logged: ([^\s]+).*params:(Bundle\[.*\])?',
-    ),
-    // More comprehensive Firebase format with Bundle parameters (FA-SVC)
+
+    // Pattern 2: FA-SVC with "Logging event" format
+    // Example: FA-SVC Logging event (FE): name=purchase, params=Bundle[{...}]
     RegExp(
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*FA-SVC.*Logging event.*name=([^,\s]+).*params=(Bundle\[.*\])',
     ),
-    // Same as above but tagged with FA instead of FA-SVC
+
+    // Pattern 3: FA with "Logging event" format
+    // Example: FA Logging event: name=add_to_cart, params=Bundle[{...}]
     RegExp(
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*\bFA\b.*Logging event.*name=([^,\s]+).*params=(Bundle\[.*\])',
     ),
-    // Newer Firebase format: Event name followed by parameters (FA-SVC)
+
+    // Pattern 4: FA-SVC with "Event:" format
+    // Example: FA-SVC Event: screen_view Bundle[{screen_name=Home}]
     RegExp(
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*FA-SVC.*Event: ([^,\s]+).*Bundle\[(.*)\]',
     ),
-    // Newer Firebase format: Event name followed by parameters (FA)
+
+    // Pattern 5: FA with "Event:" format
+    // Example: FA Event: login Bundle[{method=google}]
     RegExp(
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*\bFA\b.*Event: ([^,\s]+).*Bundle\[(.*)\]',
     ),
-    // Older "Logging event (FE)" format tagged as I/FA
+
+    // Pattern 6: I/FA "Logging event (FE)" format
+    // Example: I/FA: Logging event (FE): screen_view, Bundle[{...}]
     RegExp(
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*I/FA.*Logging event \(FE\): ([^,\s]+),.*(Bundle\[.*\])',
     ),
-    // I/FA: Event logged: event_name, params=(Bundle[..])
+
+    // Pattern 7: I/FA "Event logged" format
+    // Example: I/FA: Event logged: purchase, params=Bundle[{...}]
     RegExp(
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*I/FA.*Event logged: ([^,\s]+).*params[:=](Bundle\[.*\])',
     ),
-    // Basic format: Just event name with timestamp (FA-SVC)
+
+    // Pattern 8: Alternative "Event logged" format (less common)
+    // Example: Event logged: add_to_cart params:Bundle[{...}]
+    RegExp(
+      r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*Event logged: ([^\s]+).*params:(Bundle\[.*\])?',
+    ),
+
+    // Pattern 9: FA-SVC basic format with event_name: prefix
+    // Example: FA-SVC event_name:custom_event
     RegExp(
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*FA-SVC.*event_name:([^\s,]+)',
     ),
-    // Basic format: Just event name with timestamp (FA)
+
+    // Pattern 10: FA basic format with event_name: prefix
+    // Example: FA event_name:custom_event
     RegExp(
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*\bFA\b.*event_name:([^\s,]+)',
     ),
   ];
 
-  /// Pattern for FA warnings like:
-  /// 09-15 11:18:06.373 W/FA (19723): Invalid default event parameter type. Name, value: cart_total_items, 1
+  /// Pattern for FA warnings about invalid default parameter types.
+  ///
+  /// Example: W/FA: Invalid default event parameter type. Name, value:
+  /// cart_total_items, 1
   static final RegExp _faInvalidDefaultParamPattern = RegExp(
     r'^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*\b[VDIWE]/FA\b.*Invalid default event parameter type\.\s*Name, value:\s*([^,]+),\s*(.+)$',
   );
@@ -70,6 +140,15 @@ class LogParserService implements LogParserInterface {
   AnalyticsEvent? parse(String logLine) {
     if (logLine.isEmpty) return null;
 
+    // Early termination: skip lines that don't contain any FA-related markers.
+    // This optimization avoids running expensive regex patterns on the vast
+    // majority of logcat lines that are not Firebase Analytics related.
+    if (!_containsFaMarker(logLine)) {
+      return null;
+    }
+
+    // Evaluate patterns in order of expected frequency.
+    // Short-circuits on first successful match.
     for (final regex in _logPatterns) {
       final match = regex.firstMatch(logLine);
       if (match != null) {
@@ -84,6 +163,19 @@ class LogParserService implements LogParserInterface {
     }
 
     return null;
+  }
+
+  /// Check if the log line contains any FA-related markers.
+  ///
+  /// This is a fast preliminary check to avoid running regex patterns on
+  /// lines that cannot possibly match.
+  bool _containsFaMarker(String line) {
+    for (final marker in _faMarkers) {
+      if (line.contains(marker)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Create AnalyticsEvent from regex match

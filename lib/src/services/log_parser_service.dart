@@ -181,8 +181,20 @@ class LogParserService implements LogParserInterface {
       if (params.length < 3 && cleanParamsString.isNotEmpty) {
         _parseParamsAggressive(cleanParamsString, params);
       }
-    } on Object catch (e) {
-      _logger?.detail('Parameter parsing error: $e');
+    } on FormatException catch (e, stackTrace) {
+      _logger?.warn(
+        'Parameter parsing failed (FormatException): $e. '
+        'Some event parameters may be missing.',
+      );
+      _logger?.detail('Stack trace: $stackTrace');
+      _logger?.detail('Input: $paramsString');
+    } on Exception catch (e, stackTrace) {
+      _logger?.warn(
+        'Parameter parsing failed: $e. '
+        'Some event parameters may be missing.',
+      );
+      _logger?.detail('Stack trace: $stackTrace');
+      _logger?.detail('Input: $paramsString');
     }
 
     return params;
@@ -255,8 +267,20 @@ class LogParserService implements LogParserInterface {
           }
         }
       }
-    } on Object catch (e) {
-      _logger?.detail('Items parsing error: $e');
+    } on FormatException catch (e, stackTrace) {
+      _logger?.warn(
+        'Items array parsing failed (FormatException): $e. '
+        'Item data may be incomplete.',
+      );
+      _logger?.detail('Stack trace: $stackTrace');
+      _logger?.detail('Input: $paramsString');
+    } on Exception catch (e, stackTrace) {
+      _logger?.warn(
+        'Items array parsing failed: $e. '
+        'Item data may be incomplete.',
+      );
+      _logger?.detail('Stack trace: $stackTrace');
+      _logger?.detail('Input: $paramsString');
     }
 
     return items;

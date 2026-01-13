@@ -8,6 +8,41 @@ import 'package:firebase_analytics_monitor/src/core/application/use_cases/import
 import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/isar_database.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
+import 'package:path/path.dart' as p;
+
+/// Validates and sanitizes a file path to prevent path traversal attacks.
+/// Returns the canonicalized path if valid, or null if the path is invalid.
+String? _validateFilePath(String? filePath, {bool mustExist = false}) {
+  if (filePath == null || filePath.isEmpty) return null;
+
+  // Canonicalize the path to resolve any . or .. segments
+  final canonicalPath = p.canonicalize(filePath);
+
+  // Check for null bytes which could be used to truncate paths
+  if (filePath.contains('\x00')) return null;
+
+  // For files that must exist, verify they do
+  if (mustExist) {
+    final file = File(canonicalPath);
+    if (!file.existsSync()) return null;
+  }
+
+  return canonicalPath;
+}
+
+/// Validates a directory path.
+/// Returns the canonicalized path if valid, or null if invalid.
+String? _validateDirectoryPath(String? dirPath) {
+  if (dirPath == null || dirPath.isEmpty) return null;
+
+  // Canonicalize the path
+  final canonicalPath = p.canonicalize(dirPath);
+
+  // Check for null bytes
+  if (dirPath.contains('\x00')) return null;
+
+  return canonicalPath;
+}
 
 /// Command for database management operations
 @injectable
@@ -73,13 +108,37 @@ class _BackupSubcommand extends Command<int> {
   @override
   Future<int> run() async {
     try {
-      final fileName = argResults?['output'] as String?;
-      final directory = argResults?['directory'] as String?;
+      final rawFileName = argResults?['output'] as String?;
+      final rawDirectory = argResults?['directory'] as String?;
+
+      // Validate directory path if provided
+      String? validatedDirectory;
+      if (rawDirectory != null) {
+        validatedDirectory = _validateDirectoryPath(rawDirectory);
+        if (validatedDirectory == null) {
+          _logger.err('Invalid directory path: $rawDirectory');
+          return 1;
+        }
+      }
+
+      // Validate file name (just check for path traversal in the name itself)
+      String? validatedFileName;
+      if (rawFileName != null) {
+        // File name should not contain path separators or traversal patterns
+        if (rawFileName.contains('..') ||
+            rawFileName.contains('/') ||
+            rawFileName.contains(r'\') ||
+            rawFileName.contains('\x00')) {
+          _logger.err('Invalid file name: $rawFileName');
+          return 1;
+        }
+        validatedFileName = rawFileName;
+      }
 
       _logger.info('Creating backup...');
       final filePath = await _exportUseCase.createBackup(
-        fileName: fileName,
-        directory: directory,
+        fileName: validatedFileName,
+        directory: validatedDirectory,
       );
 
       _logger.success('Backup created successfully: $filePath');
@@ -119,11 +178,18 @@ class _RestoreSubcommand extends Command<int> {
   @override
   Future<int> run() async {
     try {
-      final filePath = argResults?['file'] as String;
+      final rawFilePath = argResults?['file'] as String;
       final overwrite = argResults?['overwrite'] as bool? ?? false;
 
-      _logger.info('Restoring from backup: $filePath');
-      await _importUseCase.restoreBackup(filePath, overwrite: overwrite);
+      // Validate and canonicalize the file path
+      final validatedPath = _validateFilePath(rawFilePath, mustExist: true);
+      if (validatedPath == null) {
+        _logger.err('Invalid or non-existent file path: $rawFilePath');
+        return 1;
+      }
+
+      _logger.info('Restoring from backup: $validatedPath');
+      await _importUseCase.restoreBackup(validatedPath, overwrite: overwrite);
 
       _logger.success('Database restored successfully');
       return 0;
@@ -169,10 +235,26 @@ class _ExportSubcommand extends Command<int> {
   @override
   Future<int> run() async {
     try {
-      final outputPath = argResults?['output'] as String;
+      final rawOutputPath = argResults?['output'] as String;
       final fromDateStr = argResults?['from'] as String?;
       final toDateStr = argResults?['to'] as String?;
       final eventNames = argResults?['events'] as List<String>?;
+
+      // Validate and canonicalize the output path
+      final validatedPath = _validateFilePath(rawOutputPath);
+      if (validatedPath == null) {
+        _logger.err('Invalid output path: $rawOutputPath');
+        return 1;
+      }
+
+      // Verify parent directory exists
+      final parentDir = Directory(p.dirname(validatedPath));
+      if (!parentDir.existsSync()) {
+        _logger.err(
+          'Parent directory does not exist: ${p.dirname(validatedPath)}',
+        );
+        return 1;
+      }
 
       DateTime? fromDate;
       DateTime? toDate;
@@ -195,13 +277,13 @@ class _ExportSubcommand extends Command<int> {
 
       _logger.info('Exporting data...');
       await _exportUseCase.exportEventsToFile(
-        outputPath,
+        validatedPath,
         fromDate: fromDate,
         toDate: toDate,
         eventNames: eventNames,
       );
 
-      _logger.success('Data exported successfully to: $outputPath');
+      _logger.success('Data exported successfully to: $validatedPath');
       return 0;
     } on Object catch (e) {
       _logger.err('Failed to export data: $e');
@@ -238,11 +320,18 @@ class _ImportSubcommand extends Command<int> {
   @override
   Future<int> run() async {
     try {
-      final filePath = argResults?['file'] as String;
+      final rawFilePath = argResults?['file'] as String;
       final overwrite = argResults?['overwrite'] as bool? ?? false;
 
-      _logger.info('Importing data from: $filePath');
-      await _importUseCase.importFromFile(filePath, overwrite: overwrite);
+      // Validate and canonicalize the file path
+      final validatedPath = _validateFilePath(rawFilePath, mustExist: true);
+      if (validatedPath == null) {
+        _logger.err('Invalid or non-existent file path: $rawFilePath');
+        return 1;
+      }
+
+      _logger.info('Importing data from: $validatedPath');
+      await _importUseCase.importFromFile(validatedPath, overwrite: overwrite);
 
       _logger.success('Data imported successfully');
       return 0;

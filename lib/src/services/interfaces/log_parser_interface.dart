@@ -1,12 +1,16 @@
 import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
+import 'package:firebase_analytics_monitor/src/models/platform_type.dart';
 
 /// Interface for log parser service to enable dependency injection and testing
 ///
 /// This interface follows the Dependency Inversion Principle (SOLID)
 /// allowing for easy mocking and testing of components that depend on
 /// log parsing functionality.
-// ignore: one_member_abstracts
 abstract class LogParserInterface {
+  /// The platform this parser handles.
+  ///
+  /// Used to select the appropriate parser for the current log source.
+  PlatformType get platform;
   /// Parse a log line into an AnalyticsEvent if it's a Firebase Analytics log
   ///
   /// [line] - A single line from adb logcat output

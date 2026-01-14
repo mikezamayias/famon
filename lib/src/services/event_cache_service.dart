@@ -5,11 +5,20 @@ import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 /// In-memory cache service for tracking unique event names
-/// and providing smart suggestions for filtering
+/// and providing smart suggestions for filtering.
+///
+/// This service includes memory bounds to prevent unbounded growth during
+/// long-running monitoring sessions. When the cache reaches its maximum size,
+/// the least frequently used events are evicted.
 @LazySingleton(as: EventCacheInterface)
 class EventCacheService implements EventCacheInterface {
-  /// Creates a new EventCacheService
-  EventCacheService({Logger? logger}) : _logger = logger;
+  /// Creates a new EventCacheService.
+  EventCacheService({
+    Logger? logger,
+  }) : _logger = logger;
+
+  /// Default maximum cache size for event tracking.
+  static const int defaultMaxCacheSize = 10000;
 
   final Logger? _logger;
   final Set<String> _uniqueEventNames = <String>{};
@@ -19,8 +28,45 @@ class EventCacheService implements EventCacheInterface {
   void addEvent(String eventName) {
     if (eventName.isEmpty) return; // Guard against empty event names
 
+    // If the event is already tracked, just update the count
+    if (_eventCounts.containsKey(eventName)) {
+      _eventCounts[eventName] = _eventCounts[eventName]! + 1;
+      return;
+    }
+
+    // If we're at capacity, evict the least frequent event
+    if (_uniqueEventNames.length >= defaultMaxCacheSize) {
+      _evictLeastFrequent();
+    }
+
     _uniqueEventNames.add(eventName);
-    _eventCounts[eventName] = (_eventCounts[eventName] ?? 0) + 1;
+    _eventCounts[eventName] = 1;
+  }
+
+  /// Evicts the least frequently used event from the cache.
+  ///
+  /// This maintains bounded memory usage during long monitoring sessions.
+  void _evictLeastFrequent() {
+    if (_eventCounts.isEmpty) return;
+
+    // Find the event with the lowest count
+    String? leastFrequentEvent;
+    var lowestCount = -1;
+    for (final entry in _eventCounts.entries) {
+      if (lowestCount < 0 || entry.value < lowestCount) {
+        lowestCount = entry.value;
+        leastFrequentEvent = entry.key;
+      }
+    }
+
+    if (leastFrequentEvent != null) {
+      _uniqueEventNames.remove(leastFrequentEvent);
+      _eventCounts.remove(leastFrequentEvent);
+      _logger?.detail(
+        'Cache full: evicted least frequent event "$leastFrequentEvent" '
+        '(count: $lowestCount)',
+      );
+    }
   }
 
   @override

@@ -136,6 +136,52 @@ class LogParserService implements LogParserInterface {
     r'^(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*\b[VDIWE]/FA\b.*Invalid default event parameter type\.\s*Name, value:\s*([^,]+),\s*(.+)$',
   );
 
+  /// Pre-compiled regex patterns for parameter parsing.
+  ///
+  /// These patterns handle various Firebase Analytics Bundle parameter formats.
+  /// Stored as static final to avoid regex compilation overhead on each
+  /// `_parseParams()` call.
+  static final List<RegExp> _paramPatterns = [
+    // Standard key=value format
+    RegExp(r'(\w+)=([^,\[\]{}]+)(?=[,\]}]|$)'),
+    // Typed parameters: String(value), Long(value), etc.
+    RegExp(r'(\w+)=String\(([^)]*)\)'),
+    RegExp(r'(\w+)=Long\(([^)]*)\)'),
+    RegExp(r'(\w+)=Double\(([^)]*)\)'),
+    RegExp(r'(\w+)=Boolean\(([^)]*)\)'),
+    RegExp(r'(\w+)=Integer\(([^)]*)\)'),
+    RegExp(r'(\w+)=Float\(([^)]*)\)'),
+    // Handle quoted strings
+    RegExp(r'(\w+)="([^"]*)"'),
+    RegExp(r"(\w+)='([^']*)'"),
+    // Handle parameters separated by commas with spaces
+    RegExp(r'(\w+):\s*([^,\[\]{}]+)(?=[,\]}]|$)'),
+    // Key-value pairs with colon separator
+    RegExp(r'(\w+)\s*:\s*([^,\[\]{}]+)(?=[,\]}]|$)'),
+    // Parameters without type wrapper but with equals
+    RegExp(r'(\w+)\s*=\s*([^,\[\]{}()]+)(?=[,\]}]|$)'),
+  ];
+
+  /// Pre-compiled regex pattern for items array extraction.
+  static final RegExp _itemsArrayPattern = RegExp(
+    r'items=\[(Bundle\[\{[^\}]+\}\](?:,\s*Bundle\[\{[^\}]+\}\])*)\]',
+  );
+
+  /// Pre-compiled regex pattern for individual item extraction.
+  static final RegExp _itemPattern = RegExp(r'Bundle\[\{([^\}]+)\}\]');
+
+  /// Pre-compiled regex pattern for typed value wrappers.
+  ///
+  /// Matches patterns like String(...), Long(...), Double(...), etc.
+  static final RegExp _typedWrapperPattern = RegExp(r'^[A-Za-z]+\((.*)\)$');
+
+  /// Pre-compiled patterns for cleaning parameter values.
+  static final RegExp _surroundingQuotesPattern = RegExp(r'^"|"$');
+  static final RegExp _surroundingSingleQuotesPattern = RegExp(r"^'|'$");
+  static final RegExp _surroundingParenthesesPattern = RegExp(r'^\(|\)$');
+  static final RegExp _surroundingBracketsPattern = RegExp(r'^\[|\]$');
+  static final RegExp _surroundingBracesPattern = RegExp(r'^{|}$');
+
   @override
   AnalyticsEvent? parse(String logLine) {
     if (logLine.isEmpty) return null;
@@ -217,28 +263,6 @@ class LogParserService implements LogParserInterface {
     }
 
     try {
-      // Enhanced regex patterns to handle various parameter formats
-      final patterns = [
-        // Standard key=value format
-        RegExp(r'(\w+)=([^,\[\]{}]+)(?=[,\]}]|$)'),
-        // Typed parameters: String(value), Long(value), etc.
-        RegExp(r'(\w+)=String\(([^)]*)\)'),
-        RegExp(r'(\w+)=Long\(([^)]*)\)'),
-        RegExp(r'(\w+)=Double\(([^)]*)\)'),
-        RegExp(r'(\w+)=Boolean\(([^)]*)\)'),
-        RegExp(r'(\w+)=Integer\(([^)]*)\)'),
-        RegExp(r'(\w+)=Float\(([^)]*)\)'),
-        // Handle quoted strings
-        RegExp(r'(\w+)="([^"]*)"'),
-        RegExp(r"(\w+)='([^']*)'"),
-        // Handle parameters separated by commas with spaces
-        RegExp(r'(\w+):\s*([^,\[\]{}]+)(?=[,\]}]|$)'),
-        // Key-value pairs with colon separator
-        RegExp(r'(\w+)\s*:\s*([^,\[\]{}]+)(?=[,\]}]|$)'),
-        // Parameters without type wrapper but with equals
-        RegExp(r'(\w+)\s*=\s*([^,\[\]{}()]+)(?=[,\]}]|$)'),
-      ];
-
       // Clean the params string first
       var cleanParamsString = paramsString;
       if (cleanParamsString.startsWith('Bundle[{')) {
@@ -249,7 +273,8 @@ class LogParserService implements LogParserInterface {
             cleanParamsString.substring(0, cleanParamsString.length - 2);
       }
 
-      for (final pattern in patterns) {
+      // Use pre-compiled static patterns for better performance
+      for (final pattern in _paramPatterns) {
         final matches = pattern.allMatches(cleanParamsString);
         for (final match in matches) {
           if (match.groupCount >= 2) {
@@ -335,18 +360,14 @@ class LogParserService implements LogParserInterface {
     }
 
     try {
-      // Look for items array: items=[Bundle[{...}], Bundle[{...}]]
-      final itemsRegex = RegExp(
-        r'items=\[(Bundle\[\{[^\}]+\}\](?:,\s*Bundle\[\{[^\}]+\}\])*)\]',
-      );
-      final itemsMatch = itemsRegex.firstMatch(paramsString);
+      // Look for items array using pre-compiled static pattern
+      final itemsMatch = _itemsArrayPattern.firstMatch(paramsString);
 
       if (itemsMatch != null) {
         final itemsString = itemsMatch.group(1);
         if (itemsString != null) {
-          // Extract individual Bundle[{...}] items
-          final itemRegex = RegExp(r'Bundle\[\{([^\}]+)\}\]');
-          final itemMatches = itemRegex.allMatches(itemsString);
+          // Extract individual Bundle[{...}] items using pre-compiled pattern
+          final itemMatches = _itemPattern.allMatches(itemsString);
 
           for (final itemMatch in itemMatches) {
             final itemParamsString = itemMatch.group(1);
@@ -379,19 +400,21 @@ class LogParserService implements LogParserInterface {
   }
 
   /// Clean and normalize parameter values
+  ///
+  /// Uses pre-compiled static regex patterns for performance.
   String _cleanValue(String value) {
     // Unwrap typed wrappers like String(...), Long(...), Double(...),
-    // Boolean(...)
-    final typedWrapper = RegExp(r'^[A-Za-z]+\((.*)\)$');
-    final wrapperMatch = typedWrapper.firstMatch(value.trim());
+    // Boolean(...) using pre-compiled pattern
+    final wrapperMatch = _typedWrapperPattern.firstMatch(value.trim());
     final v = wrapperMatch != null ? (wrapperMatch.group(1) ?? value) : value;
 
+    // Use pre-compiled static patterns for cleaning
     return v
-        .replaceAll(RegExp(r'^"|"$'), '') // Remove surrounding quotes
-        .replaceAll(RegExp(r"^'|'$"), '') // Remove surrounding single quotes
-        .replaceAll(RegExp(r'^\(|\)$'), '') // Remove surrounding parentheses
-        .replaceAll(RegExp(r'^\[|\]$'), '') // Remove surrounding brackets
-        .replaceAll(RegExp(r'^{|}$'), '') // Remove surrounding braces
+        .replaceAll(_surroundingQuotesPattern, '') // Remove surrounding quotes
+        .replaceAll(_surroundingSingleQuotesPattern, '') // Remove single quotes
+        .replaceAll(_surroundingParenthesesPattern, '') // Remove parentheses
+        .replaceAll(_surroundingBracketsPattern, '') // Remove brackets
+        .replaceAll(_surroundingBracesPattern, '') // Remove braces
         .trim();
   }
 }

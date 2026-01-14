@@ -93,6 +93,13 @@ class MonitorCommand extends Command<int> {
   final EventCacheInterface _eventCache;
   late final EventFormatterService _formatter;
 
+  /// Pre-compiled regex pattern for detecting Firebase Analytics related logs.
+  ///
+  /// Used in verbose mode to filter relevant logcat lines.
+  static final RegExp _firebaseRelatedPattern = RegExp(
+    r'\bFA-SVC\b|\bFA\b|I/FA|D/FA|V/FA|W/FA|E/FA|FirebaseCrashlytics|Crashlytics',
+  );
+
   @override
   Future<int> run() async {
     final hideEvents = (argResults?['hide'] as List<String>?) ?? <String>[];
@@ -225,10 +232,8 @@ class MonitorCommand extends Command<int> {
         // If verbose, print all Firebase Analytics/Crashlytics related lines
         if (verbose) {
           // Filter to only FA/Crashlytics noise to keep it relevant
-          final isFirebaseRelated = RegExp(
-            r'\bFA-SVC\b|\bFA\b|I/FA|D/FA|V/FA|W/FA|E/FA|FirebaseCrashlytics|Crashlytics',
-          ).hasMatch(line);
-          if (isFirebaseRelated) {
+          // Use pre-compiled static pattern for better performance
+          if (_firebaseRelatedPattern.hasMatch(line)) {
             sawRelevantLine = true;
             _logger.detail(line);
           }

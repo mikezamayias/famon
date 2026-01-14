@@ -33,12 +33,10 @@ class LogSourceFactory {
 
   LogSourceInterface _createForPlatform(PlatformType platform) {
     return switch (platform) {
-      PlatformType.android =>
-        _AndroidLogSource(_processManager, _logger),
+      PlatformType.android => _AndroidLogSource(_processManager, _logger),
       PlatformType.iosSimulator =>
         _IosSimulatorLogSource(_processManager, _logger),
-      PlatformType.iosDevice =>
-        _IosDeviceLogSource(_processManager, _logger),
+      PlatformType.iosDevice => _IosDeviceLogSource(_processManager, _logger),
       PlatformType.auto =>
         throw StateError('Auto platform should be resolved before creation'),
     };

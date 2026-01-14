@@ -11,6 +11,7 @@ abstract class LogParserInterface {
   ///
   /// Used to select the appropriate parser for the current log source.
   PlatformType get platform;
+
   /// Parse a log line into an AnalyticsEvent if it's a Firebase Analytics log
   ///
   /// [line] - A single line from adb logcat output

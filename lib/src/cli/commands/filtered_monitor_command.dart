@@ -138,6 +138,14 @@ class FilteredMonitorCommand extends Command<int> {
   final EventRepository _eventRepository;
   late final EventFormatterService _formatter;
 
+  /// Pre-compiled regex pattern for validating Firebase event/parameter names.
+  ///
+  /// Must start with a letter and contain only alphanumeric characters and
+  /// underscores.
+  static final RegExp _validFirebaseNamePattern = RegExp(
+    r'^[a-zA-Z][a-zA-Z0-9_]*$',
+  );
+
   @override
   Future<int> run() async {
     // Parse arguments
@@ -375,9 +383,8 @@ class FilteredMonitorCommand extends Command<int> {
   /// and be 1-40 characters long.
   bool _isValidFirebaseName(String name) {
     if (name.isEmpty || name.length > 40) return false;
-    // Must start with a letter and contain only alphanumeric/underscores
-    final validNamePattern = RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*$');
-    return validNamePattern.hasMatch(name);
+    // Use pre-compiled static pattern for better performance
+    return _validFirebaseNamePattern.hasMatch(name);
   }
 
   Map<String, Map<String, String>> _parseCustomParameters(

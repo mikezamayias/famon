@@ -1,3 +1,10 @@
+/// Pre-compiled regex pattern for Android logcat timestamp parsing.
+///
+/// Matches format: `MM-DD HH:mm:ss.SSS`
+final _logcatTimestampPattern = RegExp(
+  r'^(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})',
+);
+
 /// Parses Android logcat timestamps (`MM-DD HH:mm:ss.SSS`) into a [DateTime].
 ///
 /// The log format does not include a year, so we infer it using [reference].
@@ -9,9 +16,8 @@ DateTime? parseLogcatTimestamp(
   String value, {
   DateTime? reference,
 }) {
-  final match = RegExp(
-    r'^(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})',
-  ).firstMatch(value);
+  // Use pre-compiled static pattern for better performance
+  final match = _logcatTimestampPattern.firstMatch(value);
   if (match == null) {
     return null;
   }

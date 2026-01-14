@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:firebase_analytics_monitor/src/constants.dart';
@@ -194,6 +195,27 @@ class FilteredMonitorCommand extends Command<int> {
         'FA-SVC',
       ]);
 
+      // Drain stderr to prevent buffer overflow
+      // adb may produce error output which could block if not consumed
+      unawaited(process.stderr.drain<void>());
+
+      // Setup signal handlers for graceful shutdown
+      StreamSubscription<ProcessSignal>? sigintSub;
+      StreamSubscription<ProcessSignal>? sigtermSub;
+      void cleanup() {
+        process.kill();
+      }
+      sigintSub = ProcessSignal.sigint.watch().listen((_) {
+        cleanup();
+        unawaited(sigintSub?.cancel());
+        unawaited(sigtermSub?.cancel());
+      });
+      sigtermSub = ProcessSignal.sigterm.watch().listen((_) {
+        cleanup();
+        unawaited(sigintSub?.cancel());
+        unawaited(sigtermSub?.cancel());
+      });
+
       var eventCount = 0;
       var malformedByteCount = 0;
       var lastMalformedWarning = DateTime.now();
@@ -256,6 +278,10 @@ class FilteredMonitorCommand extends Command<int> {
           }
         }
       }
+
+      // Cleanup signal subscriptions
+      unawaited(sigintSub.cancel());
+      unawaited(sigtermSub.cancel());
     } on Object catch (e) {
       if (e.toString().contains('adb')) {
         _logger

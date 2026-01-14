@@ -163,6 +163,10 @@ class MonitorCommand extends Command<int> {
       }
       final process = await _processManager.start(args);
 
+      // Drain stderr to prevent buffer overflow
+      // adb may produce error output which could block if not consumed
+      unawaited(process.stderr.drain<void>());
+
       // If nothing shows up for a while, guide the user
       var sawRelevantLine = false;
       Timer(troubleshootingTimeout, () {
@@ -200,6 +204,25 @@ class MonitorCommand extends Command<int> {
           (_) => _showSmartSuggestions(),
         );
       }
+
+      // Setup signal handlers for graceful shutdown
+      StreamSubscription<ProcessSignal>? sigintSub;
+      StreamSubscription<ProcessSignal>? sigtermSub;
+      void cleanup() {
+        statsTimer?.cancel();
+        suggestionsTimer?.cancel();
+        process.kill();
+      }
+      sigintSub = ProcessSignal.sigint.watch().listen((_) {
+        cleanup();
+        unawaited(sigintSub?.cancel());
+        unawaited(sigtermSub?.cancel());
+      });
+      sigtermSub = ProcessSignal.sigterm.watch().listen((_) {
+        cleanup();
+        unawaited(sigintSub?.cancel());
+        unawaited(sigtermSub?.cancel());
+      });
 
       var malformedByteCount = 0;
       var lastMalformedWarning = DateTime.now();
@@ -257,9 +280,11 @@ class MonitorCommand extends Command<int> {
         }
       }
 
-      // Cleanup timers
+      // Cleanup resources
       statsTimer?.cancel();
       suggestionsTimer?.cancel();
+      unawaited(sigintSub.cancel());
+      unawaited(sigtermSub.cancel());
     } on ProcessException catch (e, stackTrace) {
       // Handle adb process failures with specific guidance
       _logger

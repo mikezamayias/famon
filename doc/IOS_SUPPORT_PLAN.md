@@ -22,7 +22,7 @@ Based on research from Firebase iOS SDK issues and Firebase documentation, iOS F
 ```
 
 Key characteristics:
-- Timestamp format: `YYYY-MM-DD HH:MM:SS.milliseconds+timezone` (for Xcode console)
+- Timestamp format: `YYYY-MM-DD HH:MM:SS.milliseconds+offset` (for Xcode console)
 - Module identifier: `[FirebaseAnalytics]`
 - Log codes: `[I-ACS023051]` (I = Info level)
 - Parameters use `=` separator with `;` terminators

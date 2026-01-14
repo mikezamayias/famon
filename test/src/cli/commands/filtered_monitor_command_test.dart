@@ -23,8 +23,6 @@ class MockEventFilterService extends Mock implements EventFilterService {}
 
 class MockEventRepository extends Mock implements EventRepository {}
 
-class MockProcess extends Mock implements Process {}
-
 class FakeAnalyticsEvent extends Fake implements AnalyticsEvent {}
 
 class FakeProcessSignal extends Fake implements ProcessSignal {}

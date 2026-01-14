@@ -216,7 +216,7 @@ void main() {
             'add_to_cart': 20,
           },
           dateRange: DateTimeRange(
-            start: DateTime(2024, 1, 1),
+            start: DateTime(2024),
             end: DateTime(2024, 12, 31),
           ),
         );
@@ -441,7 +441,7 @@ void main() {
       test('should display helpful message when adb fails', () async {
         when(
           () => mockProcessManager.start(any()),
-        ).thenThrow(ProcessException('adb', [], 'adb: not found'));
+        ).thenThrow(const ProcessException('adb', [], 'adb: not found'));
 
         final result = await runner.run(['filter']);
 
@@ -767,7 +767,7 @@ void main() {
           uniqueEventTypes: 10,
           topEvents: const {'screen_view': 50},
           dateRange: DateTimeRange(
-            start: DateTime(2024, 1, 1),
+            start: DateTime(2024),
             end: DateTime(2024, 12, 31),
           ),
         );

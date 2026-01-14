@@ -6,12 +6,15 @@ import 'package:firebase_analytics_monitor/src/command_runner.dart';
 import 'package:firebase_analytics_monitor/src/version.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:process/process.dart';
 import 'package:pub_updater/pub_updater.dart';
 import 'package:test/test.dart';
 
 import '../helpers/test_helpers.dart';
 
 class _MockProgress extends Mock implements Progress {}
+
+class _MockProcessManager extends Mock implements ProcessManager {}
 
 const latestVersion = '0.0.0';
 
@@ -170,13 +173,31 @@ void main() {
       });
 
       test('enables verbose logging for sub commands', () async {
-        final result = await commandRunner.run([
+        // Need to set up mock process manager for commands that use it
+        final mockProcessManager = _MockProcessManager();
+        when(() => mockProcessManager.start(any())).thenThrow(
+          const ProcessException('adb', [], 'adb: not found'),
+        );
+
+        await tearDownTestDependencies();
+        await setUpTestDependencies(
+          logger: logger,
+          pubUpdater: pubUpdater,
+          processManager: mockProcessManager,
+        );
+
+        final verboseCommandRunner = FirebaseAnalyticsMonitorCommandRunner(
+          logger: logger,
+          pubUpdater: pubUpdater,
+        );
+
+        final result = await verboseCommandRunner.run([
           '--verbose',
           'monitor',
           '--no-color',
         ]);
-        // Exit code may vary based on adb availability
-        expect(result, isA<int>());
+        // Exit code will be 1 because adb "not found"
+        expect(result, equals(1));
 
         verify(() => logger.detail('Argument information:')).called(1);
         verify(() => logger.detail('  Top level options:')).called(1);

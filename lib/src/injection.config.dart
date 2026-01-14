@@ -9,15 +9,15 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:firebase_analytics_monitor/src/cli/commands/database_command.dart'
-    as _i22;
+    as _i23;
 import 'package:firebase_analytics_monitor/src/cli/commands/filtered_monitor_command.dart'
-    as _i21;
+    as _i22;
 import 'package:firebase_analytics_monitor/src/commands/monitor_command.dart'
-    as _i19;
+    as _i20;
 import 'package:firebase_analytics_monitor/src/commands/update_command.dart'
     as _i12;
 import 'package:firebase_analytics_monitor/src/core/application/services/event_filter_service.dart'
-    as _i20;
+    as _i21;
 import 'package:firebase_analytics_monitor/src/core/application/use_cases/export_data_use_case.dart'
     as _i17;
 import 'package:firebase_analytics_monitor/src/core/application/use_cases/import_data_use_case.dart'
@@ -34,7 +34,7 @@ import 'package:firebase_analytics_monitor/src/core/infrastructure/repositories/
     as _i14;
 import 'package:firebase_analytics_monitor/src/core/infrastructure/repositories/isar_event_repository.dart'
     as _i16;
-import 'package:firebase_analytics_monitor/src/di/register_module.dart' as _i23;
+import 'package:firebase_analytics_monitor/src/di/register_module.dart' as _i24;
 import 'package:firebase_analytics_monitor/src/services/event_cache_service.dart'
     as _i5;
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart'
@@ -43,6 +43,8 @@ import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_in
     as _i8;
 import 'package:firebase_analytics_monitor/src/services/log_parser_service.dart'
     as _i9;
+import 'package:firebase_analytics_monitor/src/services/log_source_factory.dart'
+    as _i19;
 import 'package:get_it/get_it.dart' as _i1;
 import 'package:injectable/injectable.dart' as _i2;
 import 'package:mason_logger/mason_logger.dart' as _i6;
@@ -86,33 +88,37 @@ extension GetItInjectableX on _i1.GetIt {
         () => _i17.ExportDataUseCase(gh<_i13.DataExportRepository>()));
     gh.factory<_i18.ImportDataUseCase>(
         () => _i18.ImportDataUseCase(gh<_i13.DataExportRepository>()));
-    gh.factory<_i19.MonitorCommand>(() => _i19.MonitorCommand(
+    gh.factory<_i19.LogSourceFactory>(() => _i19.LogSourceFactory(
+          gh<_i10.ProcessManager>(),
+          gh<_i6.Logger>(),
+        ));
+    gh.factory<_i20.MonitorCommand>(() => _i20.MonitorCommand(
           logger: gh<_i6.Logger>(),
           processManager: gh<_i10.ProcessManager>(),
           logParser: gh<_i8.LogParserInterface>(),
           eventCache: gh<_i4.EventCacheInterface>(),
         ));
-    gh.factory<_i20.EventFilterService>(() =>
-        _i20.EventFilterService(eventRepository: gh<_i15.EventRepository>()));
-    gh.factory<_i21.FilteredMonitorDependencies>(
-        () => _i21.FilteredMonitorDependencies(
+    gh.factory<_i21.EventFilterService>(() =>
+        _i21.EventFilterService(eventRepository: gh<_i15.EventRepository>()));
+    gh.factory<_i22.FilteredMonitorDependencies>(
+        () => _i22.FilteredMonitorDependencies(
               logger: gh<_i6.Logger>(),
               processManager: gh<_i10.ProcessManager>(),
               logParser: gh<_i8.LogParserInterface>(),
-              filterService: gh<_i20.EventFilterService>(),
+              filterService: gh<_i21.EventFilterService>(),
               eventRepository: gh<_i15.EventRepository>(),
             ));
-    gh.factory<_i22.DatabaseCommand>(() => _i22.DatabaseCommand(
+    gh.factory<_i23.DatabaseCommand>(() => _i23.DatabaseCommand(
           logger: gh<_i6.Logger>(),
           database: gh<_i7.IsarDatabase>(),
           exportUseCase: gh<_i17.ExportDataUseCase>(),
           importUseCase: gh<_i18.ImportDataUseCase>(),
-          filterService: gh<_i20.EventFilterService>(),
+          filterService: gh<_i21.EventFilterService>(),
         ));
-    gh.factory<_i21.FilteredMonitorCommand>(() =>
-        _i21.FilteredMonitorCommand(gh<_i21.FilteredMonitorDependencies>()));
+    gh.factory<_i22.FilteredMonitorCommand>(() =>
+        _i22.FilteredMonitorCommand(gh<_i22.FilteredMonitorDependencies>()));
     return this;
   }
 }
 
-class _$RegisterModule extends _i23.RegisterModule {}
+class _$RegisterModule extends _i24.RegisterModule {}

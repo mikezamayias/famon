@@ -1,4 +1,5 @@
 import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
+import 'package:firebase_analytics_monitor/src/models/platform_type.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
@@ -47,6 +48,9 @@ class LogParserService implements LogParserInterface {
   ///
   /// [logger] - Optional logger for reporting parsing errors
   LogParserService({Logger? logger}) : _logger = logger;
+
+  @override
+  PlatformType get platform => PlatformType.android;
 
   /// The logger instance used for reporting parsing errors.
   final Logger? _logger;

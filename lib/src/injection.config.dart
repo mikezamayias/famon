@@ -66,7 +66,9 @@ extension GetItInjectableX on _i1.GetIt {
     gh.lazySingleton<_i4.EventCacheInterface>(
         () => _i5.EventCacheService(logger: gh<_i6.Logger>()));
     gh.singleton<_i7.IsarDatabase>(
-        () => _i7.IsarDatabase(gh<_i3.DatabaseDirectoryResolver>()));
+      () => _i7.IsarDatabase(gh<_i3.DatabaseDirectoryResolver>()),
+      dispose: (i) => i.close(),
+    );
     gh.factory<_i8.LogParserInterface>(
         () => _i9.LogParserService(logger: gh<_i6.Logger>()));
     gh.singleton<_i6.Logger>(() => registerModule.logger);

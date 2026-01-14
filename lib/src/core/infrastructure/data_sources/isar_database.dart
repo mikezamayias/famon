@@ -47,6 +47,10 @@ class IsarDatabase {
   }
 
   /// Closes the database connection.
+  ///
+  /// Annotated with @disposeMethod so GetIt can properly clean up the singleton
+  /// when the container is reset or disposed.
+  @disposeMethod
   Future<void> close() async {
     await _isar?.close();
     _isar = null;

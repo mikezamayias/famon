@@ -13,20 +13,14 @@ import 'package:mason_logger/mason_logger.dart';
 @LazySingleton(as: EventCacheInterface)
 class EventCacheService implements EventCacheInterface {
   /// Creates a new EventCacheService.
-  ///
-  /// [maxCacheSize] controls the maximum number of unique events to track.
-  /// Defaults to 10,000 which should be sufficient for most use cases.
   EventCacheService({
     Logger? logger,
-    int maxCacheSize = defaultMaxCacheSize,
-  })  : _logger = logger,
-        _maxCacheSize = maxCacheSize;
+  }) : _logger = logger;
 
   /// Default maximum cache size for event tracking.
   static const int defaultMaxCacheSize = 10000;
 
   final Logger? _logger;
-  final int _maxCacheSize;
   final Set<String> _uniqueEventNames = <String>{};
   final Map<String, int> _eventCounts = <String, int>{};
 
@@ -41,7 +35,7 @@ class EventCacheService implements EventCacheInterface {
     }
 
     // If we're at capacity, evict the least frequent event
-    if (_uniqueEventNames.length >= _maxCacheSize) {
+    if (_uniqueEventNames.length >= defaultMaxCacheSize) {
       _evictLeastFrequent();
     }
 

@@ -46,6 +46,9 @@ jobs:
         with:
           sdk: "stable"
 
+      - name: 📦 Install Dependencies
+        run: dart pub get
+
       - name: 📝 Format Check
         run: dart format --set-exit-if-changed .
 

@@ -17,6 +17,21 @@
   "useGitignore": true,
   "words": [
     "logcat",
-    "famon"
+    "famon",
+    "xcrun",
+    "simctl",
+    "idevicesyslog",
+    "idevice",
+    "libimobiledevice",
+    "setprop",
+    "UDID",
+    "locationd",
+    "symptomsd",
+    "termio",
+    "xclip",
+    "osascript",
+    "zenity",
+    "ncruces",
+    "Idevicesyslog"
   ]
 }

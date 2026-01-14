@@ -213,6 +213,7 @@ class MonitorCommand extends Command<int> {
         suggestionsTimer?.cancel();
         process.kill();
       }
+
       sigintSub = ProcessSignal.sigint.watch().listen((_) {
         cleanup();
         unawaited(sigintSub?.cancel());

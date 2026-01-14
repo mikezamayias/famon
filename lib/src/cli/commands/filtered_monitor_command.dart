@@ -205,6 +205,7 @@ class FilteredMonitorCommand extends Command<int> {
       void cleanup() {
         process.kill();
       }
+
       sigintSub = ProcessSignal.sigint.watch().listen((_) {
         cleanup();
         unawaited(sigintSub?.cancel());

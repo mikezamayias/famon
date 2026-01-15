@@ -14,7 +14,7 @@ import 'package:mason_logger/mason_logger.dart';
 /// ### Supported Formats
 ///
 /// 1. **Standard iOS Firebase Analytics format**:
-///    ```
+///    ```text
 ///    [FirebaseAnalytics][I-ACS023051] Logging event: origin, name, params:
 ///    app, screen_view (_vs), {
 ///        ga_screen (_sn) = Dashboard;
@@ -23,7 +23,7 @@ import 'package:mason_logger/mason_logger.dart';
 ///    ```
 ///
 /// 2. **Event logged confirmation**:
-///    ```
+///    ```text
 ///    [FirebaseAnalytics][I-ACS023072] Event logged. Event name,
 ///    event params: purchase
 ///    ```

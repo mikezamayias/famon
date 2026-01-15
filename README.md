@@ -4,16 +4,18 @@
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
 [![License: MIT][license_badge]][license_link]
 
-A powerful command-line tool for real-time monitoring and filtering of Firebase Analytics events from Android logcat. Perfect for developers and QA engineers working with Firebase Analytics implementations.
+A powerful command-line tool for real-time monitoring and filtering of Firebase Analytics events from Android and iOS. Perfect for developers and QA engineers working with Firebase Analytics implementations.
 
 ## ✨ Features
 
 - **🔍 Real-time monitoring**: Stream Firebase Analytics events as they happen
+- **📱 Multi-platform support**: Works with Android, iOS Simulator, and iOS devices
 - **🎯 Smart filtering**: Hide noisy events or show only specific ones
 - **🎨 Beautiful output**: Colorized, well-formatted event display with emoji icons
 - **📊 Smart suggestions**: Get recommendations for filtering based on session data
 - **📈 Session statistics**: Track event frequency and patterns
 - **⚡ Event parsing**: Comprehensive parsing of parameters and item arrays
+- **🔄 Auto-detection**: Automatically detects connected devices/simulators
 - **🛠 Developer-friendly**: Designed for debugging and analytics validation
 
 ---
@@ -44,7 +46,7 @@ dart compile exe bin/famon.dart -o famon
 
 ## 📋 Prerequisites
 
-Before using `famon`, ensure you have:
+### Android
 
 - ✅ Android SDK platform-tools installed
 - ✅ `adb` command available in your PATH
@@ -52,21 +54,79 @@ Before using `famon`, ensure you have:
 - ✅ USB debugging enabled on your device
 - ✅ App with Firebase Analytics running
 
-Verify your setup:
+Verify your Android setup:
 
 ```bash
 adb devices  # Should show your connected device
 adb logcat -s FA-SVC | head  # Should show Firebase Analytics logs
 ```
 
+### iOS Simulator
+
+- ✅ Xcode installed with Command Line Tools
+- ✅ `xcrun` available in your PATH
+- ✅ iOS Simulator running
+- ✅ App with Firebase Analytics debug mode enabled
+
+Verify your iOS Simulator setup:
+
+```bash
+xcrun simctl list booted  # Should show running simulator
+```
+
+### iOS Device
+
+- ✅ libimobiledevice installed (`brew install libimobiledevice`)
+- ✅ `idevicesyslog` available in your PATH
+- ✅ iOS device connected via USB
+- ✅ Device trusted to this computer
+- ✅ App with Firebase Analytics debug mode enabled
+
+Verify your iOS device setup:
+
+```bash
+idevice_id -l  # Should show connected device UDID
+```
+
+### iOS Firebase Analytics Debug Mode
+
+To see Firebase Analytics logs on iOS, enable debug mode in your app:
+
+1. **Xcode Scheme Arguments**: Add `-FIRAnalyticsDebugEnabled` to:
+   Product > Scheme > Edit Scheme > Run > Arguments > Arguments Passed On Launch
+
+2. **Or programmatically**:
+   ```swift
+   // In your app's launch code
+   UserDefaults.standard.set(true, forKey: "/google/firebase/debug_mode")
+   ```
+
 ## 🎯 Usage
 
 ### Basic Monitoring
 
-Monitor all Firebase Analytics events:
+Monitor all Firebase Analytics events (auto-detects platform):
 
 ```bash
 famon monitor
+```
+
+### Platform Selection
+
+Monitor specific platforms:
+
+```bash
+# Android device/emulator
+famon monitor --platform android
+
+# iOS Simulator
+famon monitor --platform ios-simulator
+
+# iOS physical device
+famon monitor --platform ios-device
+
+# Auto-detect (default)
+famon monitor --platform auto
 ```
 
 ### Filter Events
@@ -97,6 +157,18 @@ Disable colors (useful for CI/CD or logging):
 
 ```bash
 famon monitor --no-color
+```
+
+Verbose mode (shows all Firebase-related logs):
+
+```bash
+famon monitor --verbose
+```
+
+Raw output (unformatted parameter values):
+
+```bash
+famon monitor --raw
 ```
 
 ### Get Help
@@ -145,11 +217,16 @@ famon monitor [OPTIONS]
 
 **Options:**
 
+- `-p, --platform`: Target platform (`android`, `ios-simulator`, `ios-device`, `auto`)
 - `--hide EVENT_NAME`: Hide specific event names (can be used multiple times)
 - `-s, --show-only EVENT_NAME`: Only show specified events (can be used multiple times)
 - `--no-color`: Disable colored output
 - `--suggestions`: Show smart filtering suggestions based on session data
 - `--stats`: Display session statistics periodically
+- `-r, --raw`: Print raw parameter values without formatting
+- `-V, --verbose`: Stream all Firebase Analytics/Crashlytics log lines
+- `-D, --enable-debug PACKAGE`: Enable Analytics debug for a package (Android only)
+- `--raise-log-levels`: Raise log levels to VERBOSE before monitoring
 - `--help`: Show help for the monitor command
 
 ### Global Options
@@ -179,27 +256,67 @@ famon monitor [OPTIONS]
 
 ## 🐛 Troubleshooting
 
-### "adb: command not found"
+### Android Issues
+
+#### "adb: command not found"
 
 - Install Android SDK platform-tools
 - Add platform-tools to your PATH
 
-### "No devices found"
+#### "No devices found"
 
 - Connect your Android device via USB
 - Enable USB debugging in Developer Options
 - Try `adb kill-server && adb start-server`
+
+#### "Permission denied" errors
+
+- Check USB debugging permissions on device
+- Try different USB cable or port
+
+### iOS Simulator Issues
+
+#### "xcrun: command not found"
+
+- Install Xcode Command Line Tools: `xcode-select --install`
+
+#### "No booted simulator found"
+
+- Start an iOS Simulator from Xcode or: `xcrun simctl boot "iPhone 15"`
+- Verify with: `xcrun simctl list booted`
+
+#### "No Firebase Analytics logs appearing"
+
+- Enable Firebase Analytics debug mode (see Prerequisites)
+- Check that your app is running in the simulator
+- Try: `xcrun simctl spawn booted log stream --predicate 'subsystem CONTAINS "firebase"'`
+
+### iOS Device Issues
+
+#### "idevicesyslog: command not found"
+
+- Install libimobiledevice: `brew install libimobiledevice`
+
+#### "No device found"
+
+- Connect your iOS device via USB
+- Trust the computer on your device when prompted
+- Verify with: `idevice_id -l`
+
+#### "Could not connect to device"
+
+- Make sure the device is unlocked
+- Try unplugging and reconnecting
+- Restart the usbmuxd service: `sudo launchctl stop com.apple.usbmuxd`
+
+### General Issues
 
 ### "No Firebase Analytics events"
 
 - Ensure your app has Firebase Analytics integrated
 - Check that events are being sent (may have delays)
 - Verify Firebase Analytics is properly configured
-
-### "Permission denied" errors
-
-- Check USB debugging permissions on device
-- Try different USB cable or port
+- **iOS**: Enable debug mode with `-FIRAnalyticsDebugEnabled`
 
 ### "Not all event parameters are showing"
 

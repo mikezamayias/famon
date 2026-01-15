@@ -1,15 +1,15 @@
 import 'package:firebase_analytics_monitor/src/commands/monitor_command.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
+import 'package:firebase_analytics_monitor/src/services/log_source_factory.dart';
 import 'package:firebase_analytics_monitor/src/utils/event_filter_utils.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:process/process.dart';
 import 'package:test/test.dart';
 
 class MockLogger extends Mock implements Logger {}
 
-class MockProcessManager extends Mock implements ProcessManager {}
+class MockLogSourceFactory extends Mock implements LogSourceFactory {}
 
 class MockLogParser extends Mock implements LogParserInterface {}
 
@@ -18,20 +18,20 @@ class MockEventCache extends Mock implements EventCacheInterface {}
 void main() {
   group('MonitorCommand', () {
     late MockLogger mockLogger;
-    late MockProcessManager mockProcessManager;
+    late MockLogSourceFactory mockLogSourceFactory;
     late MockLogParser mockLogParser;
     late MockEventCache mockEventCache;
     late MonitorCommand command;
 
     setUp(() {
       mockLogger = MockLogger();
-      mockProcessManager = MockProcessManager();
+      mockLogSourceFactory = MockLogSourceFactory();
       mockLogParser = MockLogParser();
       mockEventCache = MockEventCache();
 
       command = MonitorCommand(
         logger: mockLogger,
-        processManager: mockProcessManager,
+        logSourceFactory: mockLogSourceFactory,
         logParser: mockLogParser,
         eventCache: mockEventCache,
       );

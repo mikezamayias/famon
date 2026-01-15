@@ -25,7 +25,10 @@ void main() {
       expect(result, isNotNull);
       expect(result?.eventName, equals('screen_view'));
       expect(result?.parameters['ga_screen'], equals('Dashboard'));
-      expect(result?.parameters['ga_screen_class'], equals('HomeViewController'));
+      expect(
+        result?.parameters['ga_screen_class'],
+        equals('HomeViewController'),
+      );
     });
 
     test('should parse iOS event logged confirmation format', () {

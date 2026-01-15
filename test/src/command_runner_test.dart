@@ -4,7 +4,9 @@ import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
 import 'package:firebase_analytics_monitor/src/command_runner.dart';
 import 'package:firebase_analytics_monitor/src/models/platform_type.dart';
+import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_source_interface.dart';
+import 'package:firebase_analytics_monitor/src/services/log_parser_factory.dart';
 import 'package:firebase_analytics_monitor/src/services/log_source_factory.dart';
 import 'package:firebase_analytics_monitor/src/version.dart';
 import 'package:mason_logger/mason_logger.dart';
@@ -19,6 +21,10 @@ class _MockProgress extends Mock implements Progress {}
 class _MockLogSourceFactory extends Mock implements LogSourceFactory {}
 
 class _MockLogSource extends Mock implements LogSourceInterface {}
+
+class _MockLogParserFactory extends Mock implements LogParserFactory {}
+
+class _MockLogParser extends Mock implements LogParserInterface {}
 
 const latestVersion = '0.0.0';
 
@@ -185,6 +191,8 @@ void main() {
         // Need to set up mock log source factory for commands that use it
         final mockLogSourceFactory = _MockLogSourceFactory();
         final mockLogSource = _MockLogSource();
+        final mockLogParserFactory = _MockLogParserFactory();
+        final mockLogParser = _MockLogParser();
 
         // Stub the factory to return a mock log source
         when(() => mockLogSourceFactory.create(any()))
@@ -193,14 +201,20 @@ void main() {
         // Stub the log source to fail tool check (quick exit)
         when(mockLogSource.checkToolsAvailable).thenAnswer((_) async => false);
         when(() => mockLogSource.platformDisplayName).thenReturn('Android');
+        when(() => mockLogSource.platform).thenReturn(PlatformType.android);
         when(mockLogSource.getToolsInstallationInstructions)
             .thenReturn('Install Android SDK');
+
+        // Stub the log parser factory
+        when(() => mockLogParserFactory.create(any()))
+            .thenReturn(mockLogParser);
 
         await tearDownTestDependencies();
         await setUpTestDependencies(
           logger: logger,
           pubUpdater: pubUpdater,
           logSourceFactory: mockLogSourceFactory,
+          logParserFactory: mockLogParserFactory,
         );
 
         final verboseCommandRunner = FirebaseAnalyticsMonitorCommandRunner(

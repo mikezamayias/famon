@@ -191,10 +191,9 @@ void main() {
             .thenAnswer((_) async => mockLogSource);
 
         // Stub the log source to fail tool check (quick exit)
-        when(() => mockLogSource.checkToolsAvailable())
-            .thenAnswer((_) async => false);
+        when(mockLogSource.checkToolsAvailable).thenAnswer((_) async => false);
         when(() => mockLogSource.platformDisplayName).thenReturn('Android');
-        when(() => mockLogSource.getToolsInstallationInstructions())
+        when(mockLogSource.getToolsInstallationInstructions)
             .thenReturn('Install Android SDK');
 
         await tearDownTestDependencies();

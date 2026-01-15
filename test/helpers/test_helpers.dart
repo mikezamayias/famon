@@ -86,8 +86,7 @@ Future<void> setUpTestDependencies({
   final resolvedFilterService = filterService ?? MockEventFilterService();
   final resolvedExportUseCase = exportUseCase ?? MockExportDataUseCase();
   final resolvedImportUseCase = importUseCase ?? MockImportDataUseCase();
-  final resolvedLogSourceFactory =
-      logSourceFactory ?? MockLogSourceFactory();
+  final resolvedLogSourceFactory = logSourceFactory ?? MockLogSourceFactory();
 
   // Register core dependencies
   getIt

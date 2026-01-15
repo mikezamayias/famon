@@ -4,13 +4,15 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:firebase_analytics_monitor/src/constants.dart';
+import 'package:firebase_analytics_monitor/src/models/platform_type.dart';
 import 'package:firebase_analytics_monitor/src/services/event_formatter_service.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
+import 'package:firebase_analytics_monitor/src/services/interfaces/log_source_interface.dart';
+import 'package:firebase_analytics_monitor/src/services/log_source_factory.dart';
 import 'package:firebase_analytics_monitor/src/utils/event_filter_utils.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
-import 'package:process/process.dart';
 
 /// Command for monitoring Firebase Analytics events in real-time
 @injectable
@@ -18,14 +20,21 @@ class MonitorCommand extends Command<int> {
   /// Creates a new MonitorCommand with injected dependencies
   MonitorCommand({
     required Logger logger,
-    required ProcessManager processManager,
+    required LogSourceFactory logSourceFactory,
     required LogParserInterface logParser,
     required EventCacheInterface eventCache,
   })  : _logger = logger,
-        _processManager = processManager,
+        _logSourceFactory = logSourceFactory,
         _logParser = logParser,
         _eventCache = eventCache {
     argParser
+      ..addOption(
+        'platform',
+        abbr: 'p',
+        allowed: ['android', 'ios-simulator', 'ios-device', 'auto'],
+        defaultsTo: 'auto',
+        help: 'Target platform for monitoring.',
+      )
       ..addMultiOption(
         'hide',
         help: 'Event names to hide from output. Can be used multiple times.',
@@ -62,21 +71,19 @@ class MonitorCommand extends Command<int> {
         negatable: false,
         help:
             'Verbose mode: stream and print all Firebase Analytics/Crashlytics '
-            'logcat lines.',
+            'log lines.',
       )
       ..addOption(
         'enable-debug',
         abbr: 'D',
         valueHelp: 'PACKAGE',
-        help: 'Enable Analytics debug for PACKAGE and raise FA log levels '
+        help: 'Enable Analytics debug for PACKAGE and raise log levels '
             'before monitoring.',
       )
       ..addFlag(
         'raise-log-levels',
         negatable: false,
-        help:
-            'Raise FA/FA-SVC/FirebaseCrashlytics log levels to VERBOSE before '
-            'monitoring.',
+        help: 'Raise log levels to VERBOSE before monitoring.',
       );
   }
 
@@ -88,10 +95,11 @@ class MonitorCommand extends Command<int> {
       'Monitors Firebase Analytics events from logcat in real-time.';
 
   final Logger _logger;
-  final ProcessManager _processManager;
+  final LogSourceFactory _logSourceFactory;
   final LogParserInterface _logParser;
   final EventCacheInterface _eventCache;
   late final EventFormatterService _formatter;
+  late final LogSourceInterface _logSource;
 
   /// Pre-compiled regex pattern for detecting Firebase Analytics related logs.
   ///
@@ -102,6 +110,7 @@ class MonitorCommand extends Command<int> {
 
   @override
   Future<int> run() async {
+    final platformArg = argResults?['platform'] as String? ?? 'auto';
     final hideEvents = (argResults?['hide'] as List<String>?) ?? <String>[];
     final showOnlyEvents =
         (argResults?['show-only'] as List<String>?) ?? <String>[];
@@ -112,6 +121,9 @@ class MonitorCommand extends Command<int> {
     final verbose = argResults?['verbose'] as bool? ?? false;
     final enableDebugFor = argResults?['enable-debug'] as String?;
     final raiseLogLevels = argResults?['raise-log-levels'] as bool? ?? false;
+
+    // Parse platform type from argument
+    final platformType = PlatformType.fromCliValue(platformArg);
 
     // Ensure verbose logs are visible when monitor --verbose is used
     if (verbose) {
@@ -131,16 +143,32 @@ class MonitorCommand extends Command<int> {
     // Clear cache for new session
     _eventCache.clear();
 
+    // Create the appropriate log source for the platform
+    _logSource = await _logSourceFactory.create(platformType);
+
+    // Check if required tools are available
+    if (!await _logSource.checkToolsAvailable()) {
+      _logger
+        ..err(
+          '❌ Required tools not available for '
+          '${_logSource.platformDisplayName}',
+        )
+        ..info(_logSource.getToolsInstallationInstructions());
+      return 1;
+    }
+
     _logger
       ..info('🔥 ${lightCyan.wrap('Firebase Analytics Monitor Started')}')
-      ..info('📱 Connecting to adb logcat...')
+      ..info('📱 Connecting to ${_logSource.platformDisplayName}...')
+      ..detail('Platform: ${_logSource.platform.displayName}')
       ..detail('Verbose mode: ${verbose ? 'ON' : 'OFF'}');
+
     // Optionally enable analytics debug and raise log levels
     if (enableDebugFor != null && enableDebugFor.isNotEmpty) {
-      await _enableAnalyticsDebug(enableDebugFor);
+      await _logSource.enableAnalyticsDebug(enableDebugFor);
     }
     if (raiseLogLevels || enableDebugFor != null) {
-      await _raiseFaLogLevels();
+      await _logSource.raiseLogLevels();
     }
 
     if (hideEvents.isNotEmpty) {
@@ -154,43 +182,24 @@ class MonitorCommand extends Command<int> {
     _logger.info('Press Ctrl+C to stop monitoring\n');
 
     try {
-      // Start adb logcat process
-      // In verbose mode, stream all output; otherwise filter to common
-      // FA/Crashlytics tags
-      final args = <String>['adb', 'logcat', '-v', 'time'];
-      if (!verbose) {
-        args.addAll([
-          '-s',
-          'FA',
-          'FA-SVC',
-          'FA-Ads',
-          'FirebaseCrashlytics',
-          'Crashlytics',
-        ]);
-      }
-      final process = await _processManager.start(args);
+      // Start log stream using platform-specific log source
+      final process = await _logSource.startLogStream(verbose: verbose);
 
       // Drain stderr to prevent buffer overflow
       // adb may produce error output which could block if not consumed
       unawaited(process.stderr.drain<void>());
 
-      // If nothing shows up for a while, guide the user
+      // If nothing shows up for a while, guide the user with
+      // platform-specific tips
       var sawRelevantLine = false;
       Timer(troubleshootingTimeout, () {
         if (!sawRelevantLine) {
           _logger
-            ..warn('No Firebase Analytics/Crashlytics logs detected yet...')
-            ..info('Troubleshooting steps:')
-            ..info('  1) Confirm device is connected: adb devices')
-            ..info('  2) Enable Analytics debug for your app:')
-            ..info(
-              '     adb shell setprop debug.firebase.analytics.app '
-              '<your.package>',
-            )
-            ..info('  3) Optionally raise FA log level:')
-            ..info('     adb shell setprop log.tag.FA VERBOSE')
-            ..info('     adb shell setprop log.tag.FA-SVC VERBOSE')
-            ..info('  4) Open your app and trigger events; then try again.');
+            ..warn('No Firebase Analytics logs detected yet...')
+            ..info('Troubleshooting steps:');
+          for (final tip in _logSource.getTroubleshootingTips()) {
+            _logger.info('  $tip');
+          }
         }
       });
 
@@ -362,56 +371,5 @@ class MonitorCommand extends Command<int> {
 
       _logger.info('');
     }
-  }
-
-  Future<void> _enableAnalyticsDebug(String packageName) async {
-    try {
-      _logger.detail('Enabling Analytics debug for $packageName...');
-      final proc = await _processManager.start([
-        'adb',
-        'shell',
-        'setprop',
-        'debug.firebase.analytics.app',
-        packageName,
-      ]);
-      await proc.exitCode;
-    } on ProcessException catch (e, stackTrace) {
-      _logger
-        ..warn('Failed to enable analytics debug: ${e.message}')
-        ..detail('Stack trace: $stackTrace');
-    } on IOException catch (e, stackTrace) {
-      _logger
-        ..warn('I/O error enabling analytics debug: $e')
-        ..detail('Stack trace: $stackTrace');
-    }
-  }
-
-  Future<void> _raiseFaLogLevels() async {
-    Future<void> setLevel(String tag) async {
-      try {
-        final p = await _processManager.start([
-          'adb',
-          'shell',
-          'setprop',
-          'log.tag.$tag',
-          'VERBOSE',
-        ]);
-        await p.exitCode;
-      } on ProcessException catch (e, stackTrace) {
-        _logger
-          ..warn('Failed to set log level for $tag: ${e.message}')
-          ..detail('Stack trace: $stackTrace');
-      } on IOException catch (e, stackTrace) {
-        _logger
-          ..warn('I/O error setting log level for $tag: $e')
-          ..detail('Stack trace: $stackTrace');
-      }
-    }
-
-    _logger.detail('Raising FA/Crashlytics log levels to VERBOSE...');
-    await setLevel('FA');
-    await setLevel('FA-SVC');
-    await setLevel('FirebaseCrashlytics');
-    await setLevel('Crashlytics');
   }
 }

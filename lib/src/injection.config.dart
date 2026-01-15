@@ -94,7 +94,7 @@ extension GetItInjectableX on _i1.GetIt {
         ));
     gh.factory<_i20.MonitorCommand>(() => _i20.MonitorCommand(
           logger: gh<_i6.Logger>(),
-          processManager: gh<_i10.ProcessManager>(),
+          logSourceFactory: gh<_i19.LogSourceFactory>(),
           logParser: gh<_i8.LogParserInterface>(),
           eventCache: gh<_i4.EventCacheInterface>(),
         ));

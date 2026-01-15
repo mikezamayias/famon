@@ -3,10 +3,12 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
 import 'package:firebase_analytics_monitor/src/command_runner.dart';
+import 'package:firebase_analytics_monitor/src/models/platform_type.dart';
+import 'package:firebase_analytics_monitor/src/services/interfaces/log_source_interface.dart';
+import 'package:firebase_analytics_monitor/src/services/log_source_factory.dart';
 import 'package:firebase_analytics_monitor/src/version.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:process/process.dart';
 import 'package:pub_updater/pub_updater.dart';
 import 'package:test/test.dart';
 
@@ -14,7 +16,9 @@ import '../helpers/test_helpers.dart';
 
 class _MockProgress extends Mock implements Progress {}
 
-class _MockProcessManager extends Mock implements ProcessManager {}
+class _MockLogSourceFactory extends Mock implements LogSourceFactory {}
+
+class _MockLogSource extends Mock implements LogSourceInterface {}
 
 const latestVersion = '0.0.0';
 
@@ -25,6 +29,11 @@ final updatePrompt =
 Run ${lightCyan.wrap('$executableName update')} to update''';
 
 void main() {
+  setUpAll(() {
+    // Register fallback values for mocktail
+    registerFallbackValue(PlatformType.auto);
+  });
+
   group('FirebaseAnalyticsMonitorCommandRunner', () {
     late PubUpdater pubUpdater;
     late Logger logger;
@@ -173,17 +182,25 @@ void main() {
       });
 
       test('enables verbose logging for sub commands', () async {
-        // Need to set up mock process manager for commands that use it
-        final mockProcessManager = _MockProcessManager();
-        when(() => mockProcessManager.start(any())).thenThrow(
-          const ProcessException('adb', [], 'adb: not found'),
-        );
+        // Need to set up mock log source factory for commands that use it
+        final mockLogSourceFactory = _MockLogSourceFactory();
+        final mockLogSource = _MockLogSource();
+
+        // Stub the factory to return a mock log source
+        when(() => mockLogSourceFactory.create(any()))
+            .thenAnswer((_) async => mockLogSource);
+
+        // Stub the log source to fail tool check (quick exit)
+        when(mockLogSource.checkToolsAvailable).thenAnswer((_) async => false);
+        when(() => mockLogSource.platformDisplayName).thenReturn('Android');
+        when(mockLogSource.getToolsInstallationInstructions)
+            .thenReturn('Install Android SDK');
 
         await tearDownTestDependencies();
         await setUpTestDependencies(
           logger: logger,
           pubUpdater: pubUpdater,
-          processManager: mockProcessManager,
+          logSourceFactory: mockLogSourceFactory,
         );
 
         final verboseCommandRunner = FirebaseAnalyticsMonitorCommandRunner(
@@ -196,7 +213,7 @@ void main() {
           'monitor',
           '--no-color',
         ]);
-        // Exit code will be 1 because adb "not found"
+        // Exit code will be 1 because tools not available
         expect(result, equals(1));
 
         verify(() => logger.detail('Argument information:')).called(1);

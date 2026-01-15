@@ -9,6 +9,7 @@ import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/
 import 'package:firebase_analytics_monitor/src/injection.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
+import 'package:firebase_analytics_monitor/src/services/log_source_factory.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:process/process.dart';
@@ -36,6 +37,8 @@ class MockEventFilterService extends Mock implements EventFilterService {}
 class MockExportDataUseCase extends Mock implements ExportDataUseCase {}
 
 class MockImportDataUseCase extends Mock implements ImportDataUseCase {}
+
+class MockLogSourceFactory extends Mock implements LogSourceFactory {}
 
 /// Create a mock analytics event for testing
 AnalyticsEvent createMockAnalyticsEvent({
@@ -67,6 +70,7 @@ Future<void> setUpTestDependencies({
   EventFilterService? filterService,
   ExportDataUseCase? exportUseCase,
   ImportDataUseCase? importUseCase,
+  LogSourceFactory? logSourceFactory,
 }) async {
   // Reset GetIt to clean state
   await getIt.reset();
@@ -82,6 +86,7 @@ Future<void> setUpTestDependencies({
   final resolvedFilterService = filterService ?? MockEventFilterService();
   final resolvedExportUseCase = exportUseCase ?? MockExportDataUseCase();
   final resolvedImportUseCase = importUseCase ?? MockImportDataUseCase();
+  final resolvedLogSourceFactory = logSourceFactory ?? MockLogSourceFactory();
 
   // Register core dependencies
   getIt
@@ -96,11 +101,12 @@ Future<void> setUpTestDependencies({
     ..registerSingleton<EventFilterService>(resolvedFilterService)
     ..registerSingleton<ExportDataUseCase>(resolvedExportUseCase)
     ..registerSingleton<ImportDataUseCase>(resolvedImportUseCase)
+    ..registerSingleton<LogSourceFactory>(resolvedLogSourceFactory)
     // Register commands that are resolved via DI in the command runner
     ..registerFactory<MonitorCommand>(
       () => MonitorCommand(
         logger: resolvedLogger,
-        processManager: resolvedProcessManager,
+        logSourceFactory: resolvedLogSourceFactory,
         logParser: resolvedLogParser,
         eventCache: resolvedEventCache,
       ),

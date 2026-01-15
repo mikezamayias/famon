@@ -9,6 +9,7 @@ import 'package:firebase_analytics_monitor/src/services/event_formatter_service.
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_source_interface.dart';
+import 'package:firebase_analytics_monitor/src/services/log_parser_factory.dart';
 import 'package:firebase_analytics_monitor/src/services/log_source_factory.dart';
 import 'package:firebase_analytics_monitor/src/utils/event_filter_utils.dart';
 import 'package:injectable/injectable.dart';
@@ -21,11 +22,11 @@ class MonitorCommand extends Command<int> {
   MonitorCommand({
     required Logger logger,
     required LogSourceFactory logSourceFactory,
-    required LogParserInterface logParser,
+    required LogParserFactory logParserFactory,
     required EventCacheInterface eventCache,
   })  : _logger = logger,
         _logSourceFactory = logSourceFactory,
-        _logParser = logParser,
+        _logParserFactory = logParserFactory,
         _eventCache = eventCache {
     argParser
       ..addOption(
@@ -96,16 +97,20 @@ class MonitorCommand extends Command<int> {
 
   final Logger _logger;
   final LogSourceFactory _logSourceFactory;
-  final LogParserInterface _logParser;
+  final LogParserFactory _logParserFactory;
   final EventCacheInterface _eventCache;
   late final EventFormatterService _formatter;
   late final LogSourceInterface _logSource;
+  late final LogParserInterface _logParser;
 
   /// Pre-compiled regex pattern for detecting Firebase Analytics related logs.
   ///
-  /// Used in verbose mode to filter relevant logcat lines.
+  /// Used in verbose mode to filter relevant log lines.
+  /// Supports both Android (FA, FA-SVC) and iOS (FirebaseAnalytics,
+  /// FIRAnalytics) patterns.
   static final RegExp _firebaseRelatedPattern = RegExp(
-    r'\bFA-SVC\b|\bFA\b|I/FA|D/FA|V/FA|W/FA|E/FA|FirebaseCrashlytics|Crashlytics',
+    r'\bFA-SVC\b|\bFA\b|I/FA|D/FA|V/FA|W/FA|E/FA|'
+    'FirebaseCrashlytics|Crashlytics|FirebaseAnalytics|FIRAnalytics',
   );
 
   @override
@@ -145,6 +150,9 @@ class MonitorCommand extends Command<int> {
 
     // Create the appropriate log source for the platform
     _logSource = await _logSourceFactory.create(platformType);
+
+    // Create the appropriate log parser for the detected platform
+    _logParser = _logParserFactory.create(_logSource.platform);
 
     // Check if required tools are available
     if (!await _logSource.checkToolsAvailable()) {

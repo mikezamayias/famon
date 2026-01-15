@@ -9,6 +9,7 @@ import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/
 import 'package:firebase_analytics_monitor/src/injection.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
+import 'package:firebase_analytics_monitor/src/services/log_parser_factory.dart';
 import 'package:firebase_analytics_monitor/src/services/log_source_factory.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
@@ -40,6 +41,8 @@ class MockImportDataUseCase extends Mock implements ImportDataUseCase {}
 
 class MockLogSourceFactory extends Mock implements LogSourceFactory {}
 
+class MockLogParserFactory extends Mock implements LogParserFactory {}
+
 /// Create a mock analytics event for testing
 AnalyticsEvent createMockAnalyticsEvent({
   String eventName = 'test_event',
@@ -63,6 +66,7 @@ Future<void> setUpTestDependencies({
   ProcessManager? processManager,
   PubUpdater? pubUpdater,
   LogParserInterface? logParser,
+  LogParserFactory? logParserFactory,
   EventCacheInterface? eventCache,
   IsarDatabase? database,
   EventRepository? eventRepository,
@@ -87,6 +91,7 @@ Future<void> setUpTestDependencies({
   final resolvedExportUseCase = exportUseCase ?? MockExportDataUseCase();
   final resolvedImportUseCase = importUseCase ?? MockImportDataUseCase();
   final resolvedLogSourceFactory = logSourceFactory ?? MockLogSourceFactory();
+  final resolvedLogParserFactory = logParserFactory ?? MockLogParserFactory();
 
   // Register core dependencies
   getIt
@@ -102,12 +107,13 @@ Future<void> setUpTestDependencies({
     ..registerSingleton<ExportDataUseCase>(resolvedExportUseCase)
     ..registerSingleton<ImportDataUseCase>(resolvedImportUseCase)
     ..registerSingleton<LogSourceFactory>(resolvedLogSourceFactory)
+    ..registerSingleton<LogParserFactory>(resolvedLogParserFactory)
     // Register commands that are resolved via DI in the command runner
     ..registerFactory<MonitorCommand>(
       () => MonitorCommand(
         logger: resolvedLogger,
         logSourceFactory: resolvedLogSourceFactory,
-        logParser: resolvedLogParser,
+        logParserFactory: resolvedLogParserFactory,
         eventCache: resolvedEventCache,
       ),
     )

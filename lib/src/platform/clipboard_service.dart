@@ -100,18 +100,21 @@ class ClipboardService implements ClipboardInterface {
   }
 
   /// Copy to clipboard on Windows using clip.exe.
+  ///
+  /// Uses stdin to pass text to avoid command injection vulnerabilities.
   Future<bool> _copyWindows(String text) async {
-    // Use PowerShell to handle Unicode properly
+    // Use PowerShell with stdin input to avoid command injection
+    // The -Command parameter reads from stdin with $input
     final process = await _processManager.start(
       [
         'powershell',
         '-command',
-        'Set-Clipboard',
-        '-Value',
-        text,
+        r'$input | Set-Clipboard',
       ],
       runInShell: true,
     );
+    process.stdin.write(text);
+    await process.stdin.close();
     final exitCode = await process.exitCode;
     return exitCode == 0;
   }

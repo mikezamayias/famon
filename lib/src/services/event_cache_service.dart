@@ -121,9 +121,37 @@ class EventCacheService implements EventCacheInterface {
     return List.unmodifiable(getEventsByFrequency().take(count));
   }
 
+  /// Maximum allowed pattern length to prevent ReDoS attacks.
+  static const int _maxPatternLength = 100;
+
+  /// Patterns that may indicate a ReDoS attack.
+  ///
+  /// These patterns can cause exponential backtracking with certain inputs.
+  static final RegExp _dangerousPatternIndicators = RegExp(
+    r'(\+\+|\*\*|\{\d+,\d*\}\{|\(\?\:.*\)\+|\(\?\:.*\)\*)',
+  );
+
   @override
   List<String> searchEvents(String pattern) {
     if (pattern.isEmpty) return [];
+
+    // Guard against ReDoS: reject overly long patterns
+    if (pattern.length > _maxPatternLength) {
+      _logger?.detail(
+        'Pattern too long (${pattern.length} > $_maxPatternLength), '
+        'using substring match instead',
+      );
+      return _substringSearch(pattern);
+    }
+
+    // Guard against ReDoS: reject potentially dangerous patterns
+    if (_dangerousPatternIndicators.hasMatch(pattern)) {
+      _logger?.detail(
+        'Potentially dangerous regex pattern detected, '
+        'using substring match instead',
+      );
+      return _substringSearch(pattern);
+    }
 
     try {
       final regex = RegExp(pattern, caseSensitive: false);
@@ -134,6 +162,17 @@ class EventCacheService implements EventCacheInterface {
       _logger?.detail('Invalid regex pattern in searchEvents: $e');
       return [];
     }
+  }
+
+  /// Fallback substring search for when regex is not safe.
+  List<String> _substringSearch(String pattern) {
+    final lowerPattern = pattern.toLowerCase();
+    return List.unmodifiable(
+      _uniqueEventNames
+          .where((name) => name.toLowerCase().contains(lowerPattern))
+          .toList()
+        ..sort(),
+    );
   }
 
   @override

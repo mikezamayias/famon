@@ -3,8 +3,23 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:firebase_analytics_monitor/src/config/shortcuts_config_loader.dart';
 import 'package:firebase_analytics_monitor/src/constants.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/action_context.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/actions/action_registry.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/actions/clear_screen_action.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/actions/copy_to_clipboard_action.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/actions/quit_action.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/actions/save_to_file_action.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/actions/show_help_action.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/actions/show_stats_action.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/actions/toggle_pause_action.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/keyboard_input_interface.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/keyboard_input_service.dart';
+import 'package:firebase_analytics_monitor/src/keyboard/shortcut_manager.dart';
 import 'package:firebase_analytics_monitor/src/models/platform_type.dart';
+import 'package:firebase_analytics_monitor/src/platform/clipboard_service.dart';
+import 'package:firebase_analytics_monitor/src/platform/file_dialog_service.dart';
 import 'package:firebase_analytics_monitor/src/services/event_formatter_service.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
@@ -85,6 +100,11 @@ class MonitorCommand extends Command<int> {
         'raise-log-levels',
         negatable: false,
         help: 'Raise log levels to VERBOSE before monitoring.',
+      )
+      ..addFlag(
+        'no-shortcuts',
+        negatable: false,
+        help: 'Disable keyboard shortcuts (for non-interactive environments).',
       );
   }
 
@@ -102,6 +122,12 @@ class MonitorCommand extends Command<int> {
   late final EventFormatterService _formatter;
   late final LogSourceInterface _logSource;
   late final LogParserInterface _logParser;
+
+  // Keyboard shortcuts support
+  KeyboardInputInterface? _keyboardInput;
+  ShortcutManager? _shortcutManager;
+  bool _isPaused = false;
+  bool _shouldQuit = false;
 
   /// Pre-compiled regex pattern for detecting Firebase Analytics related logs.
   ///
@@ -126,9 +152,14 @@ class MonitorCommand extends Command<int> {
     final verbose = argResults?['verbose'] as bool? ?? false;
     final enableDebugFor = argResults?['enable-debug'] as String?;
     final raiseLogLevels = argResults?['raise-log-levels'] as bool? ?? false;
+    final noShortcuts = argResults?['no-shortcuts'] as bool? ?? false;
 
     // Parse platform type from argument
     final platformType = PlatformType.fromCliValue(platformArg);
+
+    // Reset state for new session
+    _isPaused = false;
+    _shouldQuit = false;
 
     // Ensure verbose logs are visible when monitor --verbose is used
     if (verbose) {
@@ -187,7 +218,15 @@ class MonitorCommand extends Command<int> {
       _logger.info('👀 Showing only: ${showOnlyEvents.join(', ')}');
     }
 
-    _logger.info('Press Ctrl+C to stop monitoring\n');
+    // Initialize keyboard shortcuts if enabled
+    final shortcutsEnabled = !noShortcuts && stdin.hasTerminal;
+    if (shortcutsEnabled) {
+      await _initializeKeyboardShortcuts();
+      _logger.info('Press ? for help, Q to quit');
+    } else {
+      _logger.info('Press Ctrl+C to stop monitoring');
+    }
+    _logger.info('');
 
     try {
       // Start log stream using platform-specific log source
@@ -232,9 +271,13 @@ class MonitorCommand extends Command<int> {
       // Setup signal handlers for graceful shutdown
       StreamSubscription<ProcessSignal>? sigintSub;
       StreamSubscription<ProcessSignal>? sigtermSub;
+      StreamSubscription<KeyInputEvent>? keyboardSub;
+
       void cleanup() {
         statsTimer?.cancel();
         suggestionsTimer?.cancel();
+        keyboardSub?.cancel();
+        _keyboardInput?.dispose();
         process.kill();
       }
 
@@ -249,12 +292,26 @@ class MonitorCommand extends Command<int> {
         unawaited(sigtermSub?.cancel());
       });
 
+      // Setup keyboard shortcuts listener
+      if (shortcutsEnabled && _keyboardInput != null) {
+        _keyboardInput!.start();
+        keyboardSub = _keyboardInput!.keyEvents.listen((event) async {
+          await _handleKeyEvent(event);
+        });
+      }
+
       var malformedByteCount = 0;
       var lastMalformedWarning = DateTime.now();
 
       await for (final line in process.stdout
           .transform(const Utf8Decoder(allowMalformed: true))
           .transform(const LineSplitter())) {
+        // Check if quit was requested
+        if (_shouldQuit) {
+          cleanup();
+          break;
+        }
+
         // Detect malformed UTF-8 sequences (replacement character U+FFFD)
         final replacementCount = '\uFFFD'.allMatches(line).length;
         if (replacementCount > 0) {
@@ -271,7 +328,7 @@ class MonitorCommand extends Command<int> {
         }
 
         // If verbose, print all Firebase Analytics/Crashlytics related lines
-        if (verbose) {
+        if (verbose && !_isPaused) {
           // Filter to only FA/Crashlytics noise to keep it relevant
           // Use pre-compiled static pattern for better performance
           if (_firebaseRelatedPattern.hasMatch(line)) {
@@ -283,8 +340,8 @@ class MonitorCommand extends Command<int> {
         final event = _logParser.parse(line);
 
         if (event != null) {
-          // Add to cache for suggestions
-          _eventCache.addEvent(event.eventName);
+          // Add full event to cache for export support
+          _eventCache.addFullEvent(event);
 
           // Apply filtering using shared utility
           if (EventFilterUtils.shouldSkipEvent(
@@ -292,6 +349,11 @@ class MonitorCommand extends Command<int> {
             hideEvents,
             showOnlyEvents,
           )) {
+            continue;
+          }
+
+          // Skip display if paused (events still captured)
+          if (_isPaused) {
             continue;
           }
 
@@ -306,6 +368,8 @@ class MonitorCommand extends Command<int> {
       // Cleanup resources
       statsTimer?.cancel();
       suggestionsTimer?.cancel();
+      unawaited(keyboardSub?.cancel());
+      _keyboardInput?.dispose();
       unawaited(sigintSub.cancel());
       unawaited(sigtermSub.cancel());
     } on ProcessException catch (e, stackTrace) {
@@ -379,5 +443,61 @@ class MonitorCommand extends Command<int> {
 
       _logger.info('');
     }
+  }
+
+  /// Initialize keyboard shortcuts system.
+  Future<void> _initializeKeyboardShortcuts() async {
+    // Create keyboard input service
+    _keyboardInput = KeyboardInputService();
+
+    // Create action registry and register all actions
+    final registry = ActionRegistry();
+    final clipboard = ClipboardService();
+    final fileDialog = FileDialogService(logger: _logger);
+
+    registry.registerAll([
+      CopyToClipboardAction(clipboard: clipboard),
+      SaveToFileAction(fileDialog: fileDialog),
+      TogglePauseAction(
+        onToggle: ({required isPaused}) => _isPaused = isPaused,
+      ),
+      ShowStatsAction(),
+      ClearScreenAction(),
+      QuitAction(onQuit: () => _shouldQuit = true),
+    ]);
+
+    // Create shortcut manager
+    final configLoader = ShortcutsConfigLoader();
+    _shortcutManager = ShortcutManager(
+      actionRegistry: registry,
+      configLoader: configLoader,
+      logger: _logger,
+    );
+
+    // Add show help action (needs access to manager)
+    registry.register(
+      ShowHelpAction(
+        registry: registry,
+        getBinding: _shortcutManager!.getBinding,
+      ),
+    );
+
+    // Load custom bindings from config file
+    await _shortcutManager!.loadCustomBindings();
+  }
+
+  /// Handle a keyboard input event.
+  Future<void> _handleKeyEvent(KeyInputEvent event) async {
+    if (_shortcutManager == null) return;
+
+    // Build action context with current state
+    final context = ActionContext(
+      recentEvents: _eventCache.getRecentEvents(1000),
+      eventCache: _eventCache,
+      logger: _logger,
+      isPaused: _isPaused,
+    );
+
+    await _shortcutManager!.handleKeyEvent(event, context);
   }
 }

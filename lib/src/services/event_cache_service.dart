@@ -1,4 +1,7 @@
+import 'dart:collection';
+
 import 'package:firebase_analytics_monitor/src/constants.dart';
+import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
 import 'package:firebase_analytics_monitor/src/models/session_stats.dart';
 import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
 import 'package:injectable/injectable.dart';
@@ -20,9 +23,15 @@ class EventCacheService implements EventCacheInterface {
   /// Default maximum cache size for event tracking.
   static const int defaultMaxCacheSize = 10000;
 
+  /// Maximum number of full events to store for export.
+  static const int maxRecentEvents = 1000;
+
   final Logger? _logger;
   final Set<String> _uniqueEventNames = <String>{};
   final Map<String, int> _eventCounts = <String, int>{};
+
+  /// Circular buffer for recent full events.
+  final Queue<AnalyticsEvent> _recentEvents = Queue<AnalyticsEvent>();
 
   @override
   void addEvent(String eventName) {
@@ -41,6 +50,29 @@ class EventCacheService implements EventCacheInterface {
 
     _uniqueEventNames.add(eventName);
     _eventCounts[eventName] = 1;
+  }
+
+  @override
+  void addFullEvent(AnalyticsEvent event) {
+    // Also track by event name
+    addEvent(event.eventName);
+
+    // Add to recent events buffer
+    _recentEvents.add(event);
+
+    // Maintain bounded size
+    while (_recentEvents.length > maxRecentEvents) {
+      _recentEvents.removeFirst();
+    }
+  }
+
+  @override
+  List<AnalyticsEvent> getRecentEvents(int count) {
+    if (count <= 0) return [];
+
+    // Return events in reverse order (most recent first)
+    final events = _recentEvents.toList().reversed.take(count).toList();
+    return List.unmodifiable(events);
   }
 
   /// Evicts the least frequently used event from the cache.
@@ -117,6 +149,7 @@ class EventCacheService implements EventCacheInterface {
   void clear() {
     _uniqueEventNames.clear();
     _eventCounts.clear();
+    _recentEvents.clear();
   }
 
   @override

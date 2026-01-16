@@ -1,3 +1,4 @@
+import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
 import 'package:firebase_analytics_monitor/src/models/session_stats.dart';
 
 /// Interface for event cache service to enable dependency injection and testing
@@ -11,6 +12,18 @@ abstract class EventCacheInterface {
   /// [eventName] - The name of the Firebase Analytics event to cache
   /// Empty or null event names should be handled gracefully
   void addEvent(String eventName);
+
+  /// Add a full analytics event to the cache
+  ///
+  /// [event] - The full analytics event to cache
+  /// This also updates event name tracking
+  void addFullEvent(AnalyticsEvent event);
+
+  /// Get recent events with full data
+  ///
+  /// [count] - Maximum number of events to return
+  /// Returns the most recent [count] events in reverse chronological order
+  List<AnalyticsEvent> getRecentEvents(int count);
 
   /// Get all unique event names seen in the current session
   ///

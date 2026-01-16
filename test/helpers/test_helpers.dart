@@ -143,6 +143,12 @@ Future<void> setUpTestDependencies({
         logger: resolvedLogger,
         pubUpdater: getIt<PubUpdater>(),
       ),
+    )
+    ..registerFactory<PublishCommand>(
+      () => PublishCommand(
+        logger: resolvedLogger,
+        processManager: resolvedProcessManager,
+      ),
     );
 }
 

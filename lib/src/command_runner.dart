@@ -55,6 +55,7 @@ class FirebaseAnalyticsMonitorCommandRunner
     addCommand(getIt<MonitorCommand>());
     addCommand(getIt<FilteredMonitorCommand>());
     addCommand(getIt<DatabaseCommand>());
+    addCommand(getIt<PublishCommand>());
     addCommand(getIt<UpdateCommand>());
   }
 

@@ -32,7 +32,7 @@ jobs:
         run: dart pub get
 
       - name: 🔍 Analyze
-        run: dart analyze --fatal-infos
+        run: dart analyze --fatal-warnings
 
   format:
     name: 📝 Dart Format

@@ -19,8 +19,8 @@ abstract class LogParserInterface {
   /// data, null otherwise.
   ///
   /// Expected log format examples:
-  /// - Event logs: "Logging event: event_name, Bundle[...]"
-  /// - Parameter logs: "Logging event parameter: param_name, value"
+  /// - Event logs: `Logging event: event_name, Bundle{...}`
+  /// - Parameter logs: `Logging event parameter: param_name, value`
   ///
   /// The parser should handle:
   /// - Malformed or incomplete log lines gracefully

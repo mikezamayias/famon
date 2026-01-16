@@ -36,26 +36,3 @@ abstract class ShortcutAction {
   /// or was not applicable in the current state.
   Future<bool> execute(ActionContext context);
 }
-
-/// Result of executing a shortcut action.
-///
-/// Provides detailed information about the action outcome for logging
-/// and user feedback.
-class ActionResult {
-  /// Creates a successful result.
-  const ActionResult.success({this.message})
-      : success = true,
-        error = null;
-
-  /// Creates a failed result.
-  const ActionResult.failure({this.error, this.message}) : success = false;
-
-  /// Whether the action completed successfully.
-  final bool success;
-
-  /// Optional message to display to the user.
-  final String? message;
-
-  /// Error message if the action failed.
-  final String? error;
-}

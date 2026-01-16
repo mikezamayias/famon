@@ -147,6 +147,22 @@ class IosLogParserService implements LogParserInterface {
     r'^[A-Za-z]+\((.*)\)$',
   );
 
+  // Pre-compiled patterns for _extractTimestamp (avoids hot path compilation)
+  static final RegExp _isoTimestampPattern = RegExp(
+    r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+)',
+  );
+  static final RegExp _timeOnlyPattern = RegExp(
+    r'(\d{2}:\d{2}:\d{2}\.\d+)',
+  );
+
+  // Pre-compiled patterns for _cleanValue (avoids hot path compilation)
+  static final RegExp _surroundingDoubleQuotesPattern = RegExp(r'^"|"$');
+  static final RegExp _surroundingSingleQuotesPattern = RegExp(r"^'|'$");
+  static final RegExp _surroundingParenthesesPattern = RegExp(r'^\(|\)$');
+  static final RegExp _surroundingBracketsPattern = RegExp(r'^\[|\]$');
+  static final RegExp _surroundingBracesPattern = RegExp(r'^{|}$');
+  static final RegExp _trailingSemicolonPattern = RegExp(r';$');
+
   @override
   AnalyticsEvent? parse(String logLine) {
     if (logLine.isEmpty) return null;
@@ -202,19 +218,17 @@ class IosLogParserService implements LogParserInterface {
   /// - `2024-01-15 10:30:45.123+0000`
   /// - `10:30:45.123`
   /// - No timestamp at all
+  ///
+  /// Uses pre-compiled static patterns for performance.
   String _extractTimestamp(String line) {
-    // Try to extract ISO-style timestamp
-    final isoMatch = RegExp(
-      r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+)',
-    ).firstMatch(line);
+    // Try to extract ISO-style timestamp using pre-compiled pattern
+    final isoMatch = _isoTimestampPattern.firstMatch(line);
     if (isoMatch != null) {
       return isoMatch.group(1) ?? '';
     }
 
-    // Try to extract time-only timestamp
-    final timeMatch = RegExp(
-      r'(\d{2}:\d{2}:\d{2}\.\d+)',
-    ).firstMatch(line);
+    // Try to extract time-only timestamp using pre-compiled pattern
+    final timeMatch = _timeOnlyPattern.firstMatch(line);
     if (timeMatch != null) {
       return timeMatch.group(1) ?? '';
     }
@@ -319,19 +333,21 @@ class IosLogParserService implements LogParserInterface {
     return items;
   }
 
-  /// Clean and normalize parameter values
+  /// Clean and normalize parameter values.
+  ///
+  /// Uses pre-compiled static patterns for performance.
   String _cleanValue(String value) {
     // Unwrap typed wrappers
     final wrapperMatch = _iosValueWrapperPattern.firstMatch(value.trim());
     final v = wrapperMatch != null ? (wrapperMatch.group(1) ?? value) : value;
 
     return v
-        .replaceAll(RegExp(r'^"|"$'), '') // Remove surrounding quotes
-        .replaceAll(RegExp(r"^'|'$"), '') // Remove single quotes
-        .replaceAll(RegExp(r'^\(|\)$'), '') // Remove parentheses
-        .replaceAll(RegExp(r'^\[|\]$'), '') // Remove brackets
-        .replaceAll(RegExp(r'^{|}$'), '') // Remove braces
-        .replaceAll(RegExp(r';$'), '') // Remove trailing semicolon
+        .replaceAll(_surroundingDoubleQuotesPattern, '') // Remove quotes
+        .replaceAll(_surroundingSingleQuotesPattern, '') // Remove single quotes
+        .replaceAll(_surroundingParenthesesPattern, '') // Remove parentheses
+        .replaceAll(_surroundingBracketsPattern, '') // Remove brackets
+        .replaceAll(_surroundingBracesPattern, '') // Remove braces
+        .replaceAll(_trailingSemicolonPattern, '') // Remove trailing semicolon
         .trim();
   }
 }

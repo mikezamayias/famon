@@ -73,17 +73,26 @@ class FileDialogService implements FileDialogInterface {
   String _pad(int value) => value.toString().padLeft(2, '0');
 
   /// Show file dialog on macOS using AppleScript.
+  ///
+  /// Escapes special characters in the filename to prevent AppleScript
+  /// injection attacks.
   Future<String?> _showMacOSDialog(
     String? fileName,
     String? initialDir,
   ) async {
     final defaultName = fileName ?? _generateDefaultFileName();
 
+    // Escape special characters to prevent AppleScript injection
+    // AppleScript strings use backslash escaping for quotes and backslashes
+    final escapedName = defaultName
+        .replaceAll(r'\', r'\\')
+        .replaceAll('"', r'\"');
+
     // Build AppleScript command
     final script = '''
       tell application "System Events"
         activate
-        set filePath to choose file name default name "$defaultName"
+        set filePath to choose file name default name "$escapedName"
         return POSIX path of filePath
       end tell
     ''';

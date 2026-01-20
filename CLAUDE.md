@@ -52,6 +52,7 @@ class LogParserService {
 ```
 
 Hot paths where this matters:
+
 - `LogParserService.parse()` - called for every logcat line
 - `LogParserService._parseParams()` - called for every event
 - `LogParserService._cleanValue()` - called for every parameter value
@@ -62,6 +63,7 @@ Hot paths where this matters:
 When processing logcat streams:
 
 1. **Consume stderr** to prevent buffer overflow:
+
    ```dart
    final process = await processManager.start(['adb', 'logcat']);
    process.stderr.drain<void>(); // Prevent buffer buildup
@@ -80,6 +82,7 @@ When processing logcat streams:
 ### Memory Management
 
 1. **Bound cache sizes** in long-running services:
+
    ```dart
    static const _maxCacheSize = 10000;
 
@@ -92,6 +95,7 @@ When processing logcat streams:
    ```
 
 2. **Close database connections** when done:
+
    ```dart
    @disposeMethod
    Future<void> dispose() async {
@@ -100,6 +104,7 @@ When processing logcat streams:
    ```
 
 3. **Avoid creating intermediate collections** unnecessarily:
+
    ```dart
    // Prefer
    entries.where((e) => e.value > threshold).map((e) => e.key)
@@ -111,6 +116,7 @@ When processing logcat streams:
 ### String Operations
 
 1. **Avoid chained replaceAll** when possible:
+
    ```dart
    // If cleaning multiple patterns, consider single-pass:
    String clean(String value) {

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-01-20
+
+### Fixed
+
+- Fixed update message showing incorrect command (`firebase_analytics_monitor update` instead of `famon update`)
+- Fixed version display always showing `1.1.0` regardless of installed version
+- Added version consistency checks to release process to prevent future version mismatches
+
+### Added
+
+- Added `tool/update_version.dart` script for updating version in both pubspec.yaml and version.dart
+
 ## [1.3.2] - 2026-01-16
 
 ### Changed

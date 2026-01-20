@@ -1,6 +1,6 @@
 name: firebase_analytics_monitor
 description: A command-line tool to monitor Firebase Analytics events from logcat.
-version: 1.3.2
+version: 1.3.3
 repository: https://github.com/mikezamayias/firebase_analytics_monitor
 
 environment:

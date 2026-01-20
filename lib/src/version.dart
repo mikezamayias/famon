@@ -1,3 +1,3 @@
 // Generated code. Do not modify.
 /// The current version of the package.
-const packageVersion = '1.1.0';
+const packageVersion = '1.3.2';

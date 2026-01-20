@@ -35,6 +35,13 @@ if ! grep -q "## \\[$VERSION\\]" CHANGELOG.md; then
   exit 1
 fi
 
+if ! grep -q "const packageVersion = '$VERSION';" lib/src/version.dart; then
+  echo "lib/src/version.dart does not contain version $VERSION" >&2
+  echo "Expected: const packageVersion = '$VERSION';" >&2
+  echo "Run: dart run tool/update_version.dart $VERSION" >&2
+  exit 1
+fi
+
 git checkout main
 git merge --no-ff development
 

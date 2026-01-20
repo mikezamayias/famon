@@ -8,7 +8,7 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_updater/pub_updater.dart';
 
 /// The name of the CLI executable.
-const executableName = 'firebase_analytics_monitor';
+const executableName = 'famon';
 
 /// The name of the package on pub.dev.
 const packageName = 'firebase_analytics_monitor';
@@ -23,7 +23,7 @@ const description =
 /// Uses dependency injection via GetIt for command resolution.
 ///
 /// ```bash
-/// $ firebase_analytics_monitor --version
+/// $ famon --version
 /// ```
 /// {@endtemplate}
 class FirebaseAnalyticsMonitorCommandRunner

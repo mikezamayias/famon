@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/data_export_repository.dart';
+import 'package:famon/src/core/domain/repositories/data_export_repository.dart';
 import 'package:injectable/injectable.dart';
 
 /// Use case for importing analytics data

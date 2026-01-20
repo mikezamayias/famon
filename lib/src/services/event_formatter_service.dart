@@ -1,6 +1,6 @@
-import 'package:firebase_analytics_monitor/src/constants.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/services/fa_warning_buffer.dart';
+import 'package:famon/src/constants.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/services/fa_warning_buffer.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 /// Service for formatting and printing analytics events to the console.

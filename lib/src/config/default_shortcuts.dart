@@ -1,4 +1,4 @@
-import 'package:firebase_analytics_monitor/src/keyboard/key_binding.dart';
+import 'package:famon/src/keyboard/key_binding.dart';
 
 /// Default keyboard shortcut bindings.
 ///

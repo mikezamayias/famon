@@ -7,7 +7,7 @@
 /// ## Quick Start
 ///
 /// ```dart
-/// import 'package:firebase_analytics_monitor/firebase_analytics_monitor.dart';
+/// import 'package:famon/firebase_analytics_monitor.dart';
 ///
 /// // Parse a logcat line
 /// final parser = LogParserService();

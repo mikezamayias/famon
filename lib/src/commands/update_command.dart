@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:firebase_analytics_monitor/src/command_runner.dart';
-import 'package:firebase_analytics_monitor/src/version.dart';
+import 'package:famon/src/command_runner.dart';
+import 'package:famon/src/version.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_updater/pub_updater.dart';

@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/entities/event_metadata.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/data_export_repository.dart';
-import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/isar_database.dart';
-import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/isar_models.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/core/domain/entities/event_metadata.dart';
+import 'package:famon/src/core/domain/repositories/data_export_repository.dart';
+import 'package:famon/src/core/infrastructure/data_sources/isar_database.dart';
+import 'package:famon/src/core/infrastructure/data_sources/isar_models.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar/isar.dart';
 

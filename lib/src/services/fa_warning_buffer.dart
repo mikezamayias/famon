@@ -1,6 +1,6 @@
-import 'package:firebase_analytics_monitor/src/constants.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/shared/log_timestamp_parser.dart';
+import 'package:famon/src/constants.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/shared/log_timestamp_parser.dart';
 
 /// Callback type for when buffered FA warnings are ready to be flushed.
 typedef FaWarningFlushCallback = void Function({

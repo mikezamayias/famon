@@ -1,9 +1,9 @@
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
-import 'package:firebase_analytics_monitor/src/commands/commands.dart';
-import 'package:firebase_analytics_monitor/src/injection.dart';
-import 'package:firebase_analytics_monitor/src/version.dart';
+import 'package:famon/src/commands/commands.dart';
+import 'package:famon/src/injection.dart';
+import 'package:famon/src/version.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_updater/pub_updater.dart';
 
@@ -11,13 +11,13 @@ import 'package:pub_updater/pub_updater.dart';
 const executableName = 'famon';
 
 /// The name of the package on pub.dev.
-const packageName = 'firebase_analytics_monitor';
+const packageName = 'famon';
 
 /// The description of the CLI tool.
 const description =
     'A command-line tool to monitor Firebase Analytics events from logcat.';
 
-/// {@template firebase_analytics_monitor_command_runner}
+/// {@template famon_command_runner}
 /// A [CommandRunner] for the CLI.
 ///
 /// Uses dependency injection via GetIt for command resolution.
@@ -26,13 +26,13 @@ const description =
 /// $ famon --version
 /// ```
 /// {@endtemplate}
-class FirebaseAnalyticsMonitorCommandRunner
+class FamonCommandRunner
     extends CompletionCommandRunner<int> {
-  /// {@macro firebase_analytics_monitor_command_runner}
+  /// {@macro famon_command_runner}
   ///
   /// Creates a new command runner. If [logger] and [pubUpdater] are not
   /// provided, they are resolved from the DI container.
-  FirebaseAnalyticsMonitorCommandRunner({
+  FamonCommandRunner({
     Logger? logger,
     PubUpdater? pubUpdater,
   })  : _logger = logger ?? getIt<Logger>(),

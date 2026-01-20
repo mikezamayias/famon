@@ -8,57 +8,43 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:firebase_analytics_monitor/src/cli/commands/database_command.dart'
-    as _i30;
-import 'package:firebase_analytics_monitor/src/cli/commands/filtered_monitor_command.dart'
-    as _i29;
-import 'package:firebase_analytics_monitor/src/commands/monitor_command.dart'
-    as _i26;
-import 'package:firebase_analytics_monitor/src/commands/update_command.dart'
-    as _i17;
-import 'package:firebase_analytics_monitor/src/config/shortcuts_config_loader.dart'
-    as _i16;
-import 'package:firebase_analytics_monitor/src/core/application/services/event_filter_service.dart'
+import 'package:famon/src/cli/commands/database_command.dart' as _i30;
+import 'package:famon/src/cli/commands/filtered_monitor_command.dart' as _i29;
+import 'package:famon/src/commands/monitor_command.dart' as _i26;
+import 'package:famon/src/commands/update_command.dart' as _i17;
+import 'package:famon/src/config/shortcuts_config_loader.dart' as _i16;
+import 'package:famon/src/core/application/services/event_filter_service.dart'
     as _i28;
-import 'package:firebase_analytics_monitor/src/core/application/use_cases/export_data_use_case.dart'
+import 'package:famon/src/core/application/use_cases/export_data_use_case.dart'
     as _i22;
-import 'package:firebase_analytics_monitor/src/core/application/use_cases/import_data_use_case.dart'
+import 'package:famon/src/core/application/use_cases/import_data_use_case.dart'
     as _i23;
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/data_export_repository.dart'
+import 'package:famon/src/core/domain/repositories/data_export_repository.dart'
     as _i18;
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/event_repository.dart'
+import 'package:famon/src/core/domain/repositories/event_repository.dart'
     as _i20;
-import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/database_directory_resolver.dart'
+import 'package:famon/src/core/infrastructure/data_sources/database_directory_resolver.dart'
     as _i6;
-import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/isar_database.dart'
+import 'package:famon/src/core/infrastructure/data_sources/isar_database.dart'
     as _i11;
-import 'package:firebase_analytics_monitor/src/core/infrastructure/repositories/isar_data_export_repository.dart'
+import 'package:famon/src/core/infrastructure/repositories/isar_data_export_repository.dart'
     as _i19;
-import 'package:firebase_analytics_monitor/src/core/infrastructure/repositories/isar_event_repository.dart'
+import 'package:famon/src/core/infrastructure/repositories/isar_event_repository.dart'
     as _i21;
-import 'package:firebase_analytics_monitor/src/di/register_module.dart' as _i31;
-import 'package:firebase_analytics_monitor/src/keyboard/actions/action_registry.dart'
-    as _i3;
-import 'package:firebase_analytics_monitor/src/keyboard/keyboard_input_service.dart'
-    as _i12;
-import 'package:firebase_analytics_monitor/src/keyboard/shortcut_manager.dart'
-    as _i27;
-import 'package:firebase_analytics_monitor/src/platform/clipboard_service.dart'
-    as _i4;
-import 'package:firebase_analytics_monitor/src/platform/file_dialog_service.dart'
-    as _i10;
-import 'package:firebase_analytics_monitor/src/services/event_cache_service.dart'
-    as _i8;
-import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart'
+import 'package:famon/src/di/register_module.dart' as _i31;
+import 'package:famon/src/keyboard/actions/action_registry.dart' as _i3;
+import 'package:famon/src/keyboard/keyboard_input_service.dart' as _i12;
+import 'package:famon/src/keyboard/shortcut_manager.dart' as _i27;
+import 'package:famon/src/platform/clipboard_service.dart' as _i4;
+import 'package:famon/src/platform/file_dialog_service.dart' as _i10;
+import 'package:famon/src/services/event_cache_service.dart' as _i8;
+import 'package:famon/src/services/interfaces/event_cache_interface.dart'
     as _i7;
-import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart'
+import 'package:famon/src/services/interfaces/log_parser_interface.dart'
     as _i13;
-import 'package:firebase_analytics_monitor/src/services/log_parser_factory.dart'
-    as _i24;
-import 'package:firebase_analytics_monitor/src/services/log_parser_service.dart'
-    as _i14;
-import 'package:firebase_analytics_monitor/src/services/log_source_factory.dart'
-    as _i25;
+import 'package:famon/src/services/log_parser_factory.dart' as _i24;
+import 'package:famon/src/services/log_parser_service.dart' as _i14;
+import 'package:famon/src/services/log_source_factory.dart' as _i25;
 import 'package:get_it/get_it.dart' as _i1;
 import 'package:injectable/injectable.dart' as _i2;
 import 'package:mason_logger/mason_logger.dart' as _i9;

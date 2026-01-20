@@ -1,7 +1,7 @@
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/event_repository.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/value_objects/event_statistics.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/value_objects/filter_criteria.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/core/domain/repositories/event_repository.dart';
+import 'package:famon/src/core/domain/value_objects/event_statistics.dart';
+import 'package:famon/src/core/domain/value_objects/filter_criteria.dart';
 import 'package:injectable/injectable.dart';
 
 /// Service for filtering and analyzing analytics events

@@ -1,4 +1,4 @@
-import 'package:firebase_analytics_monitor/src/keyboard/actions/shortcut_action.dart';
+import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:injectable/injectable.dart';
 
 /// Registry for all available keyboard shortcut actions.

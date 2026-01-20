@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:firebase_analytics_monitor/src/keyboard/keyboard_input_interface.dart';
+import 'package:famon/src/keyboard/keyboard_input_interface.dart';
 import 'package:injectable/injectable.dart';
 
 /// Implementation of [KeyboardInputInterface] using dart:io stdin.

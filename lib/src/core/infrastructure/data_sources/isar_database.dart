@@ -1,5 +1,5 @@
-import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/database_directory_resolver.dart';
-import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/isar_models.dart';
+import 'package:famon/src/core/infrastructure/data_sources/database_directory_resolver.dart';
+import 'package:famon/src/core/infrastructure/data_sources/isar_models.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar/isar.dart';
 

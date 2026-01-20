@@ -1,7 +1,7 @@
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/entities/event_metadata.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/value_objects/filter_criteria.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/value_objects/session_statistics.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/core/domain/entities/event_metadata.dart';
+import 'package:famon/src/core/domain/value_objects/filter_criteria.dart';
+import 'package:famon/src/core/domain/value_objects/session_statistics.dart';
 
 /// Repository interface for managing analytics events
 /// Follows the Repository pattern from Domain-Driven Design

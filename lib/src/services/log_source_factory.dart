@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:firebase_analytics_monitor/src/models/platform_type.dart';
-import 'package:firebase_analytics_monitor/src/services/interfaces/log_source_interface.dart';
+import 'package:famon/src/models/platform_type.dart';
+import 'package:famon/src/services/interfaces/log_source_interface.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:process/process.dart';

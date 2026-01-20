@@ -1,4 +1,4 @@
-# 🔥 Firebase Analytics Monitor (famon)
+# 🔥 famon - Firebase Analytics Monitor
 
 ![coverage][coverage_badge]
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
@@ -25,7 +25,7 @@ A powerful command-line tool for real-time monitoring and filtering of Firebase 
 ### Global Installation via Pub
 
 ```bash
-dart pub global activate firebase_analytics_monitor
+dart pub global activate famon
 ```
 
 ### Local Development Installation
@@ -37,7 +37,7 @@ dart pub global activate --source=path <path to this package>
 ### From Source
 
 ```bash
-git clone https://github.com/mikezamayias/firebase_analytics_monitor.git
+git clone https://github.com/mikezamayias/famon.git
 cd firebase_analytics_monitor
 dart pub get
 dart compile exe bin/famon.dart -o famon
@@ -364,7 +364,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 ### Development Setup
 
 ```bash
-git clone https://github.com/mikezamayias/firebase_analytics_monitor.git
+git clone https://github.com/mikezamayias/famon.git
 cd firebase_analytics_monitor
 dart pub get
 dart pub run build_runner build  # Generate model files

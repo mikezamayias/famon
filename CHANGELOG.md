@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-01-20
+
+### Changed
+
+- **Package renamed from `firebase_analytics_monitor` to `famon`**
+- Install with: `dart pub global activate famon`
+- Repository renamed to `github.com/mikezamayias/famon`
+- All internal class names updated (e.g., `FamonCommandRunner`)
+
+### Migration from firebase_analytics_monitor
+
+If you were using the old package, simply run:
+```bash
+dart pub global deactivate firebase_analytics_monitor
+dart pub global activate famon
+```
+
+---
+
+## Previous releases (as firebase_analytics_monitor)
+
 ## [1.3.3] - 2026-01-20
 
 ### Fixed

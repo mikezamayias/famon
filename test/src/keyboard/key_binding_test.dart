@@ -1,4 +1,4 @@
-import 'package:firebase_analytics_monitor/src/keyboard/key_binding.dart';
+import 'package:famon/src/keyboard/key_binding.dart';
 import 'package:test/test.dart';
 
 void main() {

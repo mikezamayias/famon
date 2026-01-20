@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:firebase_analytics_monitor/src/platform/clipboard_interface.dart';
+import 'package:famon/src/platform/clipboard_interface.dart';
 import 'package:injectable/injectable.dart';
 import 'package:process/process.dart';
 

@@ -1,4 +1,4 @@
-import 'package:firebase_analytics_monitor/src/config/default_shortcuts.dart';
+import 'package:famon/src/config/default_shortcuts.dart';
 import 'package:test/test.dart';
 
 void main() {

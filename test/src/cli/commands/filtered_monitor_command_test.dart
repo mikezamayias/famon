@@ -1,13 +1,13 @@
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:firebase_analytics_monitor/src/cli/commands/filtered_monitor_command.dart';
-import 'package:firebase_analytics_monitor/src/core/application/services/event_filter_service.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/event_repository.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/value_objects/event_statistics.dart';
-import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
-import 'package:firebase_analytics_monitor/src/utils/event_filter_utils.dart';
+import 'package:famon/src/cli/commands/filtered_monitor_command.dart';
+import 'package:famon/src/core/application/services/event_filter_service.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/core/domain/repositories/event_repository.dart';
+import 'package:famon/src/core/domain/value_objects/event_statistics.dart';
+import 'package:famon/src/services/interfaces/log_parser_interface.dart';
+import 'package:famon/src/utils/event_filter_utils.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:process/process.dart';

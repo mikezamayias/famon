@@ -125,6 +125,20 @@ class _AndroidLogSource implements LogSourceInterface {
   final ProcessManager _processManager;
   final Logger _logger;
 
+  /// Valid Android package name pattern.
+  ///
+  /// Package names must:
+  /// - Start with a letter
+  /// - Contain only letters, digits, underscores, and dots
+  /// - Have at least one dot (e.g., com.example.app)
+  ///
+  /// See: https://developer.android.com/studio/build/application-id
+  static final _validPackageNamePattern =
+      RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$');
+
+  /// Maximum allowed package name length (per Android spec).
+  static const _maxPackageNameLength = 256;
+
   @override
   PlatformType get platform => PlatformType.android;
 
@@ -150,6 +164,24 @@ class _AndroidLogSource implements LogSourceInterface {
   @override
   Future<void> enableAnalyticsDebug(String? bundleIdOrPackage) async {
     if (bundleIdOrPackage == null || bundleIdOrPackage.isEmpty) return;
+
+    // Security: Validate package name format to prevent command injection
+    if (bundleIdOrPackage.length > _maxPackageNameLength) {
+      _logger.warn(
+        'Package name too long (max $_maxPackageNameLength chars): '
+        '${bundleIdOrPackage.length} chars provided',
+      );
+      return;
+    }
+
+    if (!_validPackageNamePattern.hasMatch(bundleIdOrPackage)) {
+      _logger.warn(
+        'Invalid package name format: $bundleIdOrPackage\n'
+        'Package names must start with a letter, contain only '
+        'alphanumeric characters, underscores, and dots.',
+      );
+      return;
+    }
 
     try {
       _logger.detail('Enabling Analytics debug for $bundleIdOrPackage...');

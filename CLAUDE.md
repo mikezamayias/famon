@@ -380,11 +380,11 @@ void dispose() {
 
 | Vector | Severity | Location | Status |
 |--------|----------|----------|--------|
-| Command Injection (package name) | Medium | `log_source_factory.dart` | **Needs validation** |
+| Command Injection (package name) | Medium | `log_source_factory.dart` | Mitigated |
 | Path Traversal | Low | `database_command.dart` | Partially mitigated |
-| Malicious JSON Import | Medium | `import_data_use_case.dart` | **Needs schema validation** |
+| Malicious JSON Import | Medium | `import_data_use_case.dart` | Mitigated |
 | ReDoS | Low | `event_cache_service.dart` | Mitigated |
-| Memory Exhaustion (large imports) | Medium | `isar_data_export_repository.dart` | **Needs size limits** |
+| Memory Exhaustion (large imports) | Medium | `isar_data_export_repository.dart` | Mitigated |
 | Log Injection | Low | `log_parser_service.dart` | Low risk (CLI only) |
 
 ## Performance Guidelines

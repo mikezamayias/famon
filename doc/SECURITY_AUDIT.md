@@ -14,58 +14,53 @@ This audit identified several security considerations in the Firebase Analytics 
 
 | ID | Finding | Severity | Status |
 |----|---------|----------|--------|
-| SEC-001 | Command injection via package name | Medium | Open |
+| SEC-001 | Command injection via package name | Medium | **Fixed** |
 | SEC-002 | Path traversal partially mitigated | Low | Partial |
-| SEC-003 | Unbounded JSON import | Medium | Open |
+| SEC-003 | Unbounded JSON import | Medium | **Fixed** |
 | SEC-004 | ReDoS in search patterns | Low | Mitigated |
 | SEC-005 | Log injection from logcat | Low | Accepted Risk |
-| SEC-006 | Memory exhaustion via large imports | Medium | Open |
+| SEC-006 | Memory exhaustion via large imports | Medium | **Fixed** |
 
 ---
 
 ## Detailed Findings
 
-### SEC-001: Command Injection via Package Name
+### SEC-001: Command Injection via Package Name - FIXED
 
-**Location:** `lib/src/services/log_source_factory.dart:156-162`
+**Location:** `lib/src/services/log_source_factory.dart:136-199`
 
 **Description:**
-The `enableAnalyticsDebug()` method passes user-supplied package names directly to `adb shell setprop` without validation. While the Dart `ProcessManager.start()` uses argument arrays (avoiding shell interpretation), specially crafted package names could still cause issues.
+The `enableAnalyticsDebug()` method now validates user-supplied package names before passing to `adb shell setprop`.
 
-**Code:**
+**Fix Applied:**
+- Added `_validPackageNamePattern` regex requiring proper Android package format
+- Added `_maxPackageNameLength` constant (256 chars)
+- Validation rejects invalid names with helpful error messages
+
+**Implementation:**
 ```dart
-final proc = await _processManager.start([
-  'adb',
-  'shell',
-  'setprop',
-  'debug.firebase.analytics.app',
-  bundleIdOrPackage,  // User input, not validated
-]);
-```
-
-**Risk:** Low-Medium
-- Dart's `Process.start()` with argument list prevents shell metacharacter injection
-- However, malformed package names could cause unexpected behavior
-- Future refactoring might introduce shell interpolation
-
-**Recommendation:**
-```dart
-static final _validPackageNamePattern = RegExp(r'^[a-zA-Z][a-zA-Z0-9_.]*$');
+static final _validPackageNamePattern =
+    RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$');
+static const _maxPackageNameLength = 256;
 
 Future<void> enableAnalyticsDebug(String? bundleIdOrPackage) async {
   if (bundleIdOrPackage == null || bundleIdOrPackage.isEmpty) return;
 
-  // Validate Android package name format
-  if (bundleIdOrPackage.length > 256 ||
-      !_validPackageNamePattern.hasMatch(bundleIdOrPackage)) {
-    _logger.warn('Invalid package name format: $bundleIdOrPackage');
+  // Security: Validate package name format
+  if (bundleIdOrPackage.length > _maxPackageNameLength) {
+    _logger.warn('Package name too long...');
     return;
   }
 
+  if (!_validPackageNamePattern.hasMatch(bundleIdOrPackage)) {
+    _logger.warn('Invalid package name format...');
+    return;
+  }
   // Proceed with validated input
-  ...
 }
 ```
+
+**Status:** Fixed
 
 ---
 
@@ -135,80 +130,53 @@ String? _validateFilePath(String? filePath, {
 
 ---
 
-### SEC-003: Unbounded JSON Import
+### SEC-003: Unbounded JSON Import - FIXED
 
 **Location:**
 - `lib/src/core/application/use_cases/import_data_use_case.dart`
-- `lib/src/core/infrastructure/repositories/isar_data_export_repository.dart`
 
 **Description:**
-JSON import operations read entire files into memory without size limits or schema validation:
+JSON import operations now validate file size and schema before processing.
 
+**Fix Applied:**
+- Added 100MB file size limit (`maxImportFileSize`)
+- Added comprehensive schema validation (`_validateImportSchema`)
+- Validates required fields: version, data section
+- Validates nested structure: events, metadata, sessions sections
+- Sample validation of first 10 events for required `eventName` field
+- Improved error messages with specific validation failures
+
+**Implementation:**
 ```dart
-Future<void> importFromFile(String filePath, {bool overwrite = false}) async {
-  final file = File(filePath);
-  final content = await file.readAsString();  // Entire file in memory
-  final data = jsonDecode(content) as Map<String, dynamic>;  // No validation
-  await _repository.importAllData(data, overwrite: overwrite);
-}
-```
-
-**Risks:**
-1. **Memory exhaustion:** Large malicious files could crash the application
-2. **Malformed data:** No schema validation means corrupted data could be imported
-3. **Type confusion:** Casting without validation could throw unexpected exceptions
-
-**Risk:** Medium
-
-**Recommendation:**
-```dart
-static const int maxImportFileSize = 100 * 1024 * 1024; // 100MB limit
+static const int maxImportFileSize = 100 * 1024 * 1024;
 
 Future<void> importFromFile(String filePath, {bool overwrite = false}) async {
   final file = File(filePath);
 
-  // Check file size before reading
+  // Security: Check file size before reading
   final fileSize = await file.length();
   if (fileSize > maxImportFileSize) {
-    throw ArgumentError(
-      'Import file too large: ${fileSize ~/ 1024 ~/ 1024}MB '
-      '(max: ${maxImportFileSize ~/ 1024 ~/ 1024}MB)',
-    );
+    throw ArgumentError('Import file too large...');
   }
 
   final content = await file.readAsString();
-  final data = jsonDecode(content);
+  final decoded = jsonDecode(content);
 
-  // Validate schema
-  if (data is! Map<String, dynamic>) {
+  if (decoded is! Map<String, dynamic>) {
     throw FormatException('Invalid import file: expected JSON object');
   }
 
-  if (!_validateImportSchema(data)) {
-    throw FormatException('Invalid import file structure');
+  // Validate schema structure
+  final validationError = _validateImportSchema(decoded);
+  if (validationError != null) {
+    throw FormatException('Invalid import file structure: $validationError');
   }
 
-  await _repository.importAllData(data, overwrite: overwrite);
-}
-
-bool _validateImportSchema(Map<String, dynamic> data) {
-  // Required fields
-  if (!data.containsKey('version')) return false;
-  if (!data.containsKey('data')) return false;
-
-  final dataSection = data['data'];
-  if (dataSection is! Map<String, dynamic>) return false;
-
-  // Validate events structure if present
-  if (dataSection.containsKey('events')) {
-    final events = dataSection['events'];
-    if (events is! Map<String, dynamic>) return false;
-    if (events['events'] is! List) return false;
-  }
-
-  return true;
+  await _repository.importAllData(decoded, overwrite: overwrite);
 }
 ```
+
+**Status:** Fixed
 
 ---
 
@@ -277,41 +245,39 @@ String _sanitizeForStorage(String value) {
 
 ---
 
-### SEC-006: Memory Exhaustion via Large Imports
+### SEC-006: Memory Exhaustion via Large Imports - FIXED
 
-**Location:** `lib/src/core/infrastructure/repositories/isar_data_export_repository.dart:144-165`
+**Location:** `lib/src/core/infrastructure/repositories/isar_data_export_repository.dart`
 
 **Description:**
-The `importEvents()` method processes all events in a single transaction, loading them all into memory:
+Import methods now process data in chunks to bound memory usage.
 
-```dart
-await isar.writeTxn(() async {
-  for (final eventData in eventsList) {  // All events iterated
-    final event = AnalyticsEvent.fromJson(eventData as Map<String, dynamic>);
-    final isarEvent = IsarAnalyticsEvent.fromDomain(event);
-    await isar.isarAnalyticsEvents.put(isarEvent);
-  }
-});
-```
+**Fix Applied:**
+- Added `_importChunkSize` constant (1000 records per transaction)
+- Chunked processing applied to `importEvents`, `importEventMetadata`, and `importSessions`
+- Separate clear transaction from import for overwrite mode
+- Each chunk processed in its own transaction to bound memory
 
-**Risk:** Medium
-
-**Recommendation:** Use chunked processing:
+**Implementation:**
 ```dart
 static const int _importChunkSize = 1000;
 
 Future<void> importEvents(Map<String, dynamic> data, {bool overwrite = false}) async {
   final isar = await database.db;
   final eventsList = data['events'] as List<dynamic>?;
-  if (eventsList == null) return;
+  if (eventsList == null || eventsList.isEmpty) return;
 
   if (overwrite) {
     await isar.writeTxn(() => isar.isarAnalyticsEvents.clear());
   }
 
   // Process in chunks to bound memory usage
-  for (var i = 0; i < eventsList.length; i += _importChunkSize) {
-    final chunk = eventsList.skip(i).take(_importChunkSize);
+  final totalEvents = eventsList.length;
+  for (var offset = 0; offset < totalEvents; offset += _importChunkSize) {
+    final endIndex = (offset + _importChunkSize < totalEvents)
+        ? offset + _importChunkSize
+        : totalEvents;
+    final chunk = eventsList.sublist(offset, endIndex);
 
     await isar.writeTxn(() async {
       for (final eventData in chunk) {
@@ -322,6 +288,8 @@ Future<void> importEvents(Map<String, dynamic> data, {bool overwrite = false}) a
   }
 }
 ```
+
+**Status:** Fixed
 
 ---
 

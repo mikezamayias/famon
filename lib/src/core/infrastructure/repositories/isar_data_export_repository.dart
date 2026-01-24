@@ -18,6 +18,12 @@ class IsarDataExportRepository implements DataExportRepository {
   /// The Isar database instance for data operations.
   final IsarDatabase database;
 
+  /// Number of records to process per transaction during import.
+  ///
+  /// This bounds memory usage for large imports by processing in chunks
+  /// rather than loading all records into a single transaction.
+  static const int _importChunkSize = 1000;
+
   @override
   Future<Map<String, dynamic>> exportAllData() async {
     final events = await exportEvents();
@@ -148,20 +154,30 @@ class IsarDataExportRepository implements DataExportRepository {
     final isar = await database.db;
     final eventsList = data['events'] as List<dynamic>?;
 
-    if (eventsList == null) return;
+    if (eventsList == null || eventsList.isEmpty) return;
 
-    await isar.writeTxn(() async {
-      if (overwrite) {
-        await isar.isarAnalyticsEvents.clear();
-      }
+    // Clear existing data if overwriting (separate transaction)
+    if (overwrite) {
+      await isar.writeTxn(() => isar.isarAnalyticsEvents.clear());
+    }
 
-      for (final eventData in eventsList) {
-        final event =
-            AnalyticsEvent.fromJson(eventData as Map<String, dynamic>);
-        final isarEvent = IsarAnalyticsEvent.fromDomain(event);
-        await isar.isarAnalyticsEvents.put(isarEvent);
-      }
-    });
+    // Process in chunks to bound memory usage for large imports
+    final totalEvents = eventsList.length;
+    for (var offset = 0; offset < totalEvents; offset += _importChunkSize) {
+      final endIndex = (offset + _importChunkSize < totalEvents)
+          ? offset + _importChunkSize
+          : totalEvents;
+      final chunk = eventsList.sublist(offset, endIndex);
+
+      await isar.writeTxn(() async {
+        for (final eventData in chunk) {
+          final event =
+              AnalyticsEvent.fromJson(eventData as Map<String, dynamic>);
+          final isarEvent = IsarAnalyticsEvent.fromDomain(event);
+          await isar.isarAnalyticsEvents.put(isarEvent);
+        }
+      });
+    }
   }
 
   @override
@@ -172,20 +188,30 @@ class IsarDataExportRepository implements DataExportRepository {
     final isar = await database.db;
     final metadataList = data['metadata'] as List<dynamic>?;
 
-    if (metadataList == null) return;
+    if (metadataList == null || metadataList.isEmpty) return;
 
-    await isar.writeTxn(() async {
-      if (overwrite) {
-        await isar.isarEventMetadatas.clear();
-      }
+    // Clear existing data if overwriting (separate transaction)
+    if (overwrite) {
+      await isar.writeTxn(() => isar.isarEventMetadatas.clear());
+    }
 
-      for (final metadataData in metadataList) {
-        final metadata =
-            EventMetadata.fromJson(metadataData as Map<String, dynamic>);
-        final isarMetadata = IsarEventMetadata.fromDomain(metadata);
-        await isar.isarEventMetadatas.put(isarMetadata);
-      }
-    });
+    // Process in chunks to bound memory usage for large imports
+    final totalMetadata = metadataList.length;
+    for (var offset = 0; offset < totalMetadata; offset += _importChunkSize) {
+      final endIndex = (offset + _importChunkSize < totalMetadata)
+          ? offset + _importChunkSize
+          : totalMetadata;
+      final chunk = metadataList.sublist(offset, endIndex);
+
+      await isar.writeTxn(() async {
+        for (final metadataData in chunk) {
+          final metadata =
+              EventMetadata.fromJson(metadataData as Map<String, dynamic>);
+          final isarMetadata = IsarEventMetadata.fromDomain(metadata);
+          await isar.isarEventMetadatas.put(isarMetadata);
+        }
+      });
+    }
   }
 
   @override
@@ -196,20 +222,30 @@ class IsarDataExportRepository implements DataExportRepository {
     final isar = await database.db;
     final sessionsList = data['sessions'] as List<dynamic>?;
 
-    if (sessionsList == null) return;
+    if (sessionsList == null || sessionsList.isEmpty) return;
 
-    await isar.writeTxn(() async {
-      if (overwrite) {
-        await isar.isarSessionDatas.clear();
-      }
+    // Clear existing data if overwriting (separate transaction)
+    if (overwrite) {
+      await isar.writeTxn(() => isar.isarSessionDatas.clear());
+    }
 
-      for (final sessionData in sessionsList) {
-        final sessionMap = sessionData as Map<String, dynamic>;
-        final sessionId = sessionMap['sessionId'] as String;
-        final isarSession = IsarSessionData.fromMap(sessionId, sessionMap);
-        await isar.isarSessionDatas.put(isarSession);
-      }
-    });
+    // Process in chunks to bound memory usage for large imports
+    final totalSessions = sessionsList.length;
+    for (var offset = 0; offset < totalSessions; offset += _importChunkSize) {
+      final endIndex = (offset + _importChunkSize < totalSessions)
+          ? offset + _importChunkSize
+          : totalSessions;
+      final chunk = sessionsList.sublist(offset, endIndex);
+
+      await isar.writeTxn(() async {
+        for (final sessionData in chunk) {
+          final sessionMap = sessionData as Map<String, dynamic>;
+          final sessionId = sessionMap['sessionId'] as String;
+          final isarSession = IsarSessionData.fromMap(sessionId, sessionMap);
+          await isar.isarSessionDatas.put(isarSession);
+        }
+      });
+    }
   }
 
   @override

@@ -1,6 +1,6 @@
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/entities/event_metadata.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/event_repository.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/core/domain/entities/event_metadata.dart';
+import 'package:famon/src/core/domain/repositories/event_repository.dart';
 
 /// Use case for adding manual parameters to events for more precise monitoring
 class AddManualParametersUseCase {

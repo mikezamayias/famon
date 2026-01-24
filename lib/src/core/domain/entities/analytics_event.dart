@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:firebase_analytics_monitor/src/shared/log_timestamp_parser.dart';
+import 'package:famon/src/shared/log_timestamp_parser.dart';
 
 /// Core domain entity representing a Firebase Analytics event
 ///

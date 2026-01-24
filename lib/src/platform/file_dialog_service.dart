@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:firebase_analytics_monitor/src/platform/file_dialog_interface.dart';
+import 'package:famon/src/platform/file_dialog_interface.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:process/process.dart';

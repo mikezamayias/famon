@@ -1,5 +1,5 @@
-import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
-import 'package:firebase_analytics_monitor/src/services/log_parser_service.dart';
+import 'package:famon/src/services/interfaces/log_parser_interface.dart';
+import 'package:famon/src/services/log_parser_service.dart';
 import 'package:test/test.dart';
 
 void main() {

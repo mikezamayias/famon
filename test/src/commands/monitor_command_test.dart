@@ -1,8 +1,8 @@
-import 'package:firebase_analytics_monitor/src/commands/monitor_command.dart';
-import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
-import 'package:firebase_analytics_monitor/src/services/log_parser_factory.dart';
-import 'package:firebase_analytics_monitor/src/services/log_source_factory.dart';
-import 'package:firebase_analytics_monitor/src/utils/event_filter_utils.dart';
+import 'package:famon/src/commands/monitor_command.dart';
+import 'package:famon/src/services/interfaces/event_cache_interface.dart';
+import 'package:famon/src/services/log_parser_factory.dart';
+import 'package:famon/src/services/log_source_factory.dart';
+import 'package:famon/src/utils/event_filter_utils.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';

@@ -1,5 +1,5 @@
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/data_export_repository.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/event_repository.dart';
+import 'package:famon/src/core/domain/repositories/data_export_repository.dart';
+import 'package:famon/src/core/domain/repositories/event_repository.dart';
 
 /// Use case for exporting and importing data with JSON compatibility
 class DataExportImportUseCase {

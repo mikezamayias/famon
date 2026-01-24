@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/event_repository.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/value_objects/filter_criteria.dart';
-import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/isar_database.dart';
-import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/isar_models.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/core/domain/repositories/event_repository.dart';
+import 'package:famon/src/core/domain/value_objects/filter_criteria.dart';
+import 'package:famon/src/core/infrastructure/data_sources/isar_database.dart';
+import 'package:famon/src/core/infrastructure/data_sources/isar_models.dart';
 import 'package:injectable/injectable.dart';
 import 'package:isar/isar.dart';
 

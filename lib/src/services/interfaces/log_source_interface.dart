@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:firebase_analytics_monitor/src/models/platform_type.dart';
+import 'package:famon/src/models/platform_type.dart';
 
 /// Interface for platform-specific log sources.
 ///

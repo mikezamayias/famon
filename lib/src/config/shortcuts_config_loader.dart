@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:firebase_analytics_monitor/src/config/default_shortcuts.dart';
-import 'package:firebase_analytics_monitor/src/keyboard/key_binding.dart';
+import 'package:famon/src/config/default_shortcuts.dart';
+import 'package:famon/src/keyboard/key_binding.dart';
 import 'package:injectable/injectable.dart';
 import 'package:path/path.dart' as path;
 import 'package:yaml/yaml.dart';

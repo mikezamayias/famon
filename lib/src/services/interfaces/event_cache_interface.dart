@@ -1,5 +1,5 @@
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/models/session_stats.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/models/session_stats.dart';
 
 /// Interface for event cache service to enable dependency injection and testing
 ///

@@ -1,6 +1,6 @@
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/event_repository.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/value_objects/filter_criteria.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/core/domain/repositories/event_repository.dart';
+import 'package:famon/src/core/domain/value_objects/filter_criteria.dart';
 
 /// Use case for monitoring analytics events with advanced filtering
 class MonitorEventsUseCase {

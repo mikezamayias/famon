@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2026-01-24
+
+### Security
+
+- **SEC-001**: Added package name validation in `enableAnalyticsDebug()` to prevent command injection
+- **SEC-003**: Added file size limits (100MB) and schema validation for JSON imports
+- **SEC-006**: Implemented chunked processing for large imports to prevent memory exhaustion
+
+### Added
+
+- Comprehensive security audit documentation (`doc/SECURITY_AUDIT.md`)
+- Security guidelines section in `CLAUDE.md` for future development
+- Input validation patterns for external data handling
+- Memory-safe chunked import processing (1000 records per transaction)
+
+### Changed
+
+- Import operations now validate JSON structure before processing
+- Package name inputs are validated against Android naming conventions
+
+## [1.0.2] - 2026-01-24
+
+### Added
+
+- Added pub.dev badge and link to README for easy package discovery
+
+## [1.0.1] - 2026-01-20
+
+### Added
+
+- Added example file for pub.dev documentation
+
+### Fixed
+
+- Fixed static analysis warnings in generated files for improved pub.dev score
+
+## [1.0.0] - 2026-01-20
+
+### Changed
+
+- **Package renamed from `firebase_analytics_monitor` to `famon`**
+- Install with: `dart pub global activate famon`
+- Repository renamed to `github.com/mikezamayias/famon`
+- All internal class names updated (e.g., `FamonCommandRunner`)
+
+### Migration from firebase_analytics_monitor
+
+If you were using the old package, simply run:
+```bash
+dart pub global deactivate firebase_analytics_monitor
+dart pub global activate famon
+```
+
+---
+
+## Previous releases (as firebase_analytics_monitor)
+
 ## [1.3.3] - 2026-01-20
 
 ### Fixed

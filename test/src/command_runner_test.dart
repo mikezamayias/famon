@@ -2,13 +2,13 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
-import 'package:firebase_analytics_monitor/src/command_runner.dart';
-import 'package:firebase_analytics_monitor/src/models/platform_type.dart';
-import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
-import 'package:firebase_analytics_monitor/src/services/interfaces/log_source_interface.dart';
-import 'package:firebase_analytics_monitor/src/services/log_parser_factory.dart';
-import 'package:firebase_analytics_monitor/src/services/log_source_factory.dart';
-import 'package:firebase_analytics_monitor/src/version.dart';
+import 'package:famon/src/command_runner.dart';
+import 'package:famon/src/models/platform_type.dart';
+import 'package:famon/src/services/interfaces/log_parser_interface.dart';
+import 'package:famon/src/services/interfaces/log_source_interface.dart';
+import 'package:famon/src/services/log_parser_factory.dart';
+import 'package:famon/src/services/log_source_factory.dart';
+import 'package:famon/src/version.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:pub_updater/pub_updater.dart';
@@ -40,10 +40,10 @@ void main() {
     registerFallbackValue(PlatformType.auto);
   });
 
-  group('FirebaseAnalyticsMonitorCommandRunner', () {
+  group('FamonCommandRunner', () {
     late PubUpdater pubUpdater;
     late Logger logger;
-    late FirebaseAnalyticsMonitorCommandRunner commandRunner;
+    late FamonCommandRunner commandRunner;
 
     setUp(() async {
       pubUpdater = MockPubUpdater();
@@ -55,7 +55,7 @@ void main() {
         () => pubUpdater.getLatestVersion(any()),
       ).thenAnswer((_) async => packageVersion);
 
-      commandRunner = FirebaseAnalyticsMonitorCommandRunner(
+      commandRunner = FamonCommandRunner(
         logger: logger,
         pubUpdater: pubUpdater,
       );
@@ -132,7 +132,7 @@ void main() {
       'can be instantiated without an explicit analytics/logger instance',
       () async {
         // For tests without explicit logger, we still need DI set up
-        final testCommandRunner = FirebaseAnalyticsMonitorCommandRunner();
+        final testCommandRunner = FamonCommandRunner();
         expect(testCommandRunner, isNotNull);
         expect(testCommandRunner, isA<CompletionCommandRunner<int>>());
       },
@@ -217,7 +217,7 @@ void main() {
           logParserFactory: mockLogParserFactory,
         );
 
-        final verboseCommandRunner = FirebaseAnalyticsMonitorCommandRunner(
+        final verboseCommandRunner = FamonCommandRunner(
           logger: logger,
           pubUpdater: pubUpdater,
         );

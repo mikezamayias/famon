@@ -1,5 +1,5 @@
-import 'package:firebase_analytics_monitor/src/keyboard/action_context.dart';
-import 'package:firebase_analytics_monitor/src/keyboard/key_binding.dart';
+import 'package:famon/src/keyboard/action_context.dart';
+import 'package:famon/src/keyboard/key_binding.dart';
 
 /// Base interface for all keyboard shortcut actions.
 ///

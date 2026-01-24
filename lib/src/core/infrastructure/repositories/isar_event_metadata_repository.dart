@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:firebase_analytics_monitor/src/core/domain/entities/event_metadata.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/repositories/event_repository.dart';
-import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/isar_database.dart';
-import 'package:firebase_analytics_monitor/src/core/infrastructure/data_sources/isar_models.dart';
+import 'package:famon/src/core/domain/entities/event_metadata.dart';
+import 'package:famon/src/core/domain/repositories/event_repository.dart';
+import 'package:famon/src/core/infrastructure/data_sources/isar_database.dart';
+import 'package:famon/src/core/infrastructure/data_sources/isar_models.dart';
 import 'package:isar/isar.dart';
 
 /// Isar implementation of EventMetadataRepository

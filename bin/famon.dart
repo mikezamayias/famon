@@ -1,13 +1,13 @@
 import 'dart:io';
 
-import 'package:firebase_analytics_monitor/src/command_runner.dart';
-import 'package:firebase_analytics_monitor/src/injection.dart';
+import 'package:famon/src/command_runner.dart';
+import 'package:famon/src/injection.dart';
 
 Future<void> main(List<String> args) async {
   // Initialize dependency injection
   await configureDependencies();
 
-  await _flushThenExit(await FirebaseAnalyticsMonitorCommandRunner().run(args));
+  await _flushThenExit(await FamonCommandRunner().run(args));
 }
 
 /// Flushes the stdout and stderr streams, then exits the program with the given

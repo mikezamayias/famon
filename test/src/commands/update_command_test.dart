@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:firebase_analytics_monitor/src/command_runner.dart';
-import 'package:firebase_analytics_monitor/src/commands/commands.dart';
-import 'package:firebase_analytics_monitor/src/version.dart';
+import 'package:famon/src/command_runner.dart';
+import 'package:famon/src/commands/commands.dart';
+import 'package:famon/src/version.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:pub_updater/pub_updater.dart';
@@ -18,7 +18,7 @@ void main() {
   group('update', () {
     late PubUpdater pubUpdater;
     late Logger logger;
-    late FirebaseAnalyticsMonitorCommandRunner commandRunner;
+    late FamonCommandRunner commandRunner;
 
     setUp(() async {
       final progress = _MockProgress();
@@ -28,7 +28,7 @@ void main() {
 
       await setUpTestDependencies(logger: logger, pubUpdater: pubUpdater);
 
-      commandRunner = FirebaseAnalyticsMonitorCommandRunner(
+      commandRunner = FamonCommandRunner(
         logger: logger,
         pubUpdater: pubUpdater,
       );

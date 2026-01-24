@@ -1,5 +1,5 @@
-import 'package:firebase_analytics_monitor/src/services/event_cache_service.dart';
-import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
+import 'package:famon/src/services/event_cache_service.dart';
+import 'package:famon/src/services/interfaces/event_cache_interface.dart';
 import 'package:test/test.dart';
 
 void main() {

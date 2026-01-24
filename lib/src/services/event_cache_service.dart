@@ -1,9 +1,9 @@
 import 'dart:collection';
 
-import 'package:firebase_analytics_monitor/src/constants.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/models/session_stats.dart';
-import 'package:firebase_analytics_monitor/src/services/interfaces/event_cache_interface.dart';
+import 'package:famon/src/constants.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/models/session_stats.dart';
+import 'package:famon/src/services/interfaces/event_cache_interface.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 

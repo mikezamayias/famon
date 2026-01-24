@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/core/domain/entities/event_metadata.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/core/domain/entities/event_metadata.dart';
 import 'package:isar/isar.dart';
 
 part 'isar_models.g.dart';

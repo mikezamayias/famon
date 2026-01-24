@@ -1,5 +1,5 @@
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/models/platform_type.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/models/platform_type.dart';
 
 /// Interface for log parser service to enable dependency injection and testing
 ///

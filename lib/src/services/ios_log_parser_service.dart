@@ -1,6 +1,6 @@
-import 'package:firebase_analytics_monitor/src/core/domain/entities/analytics_event.dart';
-import 'package:firebase_analytics_monitor/src/models/platform_type.dart';
-import 'package:firebase_analytics_monitor/src/services/interfaces/log_parser_interface.dart';
+import 'package:famon/src/core/domain/entities/analytics_event.dart';
+import 'package:famon/src/models/platform_type.dart';
+import 'package:famon/src/services/interfaces/log_parser_interface.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 /// Service for parsing Firebase Analytics log lines from iOS console output.

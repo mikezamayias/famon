@@ -1,4 +1,4 @@
-import 'package:firebase_analytics_monitor/src/injection.config.dart';
+import 'package:famon/src/injection.config.dart';
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 

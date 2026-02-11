@@ -68,7 +68,7 @@ class KeyboardInputService implements KeyboardInputInterface {
     if (!_isStarted) return;
 
     // Cancel subscription
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel());
     _subscription = null;
 
     // Restore terminal settings
@@ -82,7 +82,7 @@ class KeyboardInputService implements KeyboardInputInterface {
     }
 
     // Close controller
-    _controller?.close();
+    unawaited(_controller?.close());
     _controller = null;
     _isStarted = false;
   }

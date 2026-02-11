@@ -96,7 +96,7 @@ void main() {
           logger: Logger(),
         );
 
-        final event = KeyInputEvent(key: 'q');
+        const event = KeyInputEvent(key: 'q');
         final result = await manager.handleKeyEvent(event, context);
 
         expect(result, isTrue);
@@ -117,7 +117,7 @@ void main() {
           logger: Logger(),
         );
 
-        final event = KeyInputEvent(key: 'x');
+        const event = KeyInputEvent(key: 'x');
         final result = await manager.handleKeyEvent(event, context);
 
         expect(result, isFalse);
@@ -139,7 +139,7 @@ void main() {
         );
 
         // Should match with ctrl
-        final eventWithCtrl = KeyInputEvent(key: 'c', ctrl: true);
+        const eventWithCtrl = KeyInputEvent(key: 'c', ctrl: true);
         final result1 = await manager.handleKeyEvent(eventWithCtrl, context);
         expect(result1, isTrue);
 
@@ -147,7 +147,7 @@ void main() {
         action.wasExecuted = false;
 
         // Should not match without ctrl
-        final eventWithoutCtrl = KeyInputEvent(key: 'c');
+        const eventWithoutCtrl = KeyInputEvent(key: 'c');
         final result2 = await manager.handleKeyEvent(eventWithoutCtrl, context);
         expect(result2, isFalse);
       });

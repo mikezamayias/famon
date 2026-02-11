@@ -103,7 +103,7 @@ void main() {
           isTrue,
         );
         expect(
-          binding.matches(eventKey: 'c', eventCtrl: false),
+          binding.matches(eventKey: 'c'),
           isFalse,
         );
       });
@@ -115,7 +115,7 @@ void main() {
           isTrue,
         );
         expect(
-          binding.matches(eventKey: 's', eventShift: false),
+          binding.matches(eventKey: 's'),
           isFalse,
         );
       });
@@ -127,11 +127,11 @@ void main() {
           isTrue,
         );
         expect(
-          binding.matches(eventKey: 's', eventCtrl: true, eventShift: false),
+          binding.matches(eventKey: 's', eventCtrl: true),
           isFalse,
         );
         expect(
-          binding.matches(eventKey: 's', eventCtrl: false, eventShift: true),
+          binding.matches(eventKey: 's', eventShift: true),
           isFalse,
         );
       });

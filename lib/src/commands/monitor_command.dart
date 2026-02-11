@@ -316,7 +316,7 @@ class MonitorCommand extends Command<int> {
       void cleanup() {
         statsTimer?.cancel();
         suggestionsTimer?.cancel();
-        keyboardSub?.cancel();
+        unawaited(keyboardSub?.cancel());
         _keyboardInput?.dispose();
         process.kill();
       }

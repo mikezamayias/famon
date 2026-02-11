@@ -66,17 +66,15 @@ class IsarDataExportRepository implements DataExportRepository {
   }) async {
     final isar = await database.db;
     final names = eventNames ?? const <String>[];
-    final queryAfterNames = isar.isarAnalyticsEvents
-        .where()
-        .anyOf<String, QAfterWhereClause>(
-          names,
-          (
-            QueryBuilder<IsarAnalyticsEvent, IsarAnalyticsEvent, QWhereClause>
+    final queryAfterNames =
+        isar.isarAnalyticsEvents.where().anyOf<String, QAfterWhereClause>(
+              names,
+              (
                 q,
-            String name,
-          ) =>
-              q.eventNameEqualTo(name),
-        );
+                name,
+              ) =>
+                  q.eventNameEqualTo(name),
+            );
 
     final sortedQuery = fromDate != null || toDate != null
         ? _executeTimedExportQuery(
@@ -89,9 +87,7 @@ class IsarDataExportRepository implements DataExportRepository {
 
     return {
       'count': filteredEvents.length,
-      'events': filteredEvents
-          .map((IsarAnalyticsEvent e) => e.toDomain().toJson())
-          .toList(),
+      'events': filteredEvents.map((e) => e.toDomain().toJson()).toList(),
     };
   }
 
@@ -102,9 +98,7 @@ class IsarDataExportRepository implements DataExportRepository {
 
     return {
       'count': allMetadata.length,
-      'metadata': allMetadata
-          .map((IsarEventMetadata m) => m.toDomain().toJson())
-          .toList(),
+      'metadata': allMetadata.map((m) => m.toDomain().toJson()).toList(),
     };
   }
 
@@ -115,7 +109,7 @@ class IsarDataExportRepository implements DataExportRepository {
 
     return {
       'count': allSessions.length,
-      'sessions': allSessions.map((IsarSessionData s) => s.toMap()).toList(),
+      'sessions': allSessions.map((s) => s.toMap()).toList(),
     };
   }
 

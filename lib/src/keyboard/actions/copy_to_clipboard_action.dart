@@ -43,9 +43,8 @@ class CopyToClipboardAction implements ShortcutAction {
 
     // Get the most recent N events
     final count = context.eventCountToExport;
-    final eventsToExport = events.length <= count
-        ? events
-        : events.sublist(events.length - count);
+    final eventsToExport =
+        events.length <= count ? events : events.sublist(events.length - count);
 
     // Convert to JSON format
     final jsonData = eventsToExport

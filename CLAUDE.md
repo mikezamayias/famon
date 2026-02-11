@@ -4,11 +4,31 @@ This document provides context and guidelines for AI assistants and developers w
 
 ## Project Overview
 
-Firebase Analytics Monitor (`famon`) is a Dart CLI tool that monitors Firebase Analytics events in real-time by parsing Android logcat output. It provides filtering, formatting, and persistence capabilities.
+Firebase Analytics Monitor (`famon`) is a Dart CLI tool that monitors Firebase Analytics events in real-time by parsing platform log output (Android logcat, iOS Simulator via xcrun simctl, and physical iOS devices via idevicesyslog). It provides filtering, formatting, and persistence capabilities.
+
+## Cross-Platform Parity
+
+**All supported platforms must behave identically from the user's perspective.**
+
+When fixing a bug or adding a feature in one platform's log parser, always verify and apply the same fix/feature to every other platform parser. The CLI must produce consistent output regardless of whether the log source is Android, iOS Simulator, or iOS Device.
+
+Key rules:
+
+1. **Bug fixes are cross-platform by default.** A parsing fix in `LogParserService` (Android) must be mirrored in `IosLogParserService` (iOS), and vice versa.
+2. **Test coverage must match.** If a test case is added for one parser (e.g. items array truncation), an equivalent test must exist for the other parser(s).
+3. **Output format is platform-agnostic.** `EventFormatterService` receives `AnalyticsEvent` objects — the same fields (`eventName`, `parameters`, `items`, `rawTimestamp`) must be populated consistently regardless of source platform.
+4. **New parsing capabilities require all-platform implementation.** Do not ship a feature (e.g. items array parsing) for only one platform.
+
+Platform parsers and their responsibilities:
+
+| Parser                | Platform               | Log format                                    |
+| --------------------- | ---------------------- | --------------------------------------------- |
+| `LogParserService`    | Android                | `Bundle[{key=value, items=[Bundle[{...}]]}]`  |
+| `IosLogParserService` | iOS Simulator / Device | `{ key (_abbrev) = value; items = [{...}]; }` |
 
 ## Architecture
 
-```
+```text
 lib/src/
 ├── cli/commands/          # CLI-specific command implementations
 ├── commands/              # Core command implementations
@@ -72,6 +92,7 @@ When processing logcat streams:
 2. **Use broadcast streams carefully** - prefer single listeners when possible
 
 3. **Add signal handlers** for graceful shutdown:
+
    ```dart
    ProcessSignal.sigint.watch().listen((_) async {
      await cleanup();
@@ -137,7 +158,7 @@ When processing logcat streams:
 
 ### Test Structure
 
-```
+```text
 test/
 ├── src/                   # Unit tests mirroring lib/src structure
 │   ├── commands/
@@ -212,6 +233,7 @@ await _processManager.start(['adb', 'shell', 'setprop', '...', userInput]); // D
 ```
 
 **Known risk areas:**
+
 - `LogSourceFactory.enableAnalyticsDebug()` - accepts package name from CLI
 - Any future feature accepting app identifiers, file names, or paths
 
@@ -238,6 +260,7 @@ String? _validateFilePath(String? filePath, {bool mustExist = false}) {
 ```
 
 **Additional considerations:**
+
 - Symlink attacks: Consider using `file.resolveSymbolicLinksSync()` for sensitive operations
 - Directory containment: Verify resolved paths stay within expected directories
 - Existing validation in `database_command.dart` - extend this pattern to new features
@@ -378,231 +401,19 @@ void dispose() {
 
 ### Attack Vector Summary
 
-| Vector | Severity | Location | Status |
-|--------|----------|----------|--------|
-| Command Injection (package name) | Medium | `log_source_factory.dart` | Mitigated |
-| Path Traversal | Low | `database_command.dart` | Partially mitigated |
-| Malicious JSON Import | Medium | `import_data_use_case.dart` | Mitigated |
-| ReDoS | Low | `event_cache_service.dart` | Mitigated |
-| Memory Exhaustion (large imports) | Medium | `isar_data_export_repository.dart` | Mitigated |
-| Log Injection | Low | `log_parser_service.dart` | Low risk (CLI only) |
-
-## Performance Guidelines
-
-This CLI tool processes a continuous stream of logcat data. Efficient resource usage is critical for long-running sessions.
-
-### Memory Leak Prevention
-
-Beyond basic memory management, watch for these common leak patterns:
-
-1. **Timer leaks**: Always cancel timers in cleanup/dispose:
-   ```dart
-   Timer? _periodicTimer;
-
-   void start() {
-     _periodicTimer = Timer.periodic(duration, callback);
-   }
-
-   void dispose() {
-     _periodicTimer?.cancel();
-     _periodicTimer = null;
-   }
-   ```
-
-2. **Stream subscription leaks**: Cancel subscriptions before disposing controllers:
-   ```dart
-   StreamSubscription? _subscription;
-   StreamController? _controller;
-
-   void dispose() {
-     _subscription?.cancel(); // Cancel first
-     _controller?.close();    // Then close
-   }
-   ```
-
-3. **Process handle leaks**: Always kill spawned processes on shutdown:
-   ```dart
-   ProcessSignal.sigint.watch().listen((_) {
-     process.kill();
-   });
-   ```
-
-4. **Large collection imports**: Stream data instead of loading all at once:
-   ```dart
-   // WRONG - loads entire file in memory
-   final events = jsonDecode(await file.readAsString())['events'];
-   for (final event in events) { ... }
-
-   // BETTER - use chunked processing for large files
-   const chunkSize = 1000;
-   for (var offset = 0; offset < totalCount; offset += chunkSize) {
-     final chunk = events.skip(offset).take(chunkSize);
-     await processChunk(chunk);
-   }
-   ```
-
-### RegExp Patterns: Always Static Final
-
-**NEVER** compile regex patterns inside methods that are called frequently. Always use `static final`:
-
-```dart
-// CORRECT
-class LogParserService {
-  static final _eventPattern = RegExp(r'Logging event: name=([^,]+)');
-
-  String? parse(String line) {
-    final match = _eventPattern.firstMatch(line);
-    // ...
-  }
-}
-
-// WRONG - compiles regex on every call
-class LogParserService {
-  String? parse(String line) {
-    final pattern = RegExp(r'Logging event: name=([^,]+)'); // BAD!
-    final match = pattern.firstMatch(line);
-    // ...
-  }
-}
-```
-
-Hot paths where this matters:
-
-- `LogParserService.parse()` - called for every logcat line
-- `LogParserService._parseParams()` - called for every event
-- `LogParserService._cleanValue()` - called for every parameter value
-- `LogTimestampParser.parseTimestamp()` - called for every event
-
-### Stream Processing
-
-When processing logcat streams:
-
-1. **Consume stderr** to prevent buffer overflow:
-
-   ```dart
-   final process = await processManager.start(['adb', 'logcat']);
-   process.stderr.drain<void>(); // Prevent buffer buildup
-   ```
-
-2. **Use broadcast streams carefully** - prefer single listeners when possible
-
-3. **Add signal handlers** for graceful shutdown:
-   ```dart
-   ProcessSignal.sigint.watch().listen((_) async {
-     await cleanup();
-     process.kill();
-   });
-   ```
-
-### Memory Management
-
-1. **Bound cache sizes** in long-running services:
-
-   ```dart
-   static const _maxCacheSize = 10000;
-
-   void addItem(String item) {
-     if (_cache.length >= _maxCacheSize) {
-       _evictOldest();
-     }
-     _cache.add(item);
-   }
-   ```
-
-2. **Close database connections** when done:
-
-   ```dart
-   @disposeMethod
-   Future<void> dispose() async {
-     await _isar?.close();
-   }
-   ```
-
-3. **Avoid creating intermediate collections** unnecessarily:
-
-   ```dart
-   // Prefer
-   entries.where((e) => e.value > threshold).map((e) => e.key)
-
-   // Over
-   entries.toList()..sort()..where(...).map(...).toList()
-   ```
-
-### String Operations
-
-1. **Avoid chained replaceAll** when possible:
-
-   ```dart
-   // If cleaning multiple patterns, consider single-pass:
-   String clean(String value) {
-     final buffer = StringBuffer();
-     for (var i = 0; i < value.length; i++) {
-       final char = value[i];
-       if (!_skipChars.contains(char)) {
-         buffer.write(char);
-       }
-     }
-     return buffer.toString();
-   }
-   ```
-
-2. **Use StringBuffer** for building strings in loops
-
-## Testing Guidelines
-
-### Test Structure
-
-```
-test/
-├── src/                   # Unit tests mirroring lib/src structure
-│   ├── commands/
-│   ├── services/
-│   └── ...
-├── helpers/
-│   └── test_helpers.dart  # DI setup for tests
-└── integration/           # Integration tests
-```
-
-### Running Tests
-
-```bash
-# Run all tests with coverage
-dart test --coverage=coverage
-
-# Generate coverage report
-dart pub global run coverage:format_coverage \
-  --lcov --in=coverage --out=coverage/lcov.info \
-  --report-on=lib
-```
-
-### Test Helpers
-
-Use `registerTestDependencies()` from `test/helpers/test_helpers.dart` for consistent DI setup in tests.
-
-## Dependency Injection
-
-Uses `injectable` and `get_it`. After modifying DI registrations:
-
-```bash
-dart run build_runner build --delete-conflicting-outputs
-```
-
-## Code Style
-
-- Follow [Effective Dart](https://dart.dev/guides/language/effective-dart)
-- Use `very_good_analysis` lint rules
-- Run `dart analyze` before commits
-
-## Git Workflow
-
-- Main branch: `development`
-- Feature branches: `feature/<name>`
-- Release branches: merge `development` to `main`, tag with version
+| Vector                            | Severity | Location                           | Status              |
+| --------------------------------- | -------- | ---------------------------------- | ------------------- |
+| Command Injection (package name)  | Medium   | `log_source_factory.dart`          | Mitigated           |
+| Path Traversal                    | Low      | `database_command.dart`            | Partially mitigated |
+| Malicious JSON Import             | Medium   | `import_data_use_case.dart`        | Mitigated           |
+| ReDoS                             | Low      | `event_cache_service.dart`         | Mitigated           |
+| Memory Exhaustion (large imports) | Medium   | `isar_data_export_repository.dart` | Mitigated           |
+| Log Injection                     | Low      | `log_parser_service.dart`          | Low risk (CLI only) |
 
 ## Related Documentation
 
 - `doc/RELEASE_FLOW.md` - Release process
-- `doc/IOS_SUPPORT_PLAN.md` - Future iOS support plan
+- `doc/IOS_SUPPORT_PLAN.md` - iOS support implementation plan
 - `doc/KEYBOARD_SHORTCUTS_PLAN.md` - Planned keyboard shortcuts feature
 - `doc/PERFORMANCE_AUDIT_PLAN.md` - Performance audit findings
 - `doc/SECURITY_AUDIT.md` - Security audit findings and recommendations

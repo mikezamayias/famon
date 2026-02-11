@@ -277,6 +277,9 @@ class LogParserService implements LogParserInterface {
             cleanParamsString.substring(0, cleanParamsString.length - 2);
       }
 
+      // Remove items array so item_* fields don't bleed into top-level params.
+      cleanParamsString = _stripItemsArray(cleanParamsString);
+
       // Use pre-compiled static patterns for better performance
       for (final pattern in _paramPatterns) {
         final matches = pattern.allMatches(cleanParamsString);
@@ -319,6 +322,59 @@ class LogParserService implements LogParserInterface {
     }
 
     return params;
+  }
+
+  /// Removes the items array from a Bundle params string if present.
+  ///
+  /// This prevents item-level fields from being parsed as top-level params.
+  /// Handles nested brackets inside Bundle[...] entries by tracking depth.
+  String _stripItemsArray(String paramsString) {
+    final itemsKeyIndex = paramsString.indexOf('items=[');
+    if (itemsKeyIndex == -1) {
+      return paramsString;
+    }
+
+    final startBracketIndex = paramsString.indexOf('[', itemsKeyIndex);
+    if (startBracketIndex == -1) {
+      return paramsString;
+    }
+
+    var depth = 0;
+    var endBracketIndex = -1;
+    for (var i = startBracketIndex; i < paramsString.length; i++) {
+      final ch = paramsString[i];
+      if (ch == '[') {
+        depth++;
+      } else if (ch == ']') {
+        depth--;
+        if (depth == 0) {
+          endBracketIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (endBracketIndex == -1) {
+      // Truncated items array; drop everything from items=[ onward.
+      return paramsString.substring(0, itemsKeyIndex).trimRight();
+    }
+
+    final before = paramsString.substring(0, itemsKeyIndex).trimRight();
+    final after = paramsString.substring(endBracketIndex + 1).trimLeft();
+
+    if (before.isEmpty) {
+      return after.startsWith(',') ? after.substring(1).trimLeft() : after;
+    }
+
+    if (after.isEmpty) {
+      return before.endsWith(',')
+          ? before.substring(0, before.length - 1)
+          : before;
+    }
+
+    final cleanedAfter =
+        after.startsWith(',') ? after.substring(1).trimLeft() : after;
+    return '$before, $cleanedAfter';
   }
 
   /// More aggressive parameter parsing for complex formats
@@ -366,20 +422,19 @@ class LogParserService implements LogParserInterface {
     try {
       // Look for items array using pre-compiled static pattern
       final itemsMatch = _itemsArrayPattern.firstMatch(paramsString);
+      final itemsString =
+          itemsMatch?.group(1) ?? _extractItemsSubstring(paramsString);
 
-      if (itemsMatch != null) {
-        final itemsString = itemsMatch.group(1);
-        if (itemsString != null) {
-          // Extract individual Bundle[{...}] items using pre-compiled pattern
-          final itemMatches = _itemPattern.allMatches(itemsString);
+      if (itemsString != null) {
+        // Extract individual Bundle[{...}] items using pre-compiled pattern
+        final itemMatches = _itemPattern.allMatches(itemsString);
 
-          for (final itemMatch in itemMatches) {
-            final itemParamsString = itemMatch.group(1);
-            if (itemParamsString != null) {
-              final itemParams = _parseParams('Bundle[{$itemParamsString}]');
-              if (itemParams.isNotEmpty) {
-                items.add(itemParams);
-              }
+        for (final itemMatch in itemMatches) {
+          final itemParamsString = itemMatch.group(1);
+          if (itemParamsString != null) {
+            final itemParams = _parseParams('Bundle[{$itemParamsString}]');
+            if (itemParams.isNotEmpty) {
+              items.add(itemParams);
             }
           }
         }
@@ -401,6 +456,25 @@ class LogParserService implements LogParserInterface {
     }
 
     return items;
+  }
+
+  /// Extracts the items array substring when the log line is truncated.
+  ///
+  /// Returns the substring starting after 'items=[' up to the end of the
+  /// string. This allows parsing of any complete Bundle[{...}] items present
+  /// even when the closing brackets are missing.
+  String? _extractItemsSubstring(String paramsString) {
+    final itemsKeyIndex = paramsString.indexOf('items=[');
+    if (itemsKeyIndex == -1) {
+      return null;
+    }
+
+    final startIndex = paramsString.indexOf('[', itemsKeyIndex);
+    if (startIndex == -1) {
+      return null;
+    }
+
+    return paramsString.substring(startIndex + 1);
   }
 
   /// Clean and normalize parameter values

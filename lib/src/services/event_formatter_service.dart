@@ -92,7 +92,7 @@ class EventFormatterService {
     // Split parameters into global vs event-specific when configured
     if (_globalParamNames.isNotEmpty) {
       _printSeparatedParams(event.parameters);
-    } else {
+    } else if (!hideEventParams) {
       _printAllParams(event.parameters);
     }
 
@@ -126,7 +126,9 @@ class EventFormatterService {
 
   /// Filters parameters for raw output based on hide flags.
   Map<String, String> _filterParamsForRaw(Map<String, String> params) {
-    if (_globalParamNames.isEmpty) return params;
+    if (_globalParamNames.isEmpty) {
+      return hideEventParams ? <String, String>{} : params;
+    }
     if (!hideGlobalParams && !hideEventParams) return params;
 
     return Map<String, String>.fromEntries(

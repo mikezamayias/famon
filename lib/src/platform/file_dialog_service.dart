@@ -84,9 +84,8 @@ class FileDialogService implements FileDialogInterface {
 
     // Escape special characters to prevent AppleScript injection
     // AppleScript strings use backslash escaping for quotes and backslashes
-    final escapedName = defaultName
-        .replaceAll(r'\', r'\\')
-        .replaceAll('"', r'\"');
+    final escapedName =
+        defaultName.replaceAll(r'\', r'\\').replaceAll('"', r'\"');
 
     // Build AppleScript command
     final script = '''

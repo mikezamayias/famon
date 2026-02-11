@@ -92,7 +92,7 @@ class EventFilterService {
       eventCounts[event.eventName] = (eventCounts[event.eventName] ?? 0) + 1;
     }
 
-    return events.where((AnalyticsEvent e) {
+    return events.where((e) {
       final count = eventCounts[e.eventName] ?? 0;
       if (minFrequency != null && count < minFrequency) return false;
       if (maxFrequency != null && count > maxFrequency) return false;

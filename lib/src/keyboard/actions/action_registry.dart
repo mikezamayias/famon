@@ -32,9 +32,7 @@ class ActionRegistry {
   ///
   /// [actions] - The actions to register.
   void registerAll(Iterable<ShortcutAction> actions) {
-    for (final action in actions) {
-      register(action);
-    }
+    actions.forEach(register);
   }
 
   /// Get an action by its ID.

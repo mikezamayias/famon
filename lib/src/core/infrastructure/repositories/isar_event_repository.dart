@@ -43,17 +43,15 @@ class IsarEventRepository implements EventRepository {
   }) async {
     final isar = await database.db;
     final eventNames = criteria?.eventNames ?? const <String>[];
-    final queryAfterNames = isar.isarAnalyticsEvents
-        .where()
-        .anyOf<String, QAfterWhereClause>(
-          eventNames,
-          (
-            QueryBuilder<IsarAnalyticsEvent, IsarAnalyticsEvent, QWhereClause>
+    final queryAfterNames =
+        isar.isarAnalyticsEvents.where().anyOf<String, QAfterWhereClause>(
+              eventNames,
+              (
                 q,
-            String eventName,
-          ) =>
-              q.eventNameEqualTo(eventName),
-        );
+                eventName,
+              ) =>
+                  q.eventNameEqualTo(eventName),
+            );
 
     final fetchLimit = limit != null ? ((offset ?? 0) + limit) : limit;
     final queried = criteria?.timeRange != null
@@ -66,7 +64,7 @@ class IsarEventRepository implements EventRepository {
             base: queryAfterNames,
             fetchLimit: fetchLimit,
           );
-    var events = queried.map((IsarAnalyticsEvent e) => e.toDomain()).toList();
+    var events = queried.map((e) => e.toDomain()).toList();
 
     if (criteria != null) {
       events = _applyAdditionalFilters(events, criteria);

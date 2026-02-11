@@ -26,8 +26,7 @@ const description =
 /// $ famon --version
 /// ```
 /// {@endtemplate}
-class FamonCommandRunner
-    extends CompletionCommandRunner<int> {
+class FamonCommandRunner extends CompletionCommandRunner<int> {
   /// {@macro famon_command_runner}
   ///
   /// Creates a new command runner. If [logger] and [pubUpdater] are not

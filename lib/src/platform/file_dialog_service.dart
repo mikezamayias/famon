@@ -16,10 +16,8 @@ import 'package:process/process.dart';
 @injectable
 class FileDialogService implements FileDialogInterface {
   /// Creates a new file dialog service.
-  FileDialogService({
-    ProcessManager? processManager,
-    Logger? logger,
-  })  : _processManager = processManager ?? const LocalProcessManager(),
+  FileDialogService({ProcessManager? processManager, Logger? logger})
+      : _processManager = processManager ?? const LocalProcessManager(),
         _logger = logger;
 
   final ProcessManager _processManager;
@@ -76,10 +74,7 @@ class FileDialogService implements FileDialogInterface {
   ///
   /// Escapes special characters in the filename to prevent AppleScript
   /// injection attacks.
-  Future<String?> _showMacOSDialog(
-    String? fileName,
-    String? initialDir,
-  ) async {
+  Future<String?> _showMacOSDialog(String? fileName, String? initialDir) async {
     final defaultName = fileName ?? _generateDefaultFileName();
 
     // Escape special characters to prevent AppleScript injection
@@ -104,10 +99,7 @@ class FileDialogService implements FileDialogInterface {
   }
 
   /// Show file dialog on Linux using zenity.
-  Future<String?> _showLinuxDialog(
-    String? fileName,
-    String? initialDir,
-  ) async {
+  Future<String?> _showLinuxDialog(String? fileName, String? initialDir) async {
     final defaultName = fileName ?? _generateDefaultFileName();
     final args = [
       '--file-selection',
@@ -143,7 +135,11 @@ class FileDialogService implements FileDialogInterface {
     ''';
 
     final result = await _processManager.run(
-      ['powershell', '-command', script],
+      [
+        'powershell',
+        '-command',
+        script,
+      ],
       runInShell: true,
     );
 

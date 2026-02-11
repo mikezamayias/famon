@@ -139,6 +139,12 @@ class IosLogParserService implements LogParserInterface {
     RegExp(r'(\w+)\s*:\s*([^;,}]+)'),
   ];
 
+  /// Pre-compiled regex pattern for finding the `items` key position.
+  static final RegExp _itemsKeyPattern = RegExp(
+    r'items\s*=\s*\[',
+    caseSensitive: false,
+  );
+
   /// Pre-compiled regex pattern for iOS items array extraction.
   static final RegExp _itemsArrayPattern = RegExp(
     r'items\s*=\s*\[([^\]]+)\]',
@@ -309,7 +315,7 @@ class IosLogParserService implements LogParserInterface {
   List<Map<String, String>> _parseItems(String paramsString) {
     final items = <Map<String, String>>[];
 
-    if (paramsString.isEmpty || !paramsString.toLowerCase().contains('items')) {
+    if (paramsString.isEmpty || !_itemsKeyPattern.hasMatch(paramsString)) {
       return items;
     }
 
@@ -350,15 +356,13 @@ class IosLogParserService implements LogParserInterface {
   /// If the array is truncated (depth never returns to 0), drops everything
   /// from `items` onward.
   String _stripItemsArray(String paramsString) {
-    final itemsKeyIndex = paramsString.toLowerCase().indexOf('items');
-    if (itemsKeyIndex == -1) {
+    final match = _itemsKeyPattern.firstMatch(paramsString);
+    if (match == null) {
       return paramsString;
     }
 
-    final bracketIndex = paramsString.indexOf('[', itemsKeyIndex);
-    if (bracketIndex == -1) {
-      return paramsString;
-    }
+    final itemsKeyIndex = match.start;
+    final bracketIndex = match.end - 1;
 
     var depth = 0;
     var endBracketIndex = -1;
@@ -402,18 +406,12 @@ class IosLogParserService implements LogParserInterface {
   /// string. This allows parsing of any complete `{...}` items present even
   /// when the closing bracket is missing.
   String? _extractItemsSubstring(String paramsString) {
-    final lc = paramsString.toLowerCase();
-    final itemsKeyIndex = lc.indexOf('items');
-    if (itemsKeyIndex == -1) {
+    final match = _itemsKeyPattern.firstMatch(paramsString);
+    if (match == null) {
       return null;
     }
 
-    final startIndex = paramsString.indexOf('[', itemsKeyIndex);
-    if (startIndex == -1) {
-      return null;
-    }
-
-    return paramsString.substring(startIndex + 1);
+    return paramsString.substring(match.end);
   }
 
   /// Clean and normalize parameter values.

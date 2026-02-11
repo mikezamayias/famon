@@ -135,5 +135,75 @@ void main() {
         isNotNull,
       );
     });
+
+    group('items array parsing', () {
+      test('should parse items and not bleed item fields into params', () {
+        const logLine =
+            '[FirebaseAnalytics][I-ACS023051] Logging event: origin, name, '
+            'params: app, view_item_list, { '
+            'item_list_name (_iln) = category_results; '
+            'items = [{item_id = item1; item_name = ProductA;}, '
+            '{item_id = item2; item_name = ProductB;}]; '
+            '}';
+
+        final result = parser.parse(logLine);
+
+        expect(result, isNotNull);
+        expect(result?.eventName, equals('view_item_list'));
+        expect(
+          result?.parameters['item_list_name'],
+          equals('category_results'),
+        );
+        // item fields must NOT bleed into top-level params
+        expect(result?.parameters.containsKey('item_id'), isFalse);
+        expect(result?.parameters.containsKey('item_name'), isFalse);
+        // items must be parsed separately
+        expect(result?.items, hasLength(2));
+        expect(result?.items[0]['item_id'], equals('item1'));
+        expect(result?.items[0]['item_name'], equals('ProductA'));
+        expect(result?.items[1]['item_id'], equals('item2'));
+        expect(result?.items[1]['item_name'], equals('ProductB'));
+      });
+
+      test('should parse complete items from truncated items array', () {
+        // Simulate a truncated log line where the items array is cut mid-item
+        const logLine =
+            '[FirebaseAnalytics][I-ACS023051] Logging event: origin, name, '
+            'params: app, view_item_list, { '
+            'item_list_name (_iln) = results; '
+            'items = [{item_id = item1; item_name = ProductA;}, '
+            '{item_id = item2; item_name = ProductB;}, '
+            '{item_id = ite';
+
+        final result = parser.parse(logLine);
+
+        expect(result, isNotNull);
+        expect(result?.eventName, equals('view_item_list'));
+        expect(result?.parameters['item_list_name'], equals('results'));
+        // item fields must NOT bleed into top-level params
+        expect(result?.parameters.containsKey('item_id'), isFalse);
+        expect(result?.parameters.containsKey('item_name'), isFalse);
+        // Only the 2 complete items should be parsed
+        expect(result?.items, hasLength(2));
+        expect(result?.items[0]['item_id'], equals('item1'));
+        expect(result?.items[1]['item_id'], equals('item2'));
+      });
+
+      test('should handle items array with no complete items on truncation',
+          () {
+        const logLine =
+            '[FirebaseAnalytics][I-ACS023051] Logging event: origin, name, '
+            'params: app, view_item_list, { '
+            'item_list_name (_iln) = results; '
+            'items = [{item_id = ite';
+
+        final result = parser.parse(logLine);
+
+        expect(result, isNotNull);
+        expect(result?.parameters['item_list_name'], equals('results'));
+        expect(result?.parameters.containsKey('item_id'), isFalse);
+        expect(result?.items, isEmpty);
+      });
+    });
   });
 }

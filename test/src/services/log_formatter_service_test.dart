@@ -30,8 +30,9 @@ void main() {
 
       formatter.formatAndPrint(event);
 
-      verify(() => logger.info('[12-25 10:30:45.123] add_shipping_info'))
-          .called(1);
+      verify(
+        () => logger.info('[12-25 10:30:45.123] add_shipping_info'),
+      ).called(1);
       verify(() => logger.info('  Parameters:')).called(1);
       verify(() => logger.info('    currency: EUR')).called(1);
       verify(() => logger.info('    shipping_tier: home_standard')).called(1);
@@ -42,15 +43,9 @@ void main() {
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
         eventName: 'add_shipping_info',
-        parameters: const {
-          'shipping_tier': 'express',
-          'value': '82.91',
-        },
+        parameters: const {'shipping_tier': 'express', 'value': '82.91'},
         items: const [
-          {
-            'item_name': 'product',
-            'item_price': '82.91',
-          },
+          {'item_name': 'product', 'item_price': '82.91'},
         ],
       );
 
@@ -63,8 +58,11 @@ void main() {
     });
 
     test('supports raw output mode without labels', () {
-      final rawFormatter =
-          EventFormatterService(logger, rawOutput: true, colorEnabled: false);
+      final rawFormatter = EventFormatterService(
+        logger,
+        rawOutput: true,
+        colorEnabled: false,
+      );
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
         eventName: 'screen_view',
@@ -82,8 +80,11 @@ void main() {
     });
 
     test('includes items in raw output when present', () {
-      final rawFormatter =
-          EventFormatterService(logger, rawOutput: true, colorEnabled: false);
+      final rawFormatter = EventFormatterService(
+        logger,
+        rawOutput: true,
+        colorEnabled: false,
+      );
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
         eventName: 'view_item_list',
@@ -134,8 +135,9 @@ void main() {
 
       formatter.formatAndPrint(event);
 
-      verify(() => logger.info('[12-25 10:30:45.123] view_item_list'))
-          .called(1);
+      verify(
+        () => logger.info('[12-25 10:30:45.123] view_item_list'),
+      ).called(1);
       verify(() => logger.info('  Global Parameters:')).called(1);
       verify(() => logger.info('    login_status: logged_in')).called(1);
       verify(() => logger.info('    environment: production')).called(1);
@@ -165,8 +167,9 @@ void main() {
 
       formatter.formatAndPrint(event);
 
-      verify(() => logger.info('[12-25 10:30:45.123] view_item_list'))
-          .called(1);
+      verify(
+        () => logger.info('[12-25 10:30:45.123] view_item_list'),
+      ).called(1);
       verify(() => logger.info('  Parameters:')).called(1);
       verify(() => logger.info('    item_list_name: recommended')).called(1);
       verifyNever(() => logger.info('  Global Parameters:'));
@@ -264,10 +267,7 @@ void main() {
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
         eventName: 'purchase',
-        parameters: const {
-          'currency': 'EUR',
-          'value': '99.99',
-        },
+        parameters: const {'currency': 'EUR', 'value': '99.99'},
       );
 
       formatter.formatAndPrint(event);
@@ -279,10 +279,8 @@ void main() {
     });
 
     test('no global param names falls back to single Parameters section', () {
-      final formatter = EventFormatterService(
-        logger,
-        colorEnabled: false,
-      )..resetTracking();
+      final formatter = EventFormatterService(logger, colorEnabled: false)
+        ..resetTracking();
 
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
@@ -349,10 +347,7 @@ void main() {
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
         eventName: 'purchase',
-        parameters: const {
-          'login_status': 'logged_in',
-          'currency': 'EUR',
-        },
+        parameters: const {'login_status': 'logged_in', 'currency': 'EUR'},
       );
 
       formatter.formatAndPrint(event);
@@ -377,10 +372,7 @@ void main() {
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
         eventName: 'purchase',
-        parameters: const {
-          'login_status': 'logged_in',
-          'currency': 'EUR',
-        },
+        parameters: const {'login_status': 'logged_in', 'currency': 'EUR'},
       );
 
       formatter.formatAndPrint(event);
@@ -405,17 +397,12 @@ void main() {
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
         eventName: 'purchase',
-        parameters: const {
-          'login_status': 'logged_in',
-          'currency': 'EUR',
-        },
+        parameters: const {'login_status': 'logged_in', 'currency': 'EUR'},
       );
 
       formatter.formatAndPrint(event);
 
-      verify(
-        () => logger.info('12-25 10:30:45.123 | purchase | {}'),
-      ).called(1);
+      verify(() => logger.info('12-25 10:30:45.123 | purchase | {}')).called(1);
     });
   });
 }

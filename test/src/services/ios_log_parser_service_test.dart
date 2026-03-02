@@ -130,10 +130,7 @@ void main() {
         ),
         isNotNull,
       );
-      expect(
-        parser.parse('FIRAnalytics Logging event: test_event'),
-        isNotNull,
-      );
+      expect(parser.parse('FIRAnalytics Logging event: test_event'), isNotNull);
     });
 
     group('items array parsing', () {
@@ -189,20 +186,49 @@ void main() {
         expect(result?.items[1]['item_id'], equals('item2'));
       });
 
-      test('should handle items array with no complete items on truncation',
-          () {
+      test(
+        'should handle items array with no complete items on truncation',
+        () {
+          const logLine =
+              '[FirebaseAnalytics][I-ACS023051] Logging event: origin, name, '
+              'params: app, view_item_list, { '
+              'item_list_name (_iln) = results; '
+              'items = [{item_id = ite';
+
+          final result = parser.parse(logLine);
+
+          expect(result, isNotNull);
+          expect(result?.parameters['item_list_name'], equals('results'));
+          expect(result?.parameters.containsKey('item_id'), isFalse);
+          expect(result?.items, isEmpty);
+        },
+      );
+
+      test('parses iOS items with nested object content', () {
+        // Each item contains a nested {...} value. The old regex
+        // (\{([^}]+)\}) would stop at the first '}' inside the nested object
+        // and mis-parse or drop the item.
         const logLine =
             '[FirebaseAnalytics][I-ACS023051] Logging event: origin, name, '
-            'params: app, view_item_list, { '
-            'item_list_name (_iln) = results; '
-            'items = [{item_id = ite';
+            'params: app, purchase, { '
+            'items = [{item_id = item1; item_extra = {color = red; size = M;}; '
+            'price = 9.99;}, '
+            '{item_id = item2; item_extra = {color = blue; size = L;}; '
+            'price = 19.99;}]; '
+            'currency = USD; '
+            '}';
 
         final result = parser.parse(logLine);
 
         expect(result, isNotNull);
-        expect(result?.parameters['item_list_name'], equals('results'));
-        expect(result?.parameters.containsKey('item_id'), isFalse);
-        expect(result?.items, isEmpty);
+        expect(result!.eventName, equals('purchase'));
+        expect(result.items.length, equals(2));
+        expect(result.items[0]['item_id'], equals('item1'));
+        expect(result.items[0]['price'], equals('9.99'));
+        expect(result.items[1]['item_id'], equals('item2'));
+        expect(result.items[1]['price'], equals('19.99'));
+        expect(result.parameters['currency'], equals('USD'));
+        expect(result.parameters.containsKey('item_id'), isFalse);
       });
     });
   });

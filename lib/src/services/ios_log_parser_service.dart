@@ -96,15 +96,11 @@ class IosLogParserService implements LogParserInterface {
     // Pattern 3: Event logged confirmation format
     // Example: [FirebaseAnalytics][I-ACS023072] Event logged. Event name,
     // event params: purchase
-    RegExp(
-      r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Event logged\..*:\s*(\w+)',
-    ),
+    RegExp(r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Event logged\..*:\s*(\w+)'),
 
     // Pattern 4: FIRAnalytics format (alternative Firebase Analytics logging)
     // Example: FIRAnalytics: Logging event: purchase
-    RegExp(
-      r'FIRAnalytics.*Logging event:\s*(\w+)',
-    ),
+    RegExp(r'FIRAnalytics.*Logging event:\s*(\w+)'),
 
     // Pattern 5: Debug view format with timestamp
     // Example: 2024-01-15 10:30:45.123+0000 [FirebaseAnalytics] Logging event:
@@ -117,10 +113,7 @@ class IosLogParserService implements LogParserInterface {
 
     // Pattern 6: xcrun simctl log stream compact format
     // Compact log output may omit some formatting
-    RegExp(
-      r'FirebaseAnalytics.*event[:\s]+(\w+)',
-      caseSensitive: false,
-    ),
+    RegExp(r'FirebaseAnalytics.*event[:\s]+(\w+)', caseSensitive: false),
   ];
 
   /// Pre-compiled regex patterns for iOS parameter parsing.
@@ -145,29 +138,14 @@ class IosLogParserService implements LogParserInterface {
     caseSensitive: false,
   );
 
-  /// Pre-compiled regex pattern for iOS items array extraction.
-  static final RegExp _itemsArrayPattern = RegExp(
-    r'items\s*=\s*\[([^\]]+)\]',
-    caseSensitive: false,
-  );
-
-  /// Pre-compiled regex pattern for individual iOS item extraction.
-  static final RegExp _itemPattern = RegExp(
-    r'\{([^}]+)\}',
-  );
-
   /// Pattern for cleaning iOS-specific value wrappers
-  static final RegExp _iosValueWrapperPattern = RegExp(
-    r'^[A-Za-z]+\((.*)\)$',
-  );
+  static final RegExp _iosValueWrapperPattern = RegExp(r'^[A-Za-z]+\((.*)\)$');
 
   // Pre-compiled patterns for _extractTimestamp (avoids hot path compilation)
   static final RegExp _isoTimestampPattern = RegExp(
     r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+)',
   );
-  static final RegExp _timeOnlyPattern = RegExp(
-    r'(\d{2}:\d{2}:\d{2}\.\d+)',
-  );
+  static final RegExp _timeOnlyPattern = RegExp(r'(\d{2}:\d{2}:\d{2}\.\d+)');
 
   // Pre-compiled patterns for _cleanValue (avoids hot path compilation)
   static final RegExp _surroundingDoubleQuotesPattern = RegExp(r'^"|"$');
@@ -320,20 +298,45 @@ class IosLogParserService implements LogParserInterface {
     }
 
     try {
-      final itemsMatch = _itemsArrayPattern.firstMatch(paramsString);
-      final itemsString =
-          itemsMatch?.group(1) ?? _extractItemsSubstring(paramsString);
+      final itemsString = _extractItemsSubstring(paramsString);
+      if (itemsString == null) return items;
 
-      if (itemsString != null) {
-        final itemMatches = _itemPattern.allMatches(itemsString);
+      // Extract individual {...} items using a depth-aware scan so that nested
+      // {...} content is handled correctly (a regex using [^}]+ would stop at
+      // the first '}' inside a nested object).
+      var i = 0;
+      while (i < itemsString.length) {
+        final braceStart = itemsString.indexOf('{', i);
+        if (braceStart == -1) break;
 
-        for (final itemMatch in itemMatches) {
-          final itemParamsString = itemMatch.group(1);
-          if (itemParamsString != null) {
-            final itemParams = _parseParams(itemParamsString);
-            if (itemParams.isNotEmpty) {
-              items.add(itemParams);
+        var depth = 1;
+        var endBrace = -1;
+
+        for (var j = braceStart + 1; j < itemsString.length; j++) {
+          final ch = itemsString[j];
+          if (ch == '{') {
+            depth++;
+          } else if (ch == '}') {
+            depth--;
+            if (depth == 0) {
+              endBrace = j;
+              break;
             }
+          }
+        }
+
+        if (endBrace == -1) {
+          // Truncated item (no matching '}'): stop; don't include partial data.
+          break;
+        }
+
+        final itemContent = itemsString.substring(braceStart + 1, endBrace);
+        i = endBrace + 1;
+
+        if (itemContent.isNotEmpty) {
+          final itemParams = _parseParams(itemContent);
+          if (itemParams.isNotEmpty) {
+            items.add(itemParams);
           }
         }
       }
@@ -400,18 +403,45 @@ class IosLogParserService implements LogParserInterface {
     return '$before $after';
   }
 
-  /// Extracts the items array substring when the log line is truncated.
+  /// Extracts the items array substring, bounded by the matching `]`.
   ///
-  /// Returns the substring starting after `items = [` up to the end of the
-  /// string. This allows parsing of any complete `{...}` items present even
-  /// when the closing bracket is missing.
+  /// Uses `[`/`]` depth tracking to find the closing bracket of the
+  /// `items = [...]` array. Falls back to end-of-string when the array is
+  /// truncated (no matching `]` exists), so complete items before the cut-off
+  /// are still parsed.
   String? _extractItemsSubstring(String paramsString) {
     final match = _itemsKeyPattern.firstMatch(paramsString);
     if (match == null) {
       return null;
     }
 
-    return paramsString.substring(match.end);
+    // match.end - 1 is the position of the '[' in 'items = ['
+    final startIndex = match.end - 1;
+
+    // Depth-track '['/']' to find the matching close of the items array.
+    var depth = 0;
+    var endIndex = -1;
+    for (var i = startIndex; i < paramsString.length; i++) {
+      final ch = paramsString[i];
+      if (ch == '[') {
+        depth++;
+      } else if (ch == ']') {
+        depth--;
+        if (depth == 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (endIndex != -1) {
+      // Non-truncated: return only the content inside items = [...].
+      return paramsString.substring(startIndex + 1, endIndex);
+    }
+
+    // Truncated array: return everything after 'items = [' so complete items
+    // before the cut-off can still be parsed.
+    return paramsString.substring(startIndex + 1);
   }
 
   /// Clean and normalize parameter values.

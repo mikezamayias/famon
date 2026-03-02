@@ -37,8 +37,10 @@ void main(List<String> args) {
     exit(1);
   }
 
-  pubspecContent =
-      pubspecContent.replaceFirst(pubspecVersionRegex, 'version: $version');
+  pubspecContent = pubspecContent.replaceFirst(
+    pubspecVersionRegex,
+    'version: $version',
+  );
   pubspecFile.writeAsStringSync(pubspecContent);
   print('Updated pubspec.yaml to version $version');
 
@@ -50,8 +52,10 @@ void main(List<String> args) {
   }
 
   var versionContent = versionFile.readAsStringSync();
-  final versionConstRegex =
-      RegExp("const packageVersion = '[^']+';", multiLine: true);
+  final versionConstRegex = RegExp(
+    "const packageVersion = '[^']+';",
+    multiLine: true,
+  );
   if (!versionConstRegex.hasMatch(versionContent)) {
     print('Error: Could not find packageVersion in lib/src/version.dart');
     exit(1);

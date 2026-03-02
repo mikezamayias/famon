@@ -44,11 +44,7 @@ class IsarEventMetadataRepository implements EventMetadataRepository {
     final whereQuery =
         isar.isarEventMetadatas.where().anyOf<String, QAfterWhereClause>(
               names,
-              (
-                q,
-                name,
-              ) =>
-                  q.eventNameEqualTo(name),
+              (q, name) => q.eventNameEqualTo(name),
             );
 
     if (isHidden != null || isWatched != null) {
@@ -215,11 +211,7 @@ class IsarEventMetadataRepository implements EventMetadataRepository {
           .filter()
           .anyOf<String, QAfterFilterCondition>(
             eventNames,
-            (
-              q,
-              name,
-            ) =>
-                q.eventNameEqualTo(name),
+            (q, name) => q.eventNameEqualTo(name),
           )
           .idProperty()
           .findAll();

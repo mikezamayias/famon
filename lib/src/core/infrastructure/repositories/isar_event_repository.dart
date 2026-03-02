@@ -46,11 +46,7 @@ class IsarEventRepository implements EventRepository {
     final queryAfterNames =
         isar.isarAnalyticsEvents.where().anyOf<String, QAfterWhereClause>(
               eventNames,
-              (
-                q,
-                eventName,
-              ) =>
-                  q.eventNameEqualTo(eventName),
+              (q, eventName) => q.eventNameEqualTo(eventName),
             );
 
     final fetchLimit = limit != null ? ((offset ?? 0) + limit) : limit;
@@ -100,10 +96,7 @@ class IsarEventRepository implements EventRepository {
   }) async {
     final filtered = base
         .filter()
-        .timestampBetween(
-          range.start,
-          range.end,
-        )
+        .timestampBetween(range.start, range.end)
         .sortByTimestampDesc();
     final limited = fetchLimit != null ? filtered.limit(fetchLimit) : filtered;
     return limited.findAll();

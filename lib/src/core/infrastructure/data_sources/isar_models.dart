@@ -59,9 +59,7 @@ class IsarAnalyticsEvent {
       id: domainId,
       timestamp: timestamp,
       eventName: eventName,
-      parameters: Map<String, String>.from(
-        jsonDecode(parametersJson) as Map,
-      ),
+      parameters: Map<String, String>.from(jsonDecode(parametersJson) as Map),
       items: (jsonDecode(itemsJson) as List)
           .map((item) => Map<String, String>.from(item as Map))
           .toList(),

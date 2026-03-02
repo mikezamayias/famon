@@ -122,7 +122,11 @@ class ClipboardService implements ClipboardInterface {
   /// Paste from clipboard on Windows using PowerShell.
   Future<String?> _pasteWindows() async {
     final result = await _processManager.run(
-      ['powershell', '-command', 'Get-Clipboard'],
+      [
+        'powershell',
+        '-command',
+        'Get-Clipboard',
+      ],
       runInShell: true,
     );
     if (result.exitCode == 0) {

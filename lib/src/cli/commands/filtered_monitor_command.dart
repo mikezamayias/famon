@@ -112,11 +112,7 @@ class FilteredMonitorCommand extends Command<int> {
         help: 'Show only statistics, not individual events.',
         negatable: false,
       )
-      ..addFlag(
-        'no-color',
-        negatable: false,
-        help: 'Disables colorful output.',
-      )
+      ..addFlag('no-color', negatable: false, help: 'Disables colorful output.')
       ..addFlag(
         'raw',
         abbr: 'r',
@@ -488,10 +484,7 @@ class FilteredMonitorCommand extends Command<int> {
 
     // Merge custom params using manualParameters
     return event.copyWith(
-      manualParameters: {
-        ...event.manualParameters,
-        ...customParams,
-      },
+      manualParameters: {...event.manualParameters, ...customParams},
     );
   }
 

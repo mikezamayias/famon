@@ -64,19 +64,12 @@ class MonitorCommand extends Command<int> {
         help: 'Only show these event names. Can be used multiple times.',
         valueHelp: 'EVENT_NAME',
       )
-      ..addFlag(
-        'no-color',
-        negatable: false,
-        help: 'Disables colorful output.',
-      )
+      ..addFlag('no-color', negatable: false, help: 'Disables colorful output.')
       ..addFlag(
         'suggestions',
         help: 'Show smart suggestions based on session history.',
       )
-      ..addFlag(
-        'stats',
-        help: 'Show session statistics periodically.',
-      )
+      ..addFlag('stats', help: 'Show session statistics periodically.')
       ..addFlag(
         'raw',
         abbr: 'r',
@@ -253,9 +246,7 @@ class MonitorCommand extends Command<int> {
     }
 
     if (globalParamNames.isNotEmpty) {
-      _logger.info(
-        '🌐 Global parameters: ${globalParamNames.join(', ')}',
-      );
+      _logger.info('🌐 Global parameters: ${globalParamNames.join(', ')}');
     }
 
     // Initialize keyboard shortcuts if enabled

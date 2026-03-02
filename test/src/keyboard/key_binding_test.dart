@@ -98,26 +98,14 @@ void main() {
 
       test('matches with ctrl modifier', () {
         const binding = KeyBinding(key: 'c', ctrl: true);
-        expect(
-          binding.matches(eventKey: 'c', eventCtrl: true),
-          isTrue,
-        );
-        expect(
-          binding.matches(eventKey: 'c'),
-          isFalse,
-        );
+        expect(binding.matches(eventKey: 'c', eventCtrl: true), isTrue);
+        expect(binding.matches(eventKey: 'c'), isFalse);
       });
 
       test('matches with shift modifier', () {
         const binding = KeyBinding(key: 's', shift: true);
-        expect(
-          binding.matches(eventKey: 's', eventShift: true),
-          isTrue,
-        );
-        expect(
-          binding.matches(eventKey: 's'),
-          isFalse,
-        );
+        expect(binding.matches(eventKey: 's', eventShift: true), isTrue);
+        expect(binding.matches(eventKey: 's'), isFalse);
       });
 
       test('requires all modifiers to match', () {
@@ -126,14 +114,8 @@ void main() {
           binding.matches(eventKey: 's', eventCtrl: true, eventShift: true),
           isTrue,
         );
-        expect(
-          binding.matches(eventKey: 's', eventCtrl: true),
-          isFalse,
-        );
-        expect(
-          binding.matches(eventKey: 's', eventShift: true),
-          isFalse,
-        );
+        expect(binding.matches(eventKey: 's', eventCtrl: true), isFalse);
+        expect(binding.matches(eventKey: 's', eventShift: true), isFalse);
       });
     });
 

@@ -34,11 +34,14 @@ class LogSourceFactory {
   LogSourceInterface _createForPlatform(PlatformType platform) {
     return switch (platform) {
       PlatformType.android => _AndroidLogSource(_processManager, _logger),
-      PlatformType.iosSimulator =>
-        _IosSimulatorLogSource(_processManager, _logger),
+      PlatformType.iosSimulator => _IosSimulatorLogSource(
+          _processManager,
+          _logger,
+        ),
       PlatformType.iosDevice => _IosDeviceLogSource(_processManager, _logger),
-      PlatformType.auto =>
-        throw StateError('Auto platform should be resolved before creation'),
+      PlatformType.auto => throw StateError(
+          'Auto platform should be resolved before creation',
+        ),
     };
   }
 
@@ -92,8 +95,12 @@ class LogSourceFactory {
 
   Future<bool> _hasBootedSimulator() async {
     try {
-      final result =
-          await _processManager.run(['xcrun', 'simctl', 'list', 'devices']);
+      final result = await _processManager.run([
+        'xcrun',
+        'simctl',
+        'list',
+        'devices',
+      ]);
       if (result.exitCode != 0) return false;
 
       final output = result.stdout as String;
@@ -133,8 +140,9 @@ class _AndroidLogSource implements LogSourceInterface {
   /// - Have at least one dot (e.g., com.example.app)
   ///
   /// See: https://developer.android.com/studio/build/application-id
-  static final _validPackageNamePattern =
-      RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$');
+  static final _validPackageNamePattern = RegExp(
+    r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)+$',
+  );
 
   /// Maximum allowed package name length (per Android spec).
   static const _maxPackageNameLength = 256;

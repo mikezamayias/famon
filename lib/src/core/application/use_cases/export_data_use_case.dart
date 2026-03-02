@@ -15,14 +15,8 @@ class ExportDataUseCase {
   /// Creates a backup file with all data.
   ///
   /// Uses optional [fileName] and [directory] for the backup location.
-  Future<String> createBackup({
-    String? fileName,
-    String? directory,
-  }) async {
-    return _repository.createBackup(
-      fileName: fileName,
-      directory: directory,
-    );
+  Future<String> createBackup({String? fileName, String? directory}) async {
+    return _repository.createBackup(fileName: fileName, directory: directory);
   }
 
   /// Exports all data to the specified [filePath] in JSON format.
@@ -31,9 +25,7 @@ class ExportDataUseCase {
 
     // Write to file
     final file = File(filePath);
-    await file.writeAsString(
-      const JsonEncoder.withIndent('  ').convert(data),
-    );
+    await file.writeAsString(const JsonEncoder.withIndent('  ').convert(data));
   }
 
   /// Exports filtered events to the specified [filePath].
@@ -53,9 +45,7 @@ class ExportDataUseCase {
 
     // Write to file
     final file = File(filePath);
-    await file.writeAsString(
-      const JsonEncoder.withIndent('  ').convert(data),
-    );
+    await file.writeAsString(const JsonEncoder.withIndent('  ').convert(data));
   }
 
   /// Gets metadata about a backup file at [filePath].

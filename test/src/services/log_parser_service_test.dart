@@ -194,5 +194,32 @@ void main() {
       expect(result.parameters['country_app'], equals('GB'));
       expect(result.parameters['environment'], equals('test'));
     });
+
+    test('parses items with nested Bundle content', () {
+      // Each item contains a nested Bundle[{...}] value. The old regex
+      // (Bundle\[\{([^}]+)\}\]) would stop at the first '}' inside the
+      // nested bundle and mis-parse or drop the item.
+      const logLine =
+          '12-25 10:30:45.123 I/FA-SVC  : Logging event: origin=app,name=purchase, '
+          'params=Bundle[{'
+          'items=['
+          'Bundle[{item_id=item1, item_extra=Bundle[{color=red, size=M}], '
+          'price=Double(9.99)}], '
+          'Bundle[{item_id=item2, item_extra=Bundle[{color=blue, size=L}], '
+          'price=Double(19.99)}]'
+          '], currency=USD}]';
+
+      final result = parser.parse(logLine);
+
+      expect(result, isNotNull);
+      expect(result!.eventName, equals('purchase'));
+      expect(result.items.length, equals(2));
+      expect(result.items[0]['item_id'], equals('item1'));
+      expect(result.items[0]['price'], equals('9.99'));
+      expect(result.items[1]['item_id'], equals('item2'));
+      expect(result.items[1]['price'], equals('19.99'));
+      expect(result.parameters['currency'], equals('USD'));
+      expect(result.parameters.containsKey('item_id'), isFalse);
+    });
   });
 }

@@ -17,8 +17,8 @@ import 'package:process/process.dart';
 class FileDialogService implements FileDialogInterface {
   /// Creates a new file dialog service.
   FileDialogService({ProcessManager? processManager, Logger? logger})
-      : _processManager = processManager ?? const LocalProcessManager(),
-        _logger = logger;
+    : _processManager = processManager ?? const LocalProcessManager(),
+      _logger = logger;
 
   final ProcessManager _processManager;
   final Logger? _logger;
@@ -79,11 +79,13 @@ class FileDialogService implements FileDialogInterface {
 
     // Escape special characters to prevent AppleScript injection
     // AppleScript strings use backslash escaping for quotes and backslashes
-    final escapedName =
-        defaultName.replaceAll(r'\', r'\\').replaceAll('"', r'\"');
+    final escapedName = defaultName
+        .replaceAll(r'\', r'\\')
+        .replaceAll('"', r'\"');
 
     // Build AppleScript command
-    final script = '''
+    final script =
+        '''
       tell application "System Events"
         activate
         set filePath to choose file name default name "$escapedName"
@@ -123,7 +125,8 @@ class FileDialogService implements FileDialogInterface {
     final defaultName = fileName ?? _generateDefaultFileName();
 
     // PowerShell script for save file dialog
-    final script = '''
+    final script =
+        '''
       Add-Type -AssemblyName System.Windows.Forms
       \$dialog = New-Object System.Windows.Forms.SaveFileDialog
       \$dialog.Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*"
@@ -134,14 +137,11 @@ class FileDialogService implements FileDialogInterface {
       }
     ''';
 
-    final result = await _processManager.run(
-      [
-        'powershell',
-        '-command',
-        script,
-      ],
-      runInShell: true,
-    );
+    final result = await _processManager.run([
+      'powershell',
+      '-command',
+      script,
+    ], runInShell: true);
 
     if (result.exitCode == 0) {
       final output = (result.stdout as String).trim();

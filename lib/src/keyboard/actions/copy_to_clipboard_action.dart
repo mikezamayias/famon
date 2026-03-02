@@ -12,7 +12,7 @@ import 'package:famon/src/platform/clipboard_interface.dart';
 class CopyToClipboardAction implements ShortcutAction {
   /// Creates a new copy to clipboard action.
   CopyToClipboardAction({required ClipboardInterface clipboard})
-      : _clipboard = clipboard;
+    : _clipboard = clipboard;
 
   final ClipboardInterface _clipboard;
 
@@ -43,8 +43,9 @@ class CopyToClipboardAction implements ShortcutAction {
 
     // Get the most recent N events
     final count = context.eventCountToExport;
-    final eventsToExport =
-        events.length <= count ? events : events.sublist(events.length - count);
+    final eventsToExport = events.length <= count
+        ? events
+        : events.sublist(events.length - count);
 
     // Convert to JSON format
     final jsonData = eventsToExport

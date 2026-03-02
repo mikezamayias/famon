@@ -52,87 +52,105 @@ import 'package:process/process.dart' as _i5;
 import 'package:pub_updater/pub_updater.dart' as _i15;
 
 extension GetItInjectableX on _i1.GetIt {
-// initializes the registration of main-scope dependencies inside of GetIt
+  // initializes the registration of main-scope dependencies inside of GetIt
   _i1.GetIt init({
     String? environment,
     _i2.EnvironmentFilter? environmentFilter,
   }) {
-    final gh = _i2.GetItHelper(
-      this,
-      environment,
-      environmentFilter,
-    );
+    final gh = _i2.GetItHelper(this, environment, environmentFilter);
     final registerModule = _$RegisterModule();
     gh.lazySingleton<_i3.ActionRegistry>(() => _i3.ActionRegistry());
     gh.factory<_i4.ClipboardService>(
-        () => _i4.ClipboardService(processManager: gh<_i5.ProcessManager>()));
+      () => _i4.ClipboardService(processManager: gh<_i5.ProcessManager>()),
+    );
     gh.factory<_i6.DatabaseDirectoryResolver>(
-        () => _i6.DatabaseDirectoryResolver());
+      () => _i6.DatabaseDirectoryResolver(),
+    );
     gh.lazySingleton<_i7.EventCacheInterface>(
-        () => _i8.EventCacheService(logger: gh<_i9.Logger>()));
-    gh.factory<_i10.FileDialogService>(() => _i10.FileDialogService(
-          processManager: gh<_i5.ProcessManager>(),
-          logger: gh<_i9.Logger>(),
-        ));
+      () => _i8.EventCacheService(logger: gh<_i9.Logger>()),
+    );
+    gh.factory<_i10.FileDialogService>(
+      () => _i10.FileDialogService(
+        processManager: gh<_i5.ProcessManager>(),
+        logger: gh<_i9.Logger>(),
+      ),
+    );
     gh.singleton<_i11.IsarDatabase>(
       () => _i11.IsarDatabase(gh<_i6.DatabaseDirectoryResolver>()),
       dispose: (i) => i.close(),
     );
     gh.factory<_i12.KeyboardInputService>(() => _i12.KeyboardInputService());
     gh.factory<_i13.LogParserInterface>(
-        () => _i14.LogParserService(logger: gh<_i9.Logger>()));
+      () => _i14.LogParserService(logger: gh<_i9.Logger>()),
+    );
     gh.singleton<_i9.Logger>(() => registerModule.logger);
     gh.singleton<_i5.ProcessManager>(() => registerModule.processManager);
     gh.singleton<_i15.PubUpdater>(() => registerModule.pubUpdater);
     gh.factory<_i16.ShortcutsConfigLoader>(() => _i16.ShortcutsConfigLoader());
-    gh.factory<_i17.UpdateCommand>(() => _i17.UpdateCommand(
-          logger: gh<_i9.Logger>(),
-          pubUpdater: gh<_i15.PubUpdater>(),
-        ));
+    gh.factory<_i17.UpdateCommand>(
+      () => _i17.UpdateCommand(
+        logger: gh<_i9.Logger>(),
+        pubUpdater: gh<_i15.PubUpdater>(),
+      ),
+    );
     gh.factory<_i18.DataExportRepository>(
-        () => _i19.IsarDataExportRepository(database: gh<_i11.IsarDatabase>()));
+      () => _i19.IsarDataExportRepository(database: gh<_i11.IsarDatabase>()),
+    );
     gh.factory<_i20.EventRepository>(
-        () => _i21.IsarEventRepository(database: gh<_i11.IsarDatabase>()));
+      () => _i21.IsarEventRepository(database: gh<_i11.IsarDatabase>()),
+    );
     gh.factory<_i22.ExportDataUseCase>(
-        () => _i22.ExportDataUseCase(gh<_i18.DataExportRepository>()));
+      () => _i22.ExportDataUseCase(gh<_i18.DataExportRepository>()),
+    );
     gh.factory<_i23.ImportDataUseCase>(
-        () => _i23.ImportDataUseCase(gh<_i18.DataExportRepository>()));
+      () => _i23.ImportDataUseCase(gh<_i18.DataExportRepository>()),
+    );
     gh.factory<_i24.LogParserFactory>(
-        () => _i24.LogParserFactory(gh<_i9.Logger>()));
-    gh.factory<_i25.LogSourceFactory>(() => _i25.LogSourceFactory(
-          gh<_i5.ProcessManager>(),
-          gh<_i9.Logger>(),
-        ));
-    gh.factory<_i26.MonitorCommand>(() => _i26.MonitorCommand(
-          logger: gh<_i9.Logger>(),
-          logSourceFactory: gh<_i25.LogSourceFactory>(),
-          logParserFactory: gh<_i24.LogParserFactory>(),
-          eventCache: gh<_i7.EventCacheInterface>(),
-        ));
-    gh.factory<_i27.ShortcutManager>(() => _i27.ShortcutManager(
-          actionRegistry: gh<_i3.ActionRegistry>(),
-          configLoader: gh<_i16.ShortcutsConfigLoader>(),
-          logger: gh<_i9.Logger>(),
-        ));
-    gh.factory<_i28.EventFilterService>(() =>
-        _i28.EventFilterService(eventRepository: gh<_i20.EventRepository>()));
+      () => _i24.LogParserFactory(gh<_i9.Logger>()),
+    );
+    gh.factory<_i25.LogSourceFactory>(
+      () => _i25.LogSourceFactory(gh<_i5.ProcessManager>(), gh<_i9.Logger>()),
+    );
+    gh.factory<_i26.MonitorCommand>(
+      () => _i26.MonitorCommand(
+        logger: gh<_i9.Logger>(),
+        logSourceFactory: gh<_i25.LogSourceFactory>(),
+        logParserFactory: gh<_i24.LogParserFactory>(),
+        eventCache: gh<_i7.EventCacheInterface>(),
+      ),
+    );
+    gh.factory<_i27.ShortcutManager>(
+      () => _i27.ShortcutManager(
+        actionRegistry: gh<_i3.ActionRegistry>(),
+        configLoader: gh<_i16.ShortcutsConfigLoader>(),
+        logger: gh<_i9.Logger>(),
+      ),
+    );
+    gh.factory<_i28.EventFilterService>(
+      () =>
+          _i28.EventFilterService(eventRepository: gh<_i20.EventRepository>()),
+    );
     gh.factory<_i29.FilteredMonitorDependencies>(
-        () => _i29.FilteredMonitorDependencies(
-              logger: gh<_i9.Logger>(),
-              processManager: gh<_i5.ProcessManager>(),
-              logParser: gh<_i13.LogParserInterface>(),
-              filterService: gh<_i28.EventFilterService>(),
-              eventRepository: gh<_i20.EventRepository>(),
-            ));
-    gh.factory<_i30.DatabaseCommand>(() => _i30.DatabaseCommand(
-          logger: gh<_i9.Logger>(),
-          database: gh<_i11.IsarDatabase>(),
-          exportUseCase: gh<_i22.ExportDataUseCase>(),
-          importUseCase: gh<_i23.ImportDataUseCase>(),
-          filterService: gh<_i28.EventFilterService>(),
-        ));
-    gh.factory<_i29.FilteredMonitorCommand>(() =>
-        _i29.FilteredMonitorCommand(gh<_i29.FilteredMonitorDependencies>()));
+      () => _i29.FilteredMonitorDependencies(
+        logger: gh<_i9.Logger>(),
+        processManager: gh<_i5.ProcessManager>(),
+        logParser: gh<_i13.LogParserInterface>(),
+        filterService: gh<_i28.EventFilterService>(),
+        eventRepository: gh<_i20.EventRepository>(),
+      ),
+    );
+    gh.factory<_i30.DatabaseCommand>(
+      () => _i30.DatabaseCommand(
+        logger: gh<_i9.Logger>(),
+        database: gh<_i11.IsarDatabase>(),
+        exportUseCase: gh<_i22.ExportDataUseCase>(),
+        importUseCase: gh<_i23.ImportDataUseCase>(),
+        filterService: gh<_i28.EventFilterService>(),
+      ),
+    );
+    gh.factory<_i29.FilteredMonitorCommand>(
+      () => _i29.FilteredMonitorCommand(gh<_i29.FilteredMonitorDependencies>()),
+    );
     return this;
   }
 }

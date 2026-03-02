@@ -96,15 +96,11 @@ class IosLogParserService implements LogParserInterface {
     // Pattern 3: Event logged confirmation format
     // Example: [FirebaseAnalytics][I-ACS023072] Event logged. Event name,
     // event params: purchase
-    RegExp(
-      r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Event logged\..*:\s*(\w+)',
-    ),
+    RegExp(r'\[FirebaseAnalytics\]\[I-ACS\d+\]\s*Event logged\..*:\s*(\w+)'),
 
     // Pattern 4: FIRAnalytics format (alternative Firebase Analytics logging)
     // Example: FIRAnalytics: Logging event: purchase
-    RegExp(
-      r'FIRAnalytics.*Logging event:\s*(\w+)',
-    ),
+    RegExp(r'FIRAnalytics.*Logging event:\s*(\w+)'),
 
     // Pattern 5: Debug view format with timestamp
     // Example: 2024-01-15 10:30:45.123+0000 [FirebaseAnalytics] Logging event:
@@ -117,10 +113,7 @@ class IosLogParserService implements LogParserInterface {
 
     // Pattern 6: xcrun simctl log stream compact format
     // Compact log output may omit some formatting
-    RegExp(
-      r'FirebaseAnalytics.*event[:\s]+(\w+)',
-      caseSensitive: false,
-    ),
+    RegExp(r'FirebaseAnalytics.*event[:\s]+(\w+)', caseSensitive: false),
   ];
 
   /// Pre-compiled regex patterns for iOS parameter parsing.
@@ -152,22 +145,16 @@ class IosLogParserService implements LogParserInterface {
   );
 
   /// Pre-compiled regex pattern for individual iOS item extraction.
-  static final RegExp _itemPattern = RegExp(
-    r'\{([^}]+)\}',
-  );
+  static final RegExp _itemPattern = RegExp(r'\{([^}]+)\}');
 
   /// Pattern for cleaning iOS-specific value wrappers
-  static final RegExp _iosValueWrapperPattern = RegExp(
-    r'^[A-Za-z]+\((.*)\)$',
-  );
+  static final RegExp _iosValueWrapperPattern = RegExp(r'^[A-Za-z]+\((.*)\)$');
 
   // Pre-compiled patterns for _extractTimestamp (avoids hot path compilation)
   static final RegExp _isoTimestampPattern = RegExp(
     r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\.\d+)',
   );
-  static final RegExp _timeOnlyPattern = RegExp(
-    r'(\d{2}:\d{2}:\d{2}\.\d+)',
-  );
+  static final RegExp _timeOnlyPattern = RegExp(r'(\d{2}:\d{2}:\d{2}\.\d+)');
 
   // Pre-compiled patterns for _cleanValue (avoids hot path compilation)
   static final RegExp _surroundingDoubleQuotesPattern = RegExp(r'^"|"$');

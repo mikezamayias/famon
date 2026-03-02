@@ -46,16 +46,10 @@ abstract class DataExportRepository {
   });
 
   /// Create a backup file
-  Future<String> createBackup({
-    String? fileName,
-    String? directory,
-  });
+  Future<String> createBackup({String? fileName, String? directory});
 
   /// Restore from a backup file
-  Future<void> restoreBackup(
-    String filePath, {
-    bool overwrite = false,
-  });
+  Future<void> restoreBackup(String filePath, {bool overwrite = false});
 
   /// Get backup file info
   Future<Map<String, dynamic>> getBackupInfo(String filePath);

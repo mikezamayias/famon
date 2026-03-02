@@ -53,11 +53,11 @@ class FilteredMonitorCommand extends Command<int> {
   /// Uses [FilteredMonitorDependencies] to bundle related services,
   /// reducing constructor parameters and improving testability.
   FilteredMonitorCommand(FilteredMonitorDependencies dependencies)
-      : _logger = dependencies.logger,
-        _processManager = dependencies.processManager,
-        _logParser = dependencies.logParser,
-        _filterService = dependencies.filterService,
-        _eventRepository = dependencies.eventRepository {
+    : _logger = dependencies.logger,
+      _processManager = dependencies.processManager,
+      _logParser = dependencies.logParser,
+      _filterService = dependencies.filterService,
+      _eventRepository = dependencies.eventRepository {
     argParser
       ..addMultiOption(
         'hide',
@@ -98,7 +98,8 @@ class FilteredMonitorCommand extends Command<int> {
       )
       ..addMultiOption(
         'add-param',
-        help: 'Add custom parameter to events: '
+        help:
+            'Add custom parameter to events: '
             '"event_name:param_name:param_value".',
         valueHelp: 'EVENT:PARAM:VALUE',
       )
@@ -112,11 +113,7 @@ class FilteredMonitorCommand extends Command<int> {
         help: 'Show only statistics, not individual events.',
         negatable: false,
       )
-      ..addFlag(
-        'no-color',
-        negatable: false,
-        help: 'Disables colorful output.',
-      )
+      ..addFlag('no-color', negatable: false, help: 'Disables colorful output.')
       ..addFlag(
         'raw',
         abbr: 'r',
@@ -129,7 +126,8 @@ class FilteredMonitorCommand extends Command<int> {
   final name = 'filter';
 
   @override
-  final description = 'Monitors Firebase Analytics events with advanced '
+  final description =
+      'Monitors Firebase Analytics events with advanced '
       'filtering based on database history.';
 
   final Logger _logger;
@@ -229,9 +227,10 @@ class FilteredMonitorCommand extends Command<int> {
       var malformedByteCount = 0;
       var lastMalformedWarning = DateTime.now();
 
-      await for (final line in process.stdout
-          .transform(const Utf8Decoder(allowMalformed: true))
-          .transform(const LineSplitter())) {
+      await for (final line
+          in process.stdout
+              .transform(const Utf8Decoder(allowMalformed: true))
+              .transform(const LineSplitter())) {
         // Detect malformed UTF-8 sequences (replacement character U+FFFD)
         final replacementCount = '\uFFFD'.allMatches(line).length;
         if (replacementCount > 0) {
@@ -488,10 +487,7 @@ class FilteredMonitorCommand extends Command<int> {
 
     // Merge custom params using manualParameters
     return event.copyWith(
-      manualParameters: {
-        ...event.manualParameters,
-        ...customParams,
-      },
+      manualParameters: {...event.manualParameters, ...customParams},
     );
   }
 

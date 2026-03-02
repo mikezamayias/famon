@@ -44,40 +44,36 @@ void main() {
 
     test('should filter events correctly with hide option', () {
       expect(
-        EventFilterUtils.shouldSkipEvent(
+        EventFilterUtils.shouldSkipEvent('screen_view', <String>[
           'screen_view',
-          <String>['screen_view', '_vs'],
-          <String>[],
-        ),
+          '_vs',
+        ], <String>[]),
         isTrue,
       );
 
       expect(
-        EventFilterUtils.shouldSkipEvent(
-          'purchase',
-          <String>['screen_view', '_vs'],
-          <String>[],
-        ),
+        EventFilterUtils.shouldSkipEvent('purchase', <String>[
+          'screen_view',
+          '_vs',
+        ], <String>[]),
         isFalse,
       );
     });
 
     test('should filter events correctly with show-only option', () {
       expect(
-        EventFilterUtils.shouldSkipEvent(
+        EventFilterUtils.shouldSkipEvent('purchase', <String>[], <String>[
           'purchase',
-          <String>[],
-          <String>['purchase', 'add_to_cart'],
-        ),
+          'add_to_cart',
+        ]),
         isFalse,
       );
 
       expect(
-        EventFilterUtils.shouldSkipEvent(
-          'screen_view',
-          <String>[],
-          <String>['purchase', 'add_to_cart'],
-        ),
+        EventFilterUtils.shouldSkipEvent('screen_view', <String>[], <String>[
+          'purchase',
+          'add_to_cart',
+        ]),
         isTrue,
       );
     });
@@ -95,11 +91,7 @@ void main() {
 
     test('should not skip events when no filters are applied', () {
       expect(
-        EventFilterUtils.shouldSkipEvent(
-          'any_event',
-          <String>[],
-          <String>[],
-        ),
+        EventFilterUtils.shouldSkipEvent('any_event', <String>[], <String>[]),
         isFalse,
       );
     });

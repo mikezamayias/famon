@@ -74,26 +74,31 @@ void main() {
       });
 
       test('should have correct description', () {
-        expect(
-          command.description,
-          contains('advanced filtering'),
-        );
+        expect(command.description, contains('advanced filtering'));
       });
     });
 
     group('argument parsing', () {
       test('should parse hide option', () {
         final argParser = command.argParser;
-        final results =
-            argParser.parse(['--hide', 'screen_view', '--hide', '_vs']);
+        final results = argParser.parse([
+          '--hide',
+          'screen_view',
+          '--hide',
+          '_vs',
+        ]);
 
         expect(results['hide'], equals(['screen_view', '_vs']));
       });
 
       test('should parse show-only option with abbreviation', () {
         final argParser = command.argParser;
-        final results =
-            argParser.parse(['-s', 'purchase', '-s', 'add_to_cart']);
+        final results = argParser.parse([
+          '-s',
+          'purchase',
+          '-s',
+          'add_to_cart',
+        ]);
 
         expect(results['show-only'], equals(['purchase', 'add_to_cart']));
       });
@@ -208,11 +213,7 @@ void main() {
         final stats = EventStatistics(
           totalEvents: 100,
           uniqueEventTypes: 10,
-          topEvents: {
-            'screen_view': 50,
-            'purchase': 30,
-            'add_to_cart': 20,
-          },
+          topEvents: {'screen_view': 50, 'purchase': 30, 'add_to_cart': 20},
           dateRange: DateTimeRange(
             start: DateTime(2024),
             end: DateTime(2024, 12, 31),
@@ -232,14 +233,16 @@ void main() {
           ),
         ).thenAnswer((_) async => ['screen_view']);
 
-        when(() => mockFilterService.getLowFrequencyEvents())
-            .thenAnswer((_) async => ['rare_event']);
+        when(
+          () => mockFilterService.getLowFrequencyEvents(),
+        ).thenAnswer((_) async => ['rare_event']);
 
         final result = await runner.run(['filter', '--stats-only']);
 
         expect(result, equals(0));
-        verify(() => mockLogger.info(any(that: contains('Statistics'))))
-            .called(greaterThan(0));
+        verify(
+          () => mockLogger.info(any(that: contains('Statistics'))),
+        ).called(greaterThan(0));
       });
 
       test('should filter stats by date range', () async {
@@ -262,8 +265,9 @@ void main() {
           ),
         ).thenAnswer((_) async => []);
 
-        when(() => mockFilterService.getLowFrequencyEvents())
-            .thenAnswer((_) async => []);
+        when(
+          () => mockFilterService.getLowFrequencyEvents(),
+        ).thenAnswer((_) async => []);
 
         await runner.run([
           'filter',
@@ -300,11 +304,7 @@ void main() {
         final stats = EventStatistics(
           totalEvents: 100,
           uniqueEventTypes: 3,
-          topEvents: const {
-            'screen_view': 50,
-            'purchase': 30,
-            '_vs': 20,
-          },
+          topEvents: const {'screen_view': 50, 'purchase': 30, '_vs': 20},
         );
 
         when(
@@ -320,8 +320,9 @@ void main() {
           ),
         ).thenAnswer((_) async => []);
 
-        when(() => mockFilterService.getLowFrequencyEvents())
-            .thenAnswer((_) async => []);
+        when(
+          () => mockFilterService.getLowFrequencyEvents(),
+        ).thenAnswer((_) async => []);
 
         await runner.run(['filter', '--stats-only', '--hide', 'screen_view']);
 
@@ -333,11 +334,7 @@ void main() {
         final stats = EventStatistics(
           totalEvents: 100,
           uniqueEventTypes: 3,
-          topEvents: const {
-            'high_freq': 200,
-            'mid_freq': 50,
-            'low_freq': 5,
-          },
+          topEvents: const {'high_freq': 200, 'mid_freq': 50, 'low_freq': 5},
         );
 
         when(
@@ -371,10 +368,7 @@ void main() {
         final stats = EventStatistics(
           totalEvents: 100,
           uniqueEventTypes: 3,
-          topEvents: const {
-            'screen_view': 50,
-            'purchase': 30,
-          },
+          topEvents: const {'screen_view': 50, 'purchase': 30},
         );
 
         when(
@@ -390,8 +384,9 @@ void main() {
           ),
         ).thenAnswer((_) async => ['screen_view', 'spam_event']);
 
-        when(() => mockFilterService.getLowFrequencyEvents())
-            .thenAnswer((_) async => ['rare_event']);
+        when(
+          () => mockFilterService.getLowFrequencyEvents(),
+        ).thenAnswer((_) async => ['rare_event']);
 
         await runner.run(['filter', '--stats-only']);
 
@@ -423,8 +418,9 @@ void main() {
           ),
         ).thenAnswer((_) async => <String>[]);
 
-        when(() => mockFilterService.getLowFrequencyEvents())
-            .thenAnswer((_) async => <String>[]);
+        when(
+          () => mockFilterService.getLowFrequencyEvents(),
+        ).thenAnswer((_) async => <String>[]);
 
         final result = await runner.run(['filter', '--stats-only']);
 
@@ -447,8 +443,9 @@ void main() {
         verify(
           () => mockLogger.err(any(that: contains('Failed to start adb'))),
         ).called(1);
-        verify(() => mockLogger.info(any(that: contains('Android SDK'))))
-            .called(greaterThan(0));
+        verify(
+          () => mockLogger.info(any(that: contains('Android SDK'))),
+        ).called(greaterThan(0));
       });
 
       test('should handle unexpected errors gracefully', () async {
@@ -459,48 +456,45 @@ void main() {
         final result = await runner.run(['filter']);
 
         expect(result, equals(1));
-        verify(() => mockLogger.err(any(that: contains('Unexpected error'))))
-            .called(1);
+        verify(
+          () => mockLogger.err(any(that: contains('Unexpected error'))),
+        ).called(1);
       });
     });
 
     group('EventFilterUtils integration', () {
       test('should skip events with hide filter', () {
         expect(
-          EventFilterUtils.shouldSkipEvent(
+          EventFilterUtils.shouldSkipEvent('screen_view', <String>[
             'screen_view',
-            <String>['screen_view', '_vs'],
-            <String>[],
-          ),
+            '_vs',
+          ], <String>[]),
           isTrue,
         );
 
         expect(
-          EventFilterUtils.shouldSkipEvent(
-            'purchase',
-            <String>['screen_view', '_vs'],
-            <String>[],
-          ),
+          EventFilterUtils.shouldSkipEvent('purchase', <String>[
+            'screen_view',
+            '_vs',
+          ], <String>[]),
           isFalse,
         );
       });
 
       test('should only show events with show-only filter', () {
         expect(
-          EventFilterUtils.shouldSkipEvent(
+          EventFilterUtils.shouldSkipEvent('purchase', <String>[], <String>[
             'purchase',
-            <String>[],
-            <String>['purchase', 'add_to_cart'],
-          ),
+            'add_to_cart',
+          ]),
           isFalse,
         );
 
         expect(
-          EventFilterUtils.shouldSkipEvent(
-            'screen_view',
-            <String>[],
-            <String>['purchase', 'add_to_cart'],
-          ),
+          EventFilterUtils.shouldSkipEvent('screen_view', <String>[], <String>[
+            'purchase',
+            'add_to_cart',
+          ]),
           isTrue,
         );
       });
@@ -518,11 +512,7 @@ void main() {
 
       test('should not skip events when no filters are applied', () {
         expect(
-          EventFilterUtils.shouldSkipEvent(
-            'any_event',
-            <String>[],
-            <String>[],
-          ),
+          EventFilterUtils.shouldSkipEvent('any_event', <String>[], <String>[]),
           isFalse,
         );
       });
@@ -607,10 +597,7 @@ void main() {
 
       test('should work with only from-date', () {
         final argParser = command.argParser;
-        final results = argParser.parse([
-          '--from-date',
-          '2024-06-01',
-        ]);
+        final results = argParser.parse(['--from-date', '2024-06-01']);
 
         expect(results['from-date'], equals('2024-06-01'));
         expect(results['to-date'], isNull);
@@ -618,10 +605,7 @@ void main() {
 
       test('should work with only to-date', () {
         final argParser = command.argParser;
-        final results = argParser.parse([
-          '--to-date',
-          '2024-06-30',
-        ]);
+        final results = argParser.parse(['--to-date', '2024-06-30']);
 
         expect(results['from-date'], isNull);
         expect(results['to-date'], equals('2024-06-30'));
@@ -751,8 +735,9 @@ void main() {
           ),
         ).thenAnswer((_) async => []);
 
-        when(() => mockFilterService.getLowFrequencyEvents())
-            .thenAnswer((_) async => []);
+        when(
+          () => mockFilterService.getLowFrequencyEvents(),
+        ).thenAnswer((_) async => []);
 
         final result = await runner.run(['filter', '--stats-only']);
 
@@ -783,14 +768,16 @@ void main() {
           ),
         ).thenAnswer((_) async => []);
 
-        when(() => mockFilterService.getLowFrequencyEvents())
-            .thenAnswer((_) async => []);
+        when(
+          () => mockFilterService.getLowFrequencyEvents(),
+        ).thenAnswer((_) async => []);
 
         final result = await runner.run(['filter', '--stats-only']);
 
         expect(result, equals(0));
-        verify(() => mockLogger.info(any(that: contains('Date Range'))))
-            .called(1);
+        verify(
+          () => mockLogger.info(any(that: contains('Date Range'))),
+        ).called(1);
       });
     });
   });

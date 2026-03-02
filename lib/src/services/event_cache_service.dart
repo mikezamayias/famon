@@ -16,9 +16,7 @@ import 'package:mason_logger/mason_logger.dart';
 @LazySingleton(as: EventCacheInterface)
 class EventCacheService implements EventCacheInterface {
   /// Creates a new EventCacheService.
-  EventCacheService({
-    Logger? logger,
-  }) : _logger = logger;
+  EventCacheService({Logger? logger}) : _logger = logger;
 
   /// Default maximum cache size for event tracking.
   static const int defaultMaxCacheSize = 10000;
@@ -195,8 +193,10 @@ class EventCacheService implements EventCacheInterface {
   SessionStats getSessionStats() {
     return SessionStats(
       totalUniqueEvents: _uniqueEventNames.length,
-      totalEventOccurrences:
-          _eventCounts.values.fold<int>(0, (sum, count) => sum + count),
+      totalEventOccurrences: _eventCounts.values.fold<int>(
+        0,
+        (sum, count) => sum + count,
+      ),
       mostFrequentEvent: _eventCounts.isNotEmpty
           ? _eventCounts.entries.reduce((a, b) => a.value > b.value ? a : b).key
           : null,

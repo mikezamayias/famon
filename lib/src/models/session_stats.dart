@@ -20,13 +20,14 @@ class SessionStats extends Equatable {
 
   @override
   List<Object?> get props => [
-        totalUniqueEvents,
-        totalEventOccurrences,
-        mostFrequentEvent,
-      ];
+    totalUniqueEvents,
+    totalEventOccurrences,
+    mostFrequentEvent,
+  ];
 
   @override
-  String toString() => 'SessionStats('
+  String toString() =>
+      'SessionStats('
       'totalUniqueEvents: $totalUniqueEvents, '
       'totalEventOccurrences: $totalEventOccurrences, '
       'mostFrequentEvent: $mostFrequentEvent)';

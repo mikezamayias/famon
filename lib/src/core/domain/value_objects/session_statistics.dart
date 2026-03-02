@@ -24,11 +24,13 @@ class SessionStatistics extends Equatable {
           .map((e) => EventFrequency.fromJson(e as Map<String, dynamic>))
           .toList(),
       sessionDuration: Duration(milliseconds: json['sessionDurationMs'] as int),
-      eventTypeDistribution:
-          Map<String, int>.from(json['eventTypeDistribution'] as Map),
+      eventTypeDistribution: Map<String, int>.from(
+        json['eventTypeDistribution'] as Map,
+      ),
       peakHour: json['peakHour'] as int?,
-      mostActiveEvents:
-          List<String>.from(json['mostActiveEvents'] as List? ?? []),
+      mostActiveEvents: List<String>.from(
+        json['mostActiveEvents'] as List? ?? [],
+      ),
     );
   }
 
@@ -105,15 +107,15 @@ class SessionStatistics extends Equatable {
 
   @override
   List<Object?> get props => [
-        totalEvents,
-        uniqueEvents,
-        averageFrequency,
-        topEvents,
-        sessionDuration,
-        eventTypeDistribution,
-        peakHour,
-        mostActiveEvents,
-      ];
+    totalEvents,
+    uniqueEvents,
+    averageFrequency,
+    topEvents,
+    sessionDuration,
+    eventTypeDistribution,
+    peakHour,
+    mostActiveEvents,
+  ];
 }
 
 /// Value object representing event frequency data.

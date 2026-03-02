@@ -107,10 +107,7 @@ class EventFilterService {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    final events = await getFilteredEvents(
-      fromDate: fromDate,
-      toDate: toDate,
-    );
+    final events = await getFilteredEvents(fromDate: fromDate, toDate: toDate);
 
     final frequencies = <String, int>{};
     for (final event in events) {
@@ -180,10 +177,7 @@ class EventFilterService {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    final events = await getFilteredEvents(
-      fromDate: fromDate,
-      toDate: toDate,
-    );
+    final events = await getFilteredEvents(fromDate: fromDate, toDate: toDate);
 
     final frequencies = <String, int>{};
     DateTime? earliest;
@@ -223,10 +217,7 @@ class EventFilterService {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    final events = await getFilteredEvents(
-      fromDate: fromDate,
-      toDate: toDate,
-    );
+    final events = await getFilteredEvents(fromDate: fromDate, toDate: toDate);
 
     return events.where((event) {
       if (!event.parameters.containsKey(parameterName)) return false;

@@ -13,7 +13,7 @@ import 'package:famon/src/platform/file_dialog_interface.dart';
 class SaveToFileAction implements ShortcutAction {
   /// Creates a new save to file action.
   SaveToFileAction({required FileDialogInterface fileDialog})
-      : _fileDialog = fileDialog;
+    : _fileDialog = fileDialog;
 
   final FileDialogInterface _fileDialog;
 
@@ -27,11 +27,8 @@ class SaveToFileAction implements ShortcutAction {
   String get description => 'Save events to a file';
 
   @override
-  KeyBinding get defaultBinding => const KeyBinding(
-        key: 's',
-        ctrl: true,
-        shift: true,
-      );
+  KeyBinding get defaultBinding =>
+      const KeyBinding(key: 's', ctrl: true, shift: true);
 
   @override
   Future<bool> execute(ActionContext context) async {

@@ -29,7 +29,8 @@ class MonitorEventsUseCase {
     final hiddenEventNames = hiddenEvents.map((e) => e.eventName).toList();
 
     // Combine user criteria with hidden events
-    final effectiveCriteria = criteria?.copyWith(
+    final effectiveCriteria =
+        criteria?.copyWith(
           excludeEventNames: [
             ...criteria.excludeEventNames,
             ...hiddenEventNames,

@@ -84,8 +84,7 @@ void main() {
       verify(() => logger.err('Failed to check for updates.')).called(1);
     });
 
-    test(
-        'Does not show update message when the shell calls the '
+    test('Does not show update message when the shell calls the '
         'completion command', () async {
       when(
         () => pubUpdater.getLatestVersion(any()),
@@ -195,19 +194,22 @@ void main() {
         final mockLogParser = _MockLogParser();
 
         // Stub the factory to return a mock log source
-        when(() => mockLogSourceFactory.create(any()))
-            .thenAnswer((_) async => mockLogSource);
+        when(
+          () => mockLogSourceFactory.create(any()),
+        ).thenAnswer((_) async => mockLogSource);
 
         // Stub the log source to fail tool check (quick exit)
         when(mockLogSource.checkToolsAvailable).thenAnswer((_) async => false);
         when(() => mockLogSource.platformDisplayName).thenReturn('Android');
         when(() => mockLogSource.platform).thenReturn(PlatformType.android);
-        when(mockLogSource.getToolsInstallationInstructions)
-            .thenReturn('Install Android SDK');
+        when(
+          mockLogSource.getToolsInstallationInstructions,
+        ).thenReturn('Install Android SDK');
 
         // Stub the log parser factory
-        when(() => mockLogParserFactory.create(any()))
-            .thenReturn(mockLogParser);
+        when(
+          () => mockLogParserFactory.create(any()),
+        ).thenReturn(mockLogParser);
 
         await tearDownTestDependencies();
         await setUpTestDependencies(

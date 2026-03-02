@@ -12,10 +12,7 @@ final _logcatTimestampPattern = RegExp(
 /// than ~30 days in the future we roll it back one year, and when it is more
 /// than ~335 days in the past we roll it forward a year. This keeps year
 /// boundaries stable when capturing logs near New Year's.
-DateTime? parseLogcatTimestamp(
-  String value, {
-  DateTime? reference,
-}) {
+DateTime? parseLogcatTimestamp(String value, {DateTime? reference}) {
   // Use pre-compiled static pattern for better performance
   final match = _logcatTimestampPattern.firstMatch(value);
   if (match == null) {

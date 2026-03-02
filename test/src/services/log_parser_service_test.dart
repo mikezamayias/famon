@@ -219,6 +219,5 @@ void main() {
       expect(result.parameters['currency'], equals('USD'));
       expect(result.parameters.containsKey('item_id'), isFalse);
     });
-
   });
 }

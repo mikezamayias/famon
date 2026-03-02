@@ -16,10 +16,7 @@ class DataExportImportUseCase {
   final EventRepository eventRepository;
 
   /// Export all data to a JSON file
-  Future<String> exportAllData({
-    String? fileName,
-    String? directory,
-  }) async {
+  Future<String> exportAllData({String? fileName, String? directory}) async {
     final filePath = await dataExportRepository.createBackup(
       fileName: fileName,
       directory: directory,
@@ -41,10 +38,7 @@ class DataExportImportUseCase {
   }
 
   /// Import data from a JSON file
-  Future<void> importFromFile(
-    String filePath, {
-    bool overwrite = false,
-  }) async {
+  Future<void> importFromFile(String filePath, {bool overwrite = false}) async {
     // Validate the file first
     final isValid = await dataExportRepository.validateBackupFile(filePath);
     if (!isValid) {
@@ -55,10 +49,7 @@ class DataExportImportUseCase {
     await dataExportRepository.getBackupInfo(filePath);
 
     // Restore the backup
-    await dataExportRepository.restoreBackup(
-      filePath,
-      overwrite: overwrite,
-    );
+    await dataExportRepository.restoreBackup(filePath, overwrite: overwrite);
   }
 
   /// Import data from JSON map
@@ -66,10 +57,7 @@ class DataExportImportUseCase {
     Map<String, dynamic> jsonData, {
     bool overwrite = false,
   }) async {
-    await dataExportRepository.importAllData(
-      jsonData,
-      overwrite: overwrite,
-    );
+    await dataExportRepository.importAllData(jsonData, overwrite: overwrite);
   }
 
   /// Get backup file information

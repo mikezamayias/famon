@@ -43,7 +43,8 @@ void main() {
     });
 
     test('should parse simple iOS log format without params block', () {
-      const logLine = '[FirebaseAnalytics][I-ACS023051] Logging event: app, '
+      const logLine =
+          '[FirebaseAnalytics][I-ACS023051] Logging event: app, '
           'add_to_cart';
 
       final result = parser.parse(logLine);
@@ -130,10 +131,7 @@ void main() {
         ),
         isNotNull,
       );
-      expect(
-        parser.parse('FIRAnalytics Logging event: test_event'),
-        isNotNull,
-      );
+      expect(parser.parse('FIRAnalytics Logging event: test_event'), isNotNull);
     });
 
     group('items array parsing', () {
@@ -189,21 +187,23 @@ void main() {
         expect(result?.items[1]['item_id'], equals('item2'));
       });
 
-      test('should handle items array with no complete items on truncation',
-          () {
-        const logLine =
-            '[FirebaseAnalytics][I-ACS023051] Logging event: origin, name, '
-            'params: app, view_item_list, { '
-            'item_list_name (_iln) = results; '
-            'items = [{item_id = ite';
+      test(
+        'should handle items array with no complete items on truncation',
+        () {
+          const logLine =
+              '[FirebaseAnalytics][I-ACS023051] Logging event: origin, name, '
+              'params: app, view_item_list, { '
+              'item_list_name (_iln) = results; '
+              'items = [{item_id = ite';
 
-        final result = parser.parse(logLine);
+          final result = parser.parse(logLine);
 
-        expect(result, isNotNull);
-        expect(result?.parameters['item_list_name'], equals('results'));
-        expect(result?.parameters.containsKey('item_id'), isFalse);
-        expect(result?.items, isEmpty);
-      });
+          expect(result, isNotNull);
+          expect(result?.parameters['item_list_name'], equals('results'));
+          expect(result?.parameters.containsKey('item_id'), isFalse);
+          expect(result?.items, isEmpty);
+        },
+      );
     });
   });
 }

@@ -84,11 +84,7 @@ class DatabaseCommand extends Command<int> {
 class _BackupSubcommand extends Command<int> {
   _BackupSubcommand(this._logger, this._exportUseCase) {
     argParser
-      ..addOption(
-        'output',
-        abbr: 'o',
-        help: 'Output file path for the backup',
-      )
+      ..addOption('output', abbr: 'o', help: 'Output file path for the backup')
       ..addOption(
         'directory',
         abbr: 'd',
@@ -159,11 +155,7 @@ class _RestoreSubcommand extends Command<int> {
         help: 'Backup file to restore from',
         mandatory: true,
       )
-      ..addFlag(
-        'overwrite',
-        help: 'Overwrite existing data',
-        negatable: false,
-      );
+      ..addFlag('overwrite', help: 'Overwrite existing data', negatable: false);
   }
 
   @override
@@ -209,18 +201,9 @@ class _ExportSubcommand extends Command<int> {
         help: 'Output file path',
         mandatory: true,
       )
-      ..addOption(
-        'from',
-        help: 'Export events from date (ISO 8601)',
-      )
-      ..addOption(
-        'to',
-        help: 'Export events to date (ISO 8601)',
-      )
-      ..addMultiOption(
-        'events',
-        help: 'Specific event names to export',
-      );
+      ..addOption('from', help: 'Export events from date (ISO 8601)')
+      ..addOption('to', help: 'Export events to date (ISO 8601)')
+      ..addMultiOption('events', help: 'Specific event names to export');
   }
 
   @override
@@ -301,11 +284,7 @@ class _ImportSubcommand extends Command<int> {
         help: 'JSON file to import',
         mandatory: true,
       )
-      ..addFlag(
-        'overwrite',
-        help: 'Overwrite existing data',
-        negatable: false,
-      );
+      ..addFlag('overwrite', help: 'Overwrite existing data', negatable: false);
   }
 
   @override
@@ -366,8 +345,9 @@ class _ClearSubcommand extends Command<int> {
       final confirm = argResults?['confirm'] as bool? ?? false;
 
       if (!confirm) {
-        _logger
-            .warn('This will permanently delete all data from the database.');
+        _logger.warn(
+          'This will permanently delete all data from the database.',
+        );
         stdout.write('Are you sure? (y/N): ');
         final input = stdin.readLineSync();
 

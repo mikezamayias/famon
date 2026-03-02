@@ -19,8 +19,8 @@ class ShowHelpAction implements ShortcutAction {
   ShowHelpAction({
     required ActionRegistry registry,
     required GetBindingCallback getBinding,
-  })  : _registry = registry,
-        _getBinding = getBinding;
+  }) : _registry = registry,
+       _getBinding = getBinding;
 
   final ActionRegistry _registry;
   final GetBindingCallback _getBinding;

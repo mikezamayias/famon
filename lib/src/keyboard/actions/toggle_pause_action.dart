@@ -14,7 +14,7 @@ class TogglePauseAction implements ShortcutAction {
   ///
   /// [onToggle] - Callback invoked with the new pause state.
   TogglePauseAction({required PauseToggleCallback onToggle})
-      : _onToggle = onToggle;
+    : _onToggle = onToggle;
 
   final PauseToggleCallback _onToggle;
 

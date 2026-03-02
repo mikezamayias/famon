@@ -265,8 +265,10 @@ class LogParserService implements LogParserInterface {
         cleanParamsString = cleanParamsString.substring(8);
       }
       if (cleanParamsString.endsWith('}]')) {
-        cleanParamsString =
-            cleanParamsString.substring(0, cleanParamsString.length - 2);
+        cleanParamsString = cleanParamsString.substring(
+          0,
+          cleanParamsString.length - 2,
+        );
       }
 
       // Remove items array so item_* fields don't bleed into top-level params.
@@ -364,8 +366,9 @@ class LogParserService implements LogParserInterface {
           : before;
     }
 
-    final cleanedAfter =
-        after.startsWith(',') ? after.substring(1).trimLeft() : after;
+    final cleanedAfter = after.startsWith(',')
+        ? after.substring(1).trimLeft()
+        : after;
     return '$before, $cleanedAfter';
   }
 

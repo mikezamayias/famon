@@ -112,15 +112,15 @@ class EventMetadata extends Equatable {
 
   @override
   List<Object?> get props => [
-        eventName,
-        totalCount,
-        firstSeen,
-        lastSeen,
-        frequency,
-        averageParameterCount,
-        commonParameters,
-        isHidden,
-        isWatched,
-        customTags,
-      ];
+    eventName,
+    totalCount,
+    firstSeen,
+    lastSeen,
+    frequency,
+    averageParameterCount,
+    commonParameters,
+    isHidden,
+    isWatched,
+    customTags,
+  ];
 }

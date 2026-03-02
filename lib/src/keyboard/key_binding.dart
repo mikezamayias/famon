@@ -52,13 +52,7 @@ class KeyBinding extends Equatable {
       }
     }
 
-    return KeyBinding(
-      key: key,
-      ctrl: ctrl,
-      shift: shift,
-      alt: alt,
-      meta: meta,
-    );
+    return KeyBinding(key: key, ctrl: ctrl, shift: shift, alt: alt, meta: meta);
   }
 
   /// The key character (single character or named key like 'f1', 'space').

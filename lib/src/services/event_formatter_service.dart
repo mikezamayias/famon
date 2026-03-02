@@ -25,9 +25,9 @@ class EventFormatterService {
     bool rawOutput = false,
     bool colorEnabled = true,
     Set<String> globalParamNames = const {},
-  })  : _rawOutput = rawOutput,
-        _colorEnabled = colorEnabled,
-        _globalParamNames = globalParamNames {
+  }) : _rawOutput = rawOutput,
+       _colorEnabled = colorEnabled,
+       _globalParamNames = globalParamNames {
     _faWarningBuffer = FaWarningBuffer(onFlush: _printFaWarnings);
   }
 
@@ -206,8 +206,8 @@ class EventFormatterService {
     final timeLabel = startTimestamp == null
         ? ''
         : endTimestamp != null && endTimestamp != startTimestamp
-            ? '[$startTimestamp–$endTimestamp] '
-            : '[$startTimestamp] ';
+        ? '[$startTimestamp–$endTimestamp] '
+        : '[$startTimestamp] ';
     final header = '${timeLabel}fa_invalid_default_param'.trimLeft();
 
     _logger

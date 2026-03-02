@@ -74,9 +74,7 @@ abstract class EventMetadataRepository {
   });
 
   /// Get events that should be suggested for hiding
-  Future<List<String>> getSuggestedToHide({
-    double frequencyThreshold = 10.0,
-  });
+  Future<List<String>> getSuggestedToHide({double frequencyThreshold = 10.0});
 
   /// Mark events as hidden or watched
   Future<void> updateEventVisibility(

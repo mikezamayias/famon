@@ -57,8 +57,9 @@ void main() {
       configLoader = MockShortcutsConfigLoader();
       logger = MockLogger();
 
-      when(() => configLoader.loadCustomBindings())
-          .thenAnswer((_) async => <String, KeyBinding>{});
+      when(
+        () => configLoader.loadCustomBindings(),
+      ).thenAnswer((_) async => <String, KeyBinding>{});
 
       manager = ShortcutManager(
         actionRegistry: registry,
@@ -156,8 +157,14 @@ void main() {
     group('getHelpText', () {
       test('includes all registered actions', () async {
         registry.registerAll([
-          MockAction(id: 'action1', binding: const KeyBinding(key: 'a')),
-          MockAction(id: 'action2', binding: const KeyBinding(key: 'b')),
+          MockAction(
+            id: 'action1',
+            binding: const KeyBinding(key: 'a'),
+          ),
+          MockAction(
+            id: 'action2',
+            binding: const KeyBinding(key: 'b'),
+          ),
         ]);
         await manager.loadCustomBindings();
 
@@ -171,11 +178,9 @@ void main() {
 
     group('loadCustomBindings', () {
       test('loads bindings from config', () async {
-        when(() => configLoader.loadCustomBindings()).thenAnswer(
-          (_) async => {
-            'test_action': const KeyBinding(key: 'y'),
-          },
-        );
+        when(
+          () => configLoader.loadCustomBindings(),
+        ).thenAnswer((_) async => {'test_action': const KeyBinding(key: 'y')});
 
         final action = MockAction(
           id: 'test_action',
@@ -198,8 +203,9 @@ void main() {
       });
 
       test('handles config loading errors gracefully', () async {
-        when(() => configLoader.loadCustomBindings())
-            .thenThrow(Exception('Config error'));
+        when(
+          () => configLoader.loadCustomBindings(),
+        ).thenThrow(Exception('Config error'));
         when(() => logger.warn(any())).thenReturn(null);
 
         await manager.loadCustomBindings();

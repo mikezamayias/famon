@@ -24,7 +24,8 @@ class MonitoringSession extends Equatable {
           ? DateTime.parse(json['endTime'] as String)
           : null,
       deviceId: json['deviceId'] as String?,
-      filters: (json['filters'] as List?)
+      filters:
+          (json['filters'] as List?)
               ?.map((f) => EventFilter.fromJson(f as Map<String, dynamic>))
               .toList() ??
           [],
@@ -112,15 +113,15 @@ class MonitoringSession extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        startTime,
-        endTime,
-        deviceId,
-        filters,
-        manualEventParameters,
-        configuration,
-      ];
+    id,
+    name,
+    startTime,
+    endTime,
+    deviceId,
+    filters,
+    manualEventParameters,
+    configuration,
+  ];
 }
 
 /// Domain entity representing event filtering criteria

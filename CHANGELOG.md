@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-02
+
+### Added
+
+- Separate global (session-level) parameters from event-specific parameters in monitor output
+- New keyboard actions: `toggle_event_params` and `toggle_global_params`
+- Full formatter support for global vs. event parameter distinction
+
+### Fixed
+
+- Items array parsing for nested bundles on both Android (`LogParserService`) and iOS (`IosLogParserService`)
+
 ## [1.0.3] - 2026-01-24
 
 ### Security

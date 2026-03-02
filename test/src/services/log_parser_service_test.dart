@@ -200,11 +200,13 @@ void main() {
       // (Bundle\[\{([^}]+)\}\]) would stop at the first '}' inside the
       // nested bundle and mis-parse or drop the item.
       const logLine =
-          '12-25 10:30:45.123 I/FA-SVC  : Logging event: origin=app,name=purchase,'
+          '12-25 10:30:45.123 I/FA-SVC  : Logging event: origin=app,name=purchase, '
           'params=Bundle[{'
           'items=['
-          'Bundle[{item_id=item1, item_extra=Bundle[{color=red, size=M}], price=Double(9.99)}], '
-          'Bundle[{item_id=item2, item_extra=Bundle[{color=blue, size=L}], price=Double(19.99)}]'
+          'Bundle[{item_id=item1, item_extra=Bundle[{color=red, size=M}], '
+          'price=Double(9.99)}], '
+          'Bundle[{item_id=item2, item_extra=Bundle[{color=blue, size=L}], '
+          'price=Double(19.99)}]'
           '], currency=USD}]';
 
       final result = parser.parse(logLine);

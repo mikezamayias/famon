@@ -211,10 +211,10 @@ void main() {
         const logLine =
             '[FirebaseAnalytics][I-ACS023051] Logging event: origin, name, '
             'params: app, purchase, { '
-            'items = ['
-            '{item_id = item1; item_extra = {color = red; size = M;}; price = 9.99;}, '
-            '{item_id = item2; item_extra = {color = blue; size = L;}; price = 19.99;}'
-            ']; '
+            'items = [{item_id = item1; item_extra = {color = red; size = M;}; '
+            'price = 9.99;}, '
+            '{item_id = item2; item_extra = {color = blue; size = L;}; '
+            'price = 19.99;}]; '
             'currency = USD; '
             '}';
 

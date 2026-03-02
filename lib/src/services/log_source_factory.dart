@@ -25,9 +25,8 @@ class LogSourceFactory {
   ///
   /// Throws [StateError] if no suitable platform can be detected.
   Future<LogSourceInterface> create(PlatformType platform) async {
-    final targetPlatform = platform == PlatformType.auto
-        ? await _autoDetect()
-        : platform;
+    final targetPlatform =
+        platform == PlatformType.auto ? await _autoDetect() : platform;
 
     return _createForPlatform(targetPlatform);
   }
@@ -36,13 +35,13 @@ class LogSourceFactory {
     return switch (platform) {
       PlatformType.android => _AndroidLogSource(_processManager, _logger),
       PlatformType.iosSimulator => _IosSimulatorLogSource(
-        _processManager,
-        _logger,
-      ),
+          _processManager,
+          _logger,
+        ),
       PlatformType.iosDevice => _IosDeviceLogSource(_processManager, _logger),
       PlatformType.auto => throw StateError(
-        'Auto platform should be resolved before creation',
-      ),
+          'Auto platform should be resolved before creation',
+        ),
     };
   }
 
@@ -84,9 +83,7 @@ class LogSourceFactory {
       final output = result.stdout as String;
       final lines = output.split('\n');
       // Skip header line and check for actual devices
-      return lines
-          .skip(1)
-          .any(
+      return lines.skip(1).any(
             (line) =>
                 line.trim().isNotEmpty &&
                 (line.contains('device') || line.contains('emulator')),
@@ -235,14 +232,14 @@ class _AndroidLogSource implements LogSourceInterface {
 
   @override
   List<String> getTroubleshootingTips() => [
-    '1. Confirm device is connected: adb devices',
-    '2. Enable Analytics debug for your app:',
-    '   adb shell setprop debug.firebase.analytics.app <your.package>',
-    '3. Optionally raise FA log level:',
-    '   adb shell setprop log.tag.FA VERBOSE',
-    '   adb shell setprop log.tag.FA-SVC VERBOSE',
-    '4. Open your app and trigger events; then try again.',
-  ];
+        '1. Confirm device is connected: adb devices',
+        '2. Enable Analytics debug for your app:',
+        '   adb shell setprop debug.firebase.analytics.app <your.package>',
+        '3. Optionally raise FA log level:',
+        '   adb shell setprop log.tag.FA VERBOSE',
+        '   adb shell setprop log.tag.FA-SVC VERBOSE',
+        '4. Open your app and trigger events; then try again.',
+      ];
 
   @override
   Future<bool> checkToolsAvailable() async {
@@ -283,7 +280,7 @@ class _IosSimulatorLogSource implements LogSourceInterface {
     final predicate = verbose
         ? 'subsystem CONTAINS "com.google" OR subsystem CONTAINS "firebase"'
         : 'subsystem CONTAINS "firebase" OR eventMessage CONTAINS '
-              '"FirebaseAnalytics" OR eventMessage CONTAINS "FIRAnalytics"';
+            '"FirebaseAnalytics" OR eventMessage CONTAINS "FIRAnalytics"';
 
     return _processManager.start([
       'xcrun',
@@ -321,12 +318,12 @@ class _IosSimulatorLogSource implements LogSourceInterface {
 
   @override
   List<String> getTroubleshootingTips() => [
-    '1. Ensure iOS Simulator is running with Firebase Analytics app',
-    '2. Enable debug mode in your Xcode scheme:',
-    '   Edit Scheme > Run > Arguments > -FIRAnalyticsDebugEnabled',
-    '3. Verify Firebase is properly initialized in your app',
-    '4. Check Console.app for FirebaseAnalytics messages',
-  ];
+        '1. Ensure iOS Simulator is running with Firebase Analytics app',
+        '2. Enable debug mode in your Xcode scheme:',
+        '   Edit Scheme > Run > Arguments > -FIRAnalyticsDebugEnabled',
+        '3. Verify Firebase is properly initialized in your app',
+        '4. Check Console.app for FirebaseAnalytics messages',
+      ];
 
   @override
   Future<bool> checkToolsAvailable() async {
@@ -386,12 +383,12 @@ class _IosDeviceLogSource implements LogSourceInterface {
 
   @override
   List<String> getTroubleshootingTips() => [
-    '1. Ensure iOS device is connected and trusted',
-    '2. Install libimobiledevice: brew install libimobiledevice',
-    '3. Enable debug mode in your Xcode scheme:',
-    '   Edit Scheme > Run > Arguments > -FIRAnalyticsDebugEnabled',
-    '4. Deploy your app to the device and trigger events',
-  ];
+        '1. Ensure iOS device is connected and trusted',
+        '2. Install libimobiledevice: brew install libimobiledevice',
+        '3. Enable debug mode in your Xcode scheme:',
+        '   Edit Scheme > Run > Arguments > -FIRAnalyticsDebugEnabled',
+        '4. Deploy your app to the device and trigger events',
+      ];
 
   @override
   Future<bool> checkToolsAvailable() async {

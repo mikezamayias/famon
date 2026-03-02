@@ -84,7 +84,8 @@ void main() {
       verify(() => logger.err('Failed to check for updates.')).called(1);
     });
 
-    test('Does not show update message when the shell calls the '
+    test(
+        'Does not show update message when the shell calls the '
         'completion command', () async {
       when(
         () => pubUpdater.getLatestVersion(any()),

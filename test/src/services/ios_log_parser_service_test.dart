@@ -43,8 +43,7 @@ void main() {
     });
 
     test('should parse simple iOS log format without params block', () {
-      const logLine =
-          '[FirebaseAnalytics][I-ACS023051] Logging event: app, '
+      const logLine = '[FirebaseAnalytics][I-ACS023051] Logging event: app, '
           'add_to_cart';
 
       final result = parser.parse(logLine);

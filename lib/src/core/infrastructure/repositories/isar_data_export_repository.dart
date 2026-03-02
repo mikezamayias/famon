@@ -38,13 +38,10 @@ class IsarDataExportRepository implements DataExportRepository {
   }
 
   QueryBuilder<IsarAnalyticsEvent, IsarAnalyticsEvent, QAfterSortBy>
-  _executeTimedExportQuery({
-    required QueryBuilder<
-      IsarAnalyticsEvent,
-      IsarAnalyticsEvent,
-      QAfterWhereClause
-    >
-    base,
+      _executeTimedExportQuery({
+    required QueryBuilder<IsarAnalyticsEvent, IsarAnalyticsEvent,
+            QAfterWhereClause>
+        base,
     DateTime? from,
     DateTime? to,
   }) {
@@ -52,8 +49,8 @@ class IsarDataExportRepository implements DataExportRepository {
     final filteredQuery = from != null && to != null
         ? filter.timestampBetween(from, to)
         : from != null
-        ? filter.timestampGreaterThan(from, include: true)
-        : filter.timestampLessThan(to!, include: true);
+            ? filter.timestampGreaterThan(from, include: true)
+            : filter.timestampLessThan(to!, include: true);
     return filteredQuery.sortByTimestampDesc();
   }
 
@@ -65,12 +62,11 @@ class IsarDataExportRepository implements DataExportRepository {
   }) async {
     final isar = await database.db;
     final names = eventNames ?? const <String>[];
-    final queryAfterNames = isar.isarAnalyticsEvents
-        .where()
-        .anyOf<String, QAfterWhereClause>(
-          names,
-          (q, name) => q.eventNameEqualTo(name),
-        );
+    final queryAfterNames =
+        isar.isarAnalyticsEvents.where().anyOf<String, QAfterWhereClause>(
+              names,
+              (q, name) => q.eventNameEqualTo(name),
+            );
 
     final sortedQuery = fromDate != null || toDate != null
         ? _executeTimedExportQuery(
@@ -245,10 +241,8 @@ class IsarDataExportRepository implements DataExportRepository {
     final data = await exportAllData();
 
     // Determine file path
-    final timestamp = DateTime.now()
-        .toIso8601String()
-        .replaceAll(':', '-')
-        .split('.')[0];
+    final timestamp =
+        DateTime.now().toIso8601String().replaceAll(':', '-').split('.')[0];
     final defaultFileName = 'famon_backup_$timestamp.json';
     final file = fileName ?? defaultFileName;
 

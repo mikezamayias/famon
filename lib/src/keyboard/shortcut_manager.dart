@@ -19,9 +19,9 @@ class ShortcutManager {
     required ActionRegistry actionRegistry,
     required ShortcutsConfigLoader configLoader,
     required Logger logger,
-  }) : _registry = actionRegistry,
-       _configLoader = configLoader,
-       _logger = logger;
+  })  : _registry = actionRegistry,
+        _configLoader = configLoader,
+        _logger = logger;
 
   final ActionRegistry _registry;
   final ShortcutsConfigLoader _configLoader;

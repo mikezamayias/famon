@@ -366,9 +366,8 @@ class LogParserService implements LogParserInterface {
           : before;
     }
 
-    final cleanedAfter = after.startsWith(',')
-        ? after.substring(1).trimLeft()
-        : after;
+    final cleanedAfter =
+        after.startsWith(',') ? after.substring(1).trimLeft() : after;
     return '$before, $cleanedAfter';
   }
 

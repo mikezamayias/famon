@@ -13,7 +13,7 @@ import 'package:famon/src/platform/file_dialog_interface.dart';
 class SaveToFileAction implements ShortcutAction {
   /// Creates a new save to file action.
   SaveToFileAction({required FileDialogInterface fileDialog})
-    : _fileDialog = fileDialog;
+      : _fileDialog = fileDialog;
 
   final FileDialogInterface _fileDialog;
 

@@ -147,14 +147,13 @@ void main() {
     });
 
     test('hides global params when toggled off in formatted output', () {
-      final formatter =
-          EventFormatterService(
-              logger,
-              colorEnabled: false,
-              globalParamNames: {'login_status', 'environment'},
-            )
-            ..resetTracking()
-            ..hideGlobalParams = true;
+      final formatter = EventFormatterService(
+        logger,
+        colorEnabled: false,
+        globalParamNames: {'login_status', 'environment'},
+      )
+        ..resetTracking()
+        ..hideGlobalParams = true;
 
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
@@ -179,15 +178,14 @@ void main() {
     });
 
     test('hides global params in raw output when toggled off', () {
-      final formatter =
-          EventFormatterService(
-              logger,
-              rawOutput: true,
-              colorEnabled: false,
-              globalParamNames: {'login_status', 'environment'},
-            )
-            ..resetTracking()
-            ..hideGlobalParams = true;
+      final formatter = EventFormatterService(
+        logger,
+        rawOutput: true,
+        colorEnabled: false,
+        globalParamNames: {'login_status', 'environment'},
+      )
+        ..resetTracking()
+        ..hideGlobalParams = true;
 
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
@@ -309,14 +307,13 @@ void main() {
     });
 
     test('hides event params when hideEventParams is set', () {
-      final formatter =
-          EventFormatterService(
-              logger,
-              colorEnabled: false,
-              globalParamNames: {'login_status'},
-            )
-            ..resetTracking()
-            ..hideEventParams = true;
+      final formatter = EventFormatterService(
+        logger,
+        colorEnabled: false,
+        globalParamNames: {'login_status'},
+      )
+        ..resetTracking()
+        ..hideEventParams = true;
 
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
@@ -338,15 +335,14 @@ void main() {
     });
 
     test('hides event params in raw output when hideEventParams is set', () {
-      final formatter =
-          EventFormatterService(
-              logger,
-              rawOutput: true,
-              colorEnabled: false,
-              globalParamNames: {'login_status'},
-            )
-            ..resetTracking()
-            ..hideEventParams = true;
+      final formatter = EventFormatterService(
+        logger,
+        rawOutput: true,
+        colorEnabled: false,
+        globalParamNames: {'login_status'},
+      )
+        ..resetTracking()
+        ..hideEventParams = true;
 
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
@@ -364,15 +360,14 @@ void main() {
     });
 
     test('hides both sections when both flags are set', () {
-      final formatter =
-          EventFormatterService(
-              logger,
-              colorEnabled: false,
-              globalParamNames: {'login_status'},
-            )
-            ..resetTracking()
-            ..hideGlobalParams = true
-            ..hideEventParams = true;
+      final formatter = EventFormatterService(
+        logger,
+        colorEnabled: false,
+        globalParamNames: {'login_status'},
+      )
+        ..resetTracking()
+        ..hideGlobalParams = true
+        ..hideEventParams = true;
 
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',
@@ -389,16 +384,15 @@ void main() {
     });
 
     test('hides both in raw output produces empty params map', () {
-      final formatter =
-          EventFormatterService(
-              logger,
-              rawOutput: true,
-              colorEnabled: false,
-              globalParamNames: {'login_status'},
-            )
-            ..resetTracking()
-            ..hideGlobalParams = true
-            ..hideEventParams = true;
+      final formatter = EventFormatterService(
+        logger,
+        rawOutput: true,
+        colorEnabled: false,
+        globalParamNames: {'login_status'},
+      )
+        ..resetTracking()
+        ..hideGlobalParams = true
+        ..hideEventParams = true;
 
       final event = AnalyticsEvent.fromParsedLog(
         rawTimestamp: '12-25 10:30:45.123',

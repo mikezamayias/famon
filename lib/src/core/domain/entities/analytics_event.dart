@@ -29,8 +29,7 @@ class AnalyticsEvent extends Equatable {
   }) {
     final parsedTimestamp =
         parseLogcatTimestamp(rawTimestamp) ?? DateTime.now();
-    final uniqueId =
-        '${parsedTimestamp.toIso8601String()}_${eventName}_'
+    final uniqueId = '${parsedTimestamp.toIso8601String()}_${eventName}_'
         '${DateTime.now().microsecondsSinceEpoch}';
 
     return AnalyticsEvent(
@@ -135,13 +134,13 @@ class AnalyticsEvent extends Equatable {
 
   @override
   List<Object?> get props => [
-    id,
-    timestamp,
-    rawTimestamp,
-    eventName,
-    parameters,
-    items,
-    manualParameters,
-    isFiltered,
-  ];
+        id,
+        timestamp,
+        rawTimestamp,
+        eventName,
+        parameters,
+        items,
+        manualParameters,
+        isFiltered,
+      ];
 }

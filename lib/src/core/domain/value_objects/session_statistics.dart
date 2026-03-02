@@ -107,15 +107,15 @@ class SessionStatistics extends Equatable {
 
   @override
   List<Object?> get props => [
-    totalEvents,
-    uniqueEvents,
-    averageFrequency,
-    topEvents,
-    sessionDuration,
-    eventTypeDistribution,
-    peakHour,
-    mostActiveEvents,
-  ];
+        totalEvents,
+        uniqueEvents,
+        averageFrequency,
+        topEvents,
+        sessionDuration,
+        eventTypeDistribution,
+        peakHour,
+        mostActiveEvents,
+      ];
 }
 
 /// Value object representing event frequency data.

@@ -3,12 +3,11 @@ import 'package:famon/src/core/domain/entities/analytics_event.dart';
 import 'package:famon/src/shared/log_timestamp_parser.dart';
 
 /// Callback type for when buffered FA warnings are ready to be flushed.
-typedef FaWarningFlushCallback =
-    void Function({
-      required String? startTimestamp,
-      required String? endTimestamp,
-      required Map<String, String> parameters,
-    });
+typedef FaWarningFlushCallback = void Function({
+  required String? startTimestamp,
+  required String? endTimestamp,
+  required Map<String, String> parameters,
+});
 
 /// Buffers FA invalid default parameter warnings and groups them by time.
 ///

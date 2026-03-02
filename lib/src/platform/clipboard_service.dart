@@ -14,7 +14,7 @@ import 'package:process/process.dart';
 class ClipboardService implements ClipboardInterface {
   /// Creates a new clipboard service.
   ClipboardService({ProcessManager? processManager})
-    : _processManager = processManager ?? const LocalProcessManager();
+      : _processManager = processManager ?? const LocalProcessManager();
 
   final ProcessManager _processManager;
 

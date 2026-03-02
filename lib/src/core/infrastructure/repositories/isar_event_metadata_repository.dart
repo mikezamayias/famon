@@ -41,17 +41,16 @@ class IsarEventMetadataRepository implements EventMetadataRepository {
   }) async {
     final isar = await database.db;
     final names = eventNames ?? const <String>[];
-    final whereQuery = isar.isarEventMetadatas
-        .where()
-        .anyOf<String, QAfterWhereClause>(
-          names,
-          (q, name) => q.eventNameEqualTo(name),
-        );
+    final whereQuery =
+        isar.isarEventMetadatas.where().anyOf<String, QAfterWhereClause>(
+              names,
+              (q, name) => q.eventNameEqualTo(name),
+            );
 
     if (isHidden != null || isWatched != null) {
       final filterBase = whereQuery.filter();
       QueryBuilder<IsarEventMetadata, IsarEventMetadata, QAfterFilterCondition>
-      filteredQuery;
+          filteredQuery;
 
       if (isHidden != null) {
         filteredQuery = filterBase.isHiddenEqualTo(isHidden);
@@ -107,9 +106,8 @@ class IsarEventMetadataRepository implements EventMetadataRepository {
         }
         // Update frequency calculation
         final timeDiff = DateTime.now().difference(metadata.firstSeen);
-        metadata.frequency = timeDiff.inHours > 0
-            ? metadata.totalCount / timeDiff.inHours
-            : 0.0;
+        metadata.frequency =
+            timeDiff.inHours > 0 ? metadata.totalCount / timeDiff.inHours : 0.0;
       }
 
       await isar.isarEventMetadatas.put(metadata);
@@ -196,9 +194,8 @@ class IsarEventMetadataRepository implements EventMetadataRepository {
           .findFirst();
 
       if (metadata != null) {
-        final updatedTags = metadata.customTags
-            .where((tag) => !tags.contains(tag))
-            .toList();
+        final updatedTags =
+            metadata.customTags.where((tag) => !tags.contains(tag)).toList();
         metadata.customTags = updatedTags;
         await isar.isarEventMetadatas.put(metadata);
       }

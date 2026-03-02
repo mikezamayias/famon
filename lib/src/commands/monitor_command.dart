@@ -41,10 +41,10 @@ class MonitorCommand extends Command<int> {
     required LogSourceFactory logSourceFactory,
     required LogParserFactory logParserFactory,
     required EventCacheInterface eventCache,
-  }) : _logger = logger,
-       _logSourceFactory = logSourceFactory,
-       _logParserFactory = logParserFactory,
-       _eventCache = eventCache {
+  })  : _logger = logger,
+        _logSourceFactory = logSourceFactory,
+        _logParserFactory = logParserFactory,
+        _eventCache = eventCache {
     argParser
       ..addOption(
         'platform',
@@ -88,8 +88,7 @@ class MonitorCommand extends Command<int> {
         'enable-debug',
         abbr: 'D',
         valueHelp: 'PACKAGE',
-        help:
-            'Enable Analytics debug for PACKAGE and raise log levels '
+        help: 'Enable Analytics debug for PACKAGE and raise log levels '
             'before monitoring.',
       )
       ..addFlag(
@@ -105,8 +104,7 @@ class MonitorCommand extends Command<int> {
       ..addMultiOption(
         'global-params',
         abbr: 'g',
-        help:
-            'Parameter names to classify as global/default. '
+        help: 'Parameter names to classify as global/default. '
             'These are separated from event-specific parameters in the '
             'output and can be toggled with the G key at runtime.',
         valueHelp: 'PARAM_NAME',
@@ -114,15 +112,13 @@ class MonitorCommand extends Command<int> {
       ..addFlag(
         'hide-global-params',
         negatable: false,
-        help:
-            'Start with global parameters hidden from output. '
+        help: 'Start with global parameters hidden from output. '
             'Toggle at runtime with G.',
       )
       ..addFlag(
         'hide-event-params',
         negatable: false,
-        help:
-            'Start with event-specific parameters hidden from output. '
+        help: 'Start with event-specific parameters hidden from output. '
             'Toggle at runtime with E.',
       );
   }
@@ -195,15 +191,14 @@ class MonitorCommand extends Command<int> {
     }
 
     // Initialize formatter with color, raw, and global params settings
-    _formatter =
-        EventFormatterService(
-            _logger,
-            rawOutput: rawOutput,
-            colorEnabled: !noColor,
-            globalParamNames: globalParamNames,
-          )
-          ..hideGlobalParams = initialHideGlobal
-          ..hideEventParams = initialHideEvent;
+    _formatter = EventFormatterService(
+      _logger,
+      rawOutput: rawOutput,
+      colorEnabled: !noColor,
+      globalParamNames: globalParamNames,
+    )
+      ..hideGlobalParams = initialHideGlobal
+      ..hideEventParams = initialHideEvent;
 
     // Reset tracking for new session
     _formatter.resetTracking();
@@ -339,10 +334,9 @@ class MonitorCommand extends Command<int> {
       var malformedByteCount = 0;
       var lastMalformedWarning = DateTime.now();
 
-      await for (final line
-          in process.stdout
-              .transform(const Utf8Decoder(allowMalformed: true))
-              .transform(const LineSplitter())) {
+      await for (final line in process.stdout
+          .transform(const Utf8Decoder(allowMalformed: true))
+          .transform(const LineSplitter())) {
         // Check if quit was requested
         if (_shouldQuit) {
           cleanup();

@@ -99,14 +99,14 @@ class FilterCriteria extends Equatable {
 
   @override
   List<Object?> get props => [
-    eventNames,
-    excludeEventNames,
-    minFrequency,
-    maxFrequency,
-    parameterFilters,
-    timeRange,
-    customTags,
-  ];
+        eventNames,
+        excludeEventNames,
+        minFrequency,
+        maxFrequency,
+        parameterFilters,
+        timeRange,
+        customTags,
+      ];
 }
 
 /// Value object representing a time range for filtering.

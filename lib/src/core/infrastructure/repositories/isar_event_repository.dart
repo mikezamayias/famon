@@ -43,12 +43,11 @@ class IsarEventRepository implements EventRepository {
   }) async {
     final isar = await database.db;
     final eventNames = criteria?.eventNames ?? const <String>[];
-    final queryAfterNames = isar.isarAnalyticsEvents
-        .where()
-        .anyOf<String, QAfterWhereClause>(
-          eventNames,
-          (q, eventName) => q.eventNameEqualTo(eventName),
-        );
+    final queryAfterNames =
+        isar.isarAnalyticsEvents.where().anyOf<String, QAfterWhereClause>(
+              eventNames,
+              (q, eventName) => q.eventNameEqualTo(eventName),
+            );
 
     final fetchLimit = limit != null ? ((offset ?? 0) + limit) : limit;
     final queried = criteria?.timeRange != null
@@ -78,12 +77,9 @@ class IsarEventRepository implements EventRepository {
   }
 
   Future<List<IsarAnalyticsEvent>> _executeBasicQuery({
-    required QueryBuilder<
-      IsarAnalyticsEvent,
-      IsarAnalyticsEvent,
-      QAfterWhereClause
-    >
-    base,
+    required QueryBuilder<IsarAnalyticsEvent, IsarAnalyticsEvent,
+            QAfterWhereClause>
+        base,
     int? fetchLimit,
   }) async {
     final sorted = base.sortByTimestampDesc();
@@ -92,12 +88,9 @@ class IsarEventRepository implements EventRepository {
   }
 
   Future<List<IsarAnalyticsEvent>> _executeTimeFilteredQuery({
-    required QueryBuilder<
-      IsarAnalyticsEvent,
-      IsarAnalyticsEvent,
-      QAfterWhereClause
-    >
-    base,
+    required QueryBuilder<IsarAnalyticsEvent, IsarAnalyticsEvent,
+            QAfterWhereClause>
+        base,
     required TimeRange range,
     int? fetchLimit,
   }) async {
@@ -113,10 +106,8 @@ class IsarEventRepository implements EventRepository {
   Future<AnalyticsEvent?> getEventById(String id) async {
     final isar = await database.db;
     // Find by domain ID since we store the original ID as domainId
-    final isarEvent = await isar.isarAnalyticsEvents
-        .where()
-        .domainIdEqualTo(id)
-        .findFirst();
+    final isarEvent =
+        await isar.isarAnalyticsEvents.where().domainIdEqualTo(id).findFirst();
     return isarEvent?.toDomain();
   }
 
@@ -134,10 +125,8 @@ class IsarEventRepository implements EventRepository {
   @override
   Future<List<AnalyticsEvent>> getAllEvents() async {
     final isar = await database.db;
-    final results = await isar.isarAnalyticsEvents
-        .where()
-        .sortByTimestampDesc()
-        .findAll();
+    final results =
+        await isar.isarAnalyticsEvents.where().sortByTimestampDesc().findAll();
     return results.map((e) => e.toDomain()).toList();
   }
 

@@ -105,11 +105,14 @@ class ClipboardService implements ClipboardInterface {
   Future<bool> _copyWindows(String text) async {
     // Use PowerShell with stdin input to avoid command injection
     // The -Command parameter reads from stdin with $input
-    final process = await _processManager.start([
-      'powershell',
-      '-command',
-      r'$input | Set-Clipboard',
-    ], runInShell: true,);
+    final process = await _processManager.start(
+      [
+        'powershell',
+        '-command',
+        r'$input | Set-Clipboard',
+      ],
+      runInShell: true,
+    );
     process.stdin.write(text);
     await process.stdin.close();
     final exitCode = await process.exitCode;
@@ -118,11 +121,14 @@ class ClipboardService implements ClipboardInterface {
 
   /// Paste from clipboard on Windows using PowerShell.
   Future<String?> _pasteWindows() async {
-    final result = await _processManager.run([
-      'powershell',
-      '-command',
-      'Get-Clipboard',
-    ], runInShell: true,);
+    final result = await _processManager.run(
+      [
+        'powershell',
+        '-command',
+        'Get-Clipboard',
+      ],
+      runInShell: true,
+    );
     if (result.exitCode == 0) {
       return (result.stdout as String).trim();
     }

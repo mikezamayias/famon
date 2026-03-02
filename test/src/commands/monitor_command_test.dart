@@ -44,18 +44,26 @@ void main() {
 
     test('should filter events correctly with hide option', () {
       expect(
-        EventFilterUtils.shouldSkipEvent('screen_view', <String>[
+        EventFilterUtils.shouldSkipEvent(
           'screen_view',
-          '_vs',
-        ], <String>[],),
+          <String>[
+            'screen_view',
+            '_vs',
+          ],
+          <String>[],
+        ),
         isTrue,
       );
 
       expect(
-        EventFilterUtils.shouldSkipEvent('purchase', <String>[
-          'screen_view',
-          '_vs',
-        ], <String>[],),
+        EventFilterUtils.shouldSkipEvent(
+          'purchase',
+          <String>[
+            'screen_view',
+            '_vs',
+          ],
+          <String>[],
+        ),
         isFalse,
       );
     });

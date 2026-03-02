@@ -134,11 +134,14 @@ class FileDialogService implements FileDialogInterface {
       }
     ''';
 
-    final result = await _processManager.run([
-      'powershell',
-      '-command',
-      script,
-    ], runInShell: true,);
+    final result = await _processManager.run(
+      [
+        'powershell',
+        '-command',
+        script,
+      ],
+      runInShell: true,
+    );
 
     if (result.exitCode == 0) {
       final output = (result.stdout as String).trim();

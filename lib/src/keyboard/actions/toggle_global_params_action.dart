@@ -3,8 +3,9 @@ import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:famon/src/keyboard/key_binding.dart';
 
 /// Callback type for toggling global parameters visibility.
-typedef GlobalParamsToggleCallback = void Function(
-    {required bool hideGlobalParams,});
+typedef GlobalParamsToggleCallback = void Function({
+  required bool hideGlobalParams,
+});
 
 /// Action to toggle visibility of global/default parameters.
 ///

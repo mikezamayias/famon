@@ -31,7 +31,7 @@ const EventSummarySchema = CollectionSchema(
       id: 2,
       name: r'lastSeen',
       type: IsarType.dateTime,
-    ),
+    )
   },
   estimateSize: _eventSummaryEstimateSize,
   serialize: _eventSummarySerialize,
@@ -49,9 +49,9 @@ const EventSummarySchema = CollectionSchema(
           name: r'eventName',
           type: IndexType.hash,
           caseSensitive: true,
-        ),
+        )
       ],
-    ),
+    )
   },
   links: {},
   embeddedSchemas: {},
@@ -123,10 +123,7 @@ List<IsarLinkBase<dynamic>> _eventSummaryGetLinks(EventSummary object) {
 }
 
 void _eventSummaryAttach(
-  IsarCollection<dynamic> col,
-  Id id,
-  EventSummary object,
-) {
+    IsarCollection<dynamic> col, Id id, EventSummary object) {
   object.id = id;
 }
 
@@ -179,10 +176,8 @@ extension EventSummaryByIndex on IsarCollection<EventSummary> {
     return putAllByIndex(r'eventName', objects);
   }
 
-  List<Id> putAllByEventNameSync(
-    List<EventSummary> objects, {
-    bool saveLinks = true,
-  }) {
+  List<Id> putAllByEventNameSync(List<EventSummary> objects,
+      {bool saveLinks = true}) {
     return putAllByIndexSync(r'eventName', objects, saveLinks: saveLinks);
   }
 }
@@ -200,13 +195,15 @@ extension EventSummaryQueryWhere
     on QueryBuilder<EventSummary, EventSummary, QWhereClause> {
   QueryBuilder<EventSummary, EventSummary, QAfterWhereClause> idEqualTo(Id id) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(IdWhereClause.between(lower: id, upper: id));
+      return query.addWhereClause(IdWhereClause.between(
+        lower: id,
+        upper: id,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterWhereClause> idNotEqualTo(
-    Id id,
-  ) {
+      Id id) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
@@ -229,9 +226,8 @@ extension EventSummaryQueryWhere
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterWhereClause> idGreaterThan(
-    Id id, {
-    bool include = false,
-  }) {
+      Id id,
+      {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.greaterThan(lower: id, includeLower: include),
@@ -239,10 +235,8 @@ extension EventSummaryQueryWhere
     });
   }
 
-  QueryBuilder<EventSummary, EventSummary, QAfterWhereClause> idLessThan(
-    Id id, {
-    bool include = false,
-  }) {
+  QueryBuilder<EventSummary, EventSummary, QAfterWhereClause> idLessThan(Id id,
+      {bool include = false}) {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         IdWhereClause.lessThan(upper: id, includeUpper: include),
@@ -257,66 +251,56 @@ extension EventSummaryQueryWhere
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IdWhereClause.between(
-          lower: lowerId,
-          includeLower: includeLower,
-          upper: upperId,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addWhereClause(IdWhereClause.between(
+        lower: lowerId,
+        includeLower: includeLower,
+        upper: upperId,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterWhereClause> eventNameEqualTo(
-    String eventName,
-  ) {
+      String eventName) {
     return QueryBuilder.apply(this, (query) {
-      return query.addWhereClause(
-        IndexWhereClause.equalTo(indexName: r'eventName', value: [eventName]),
-      );
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'eventName',
+        value: [eventName],
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterWhereClause>
-  eventNameNotEqualTo(String eventName) {
+      eventNameNotEqualTo(String eventName) {
     return QueryBuilder.apply(this, (query) {
       if (query.whereSort == Sort.asc) {
         return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'eventName',
-                lower: [],
-                upper: [eventName],
-                includeUpper: false,
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'eventName',
-                lower: [eventName],
-                includeLower: false,
-                upper: [],
-              ),
-            );
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'eventName',
+              lower: [],
+              upper: [eventName],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'eventName',
+              lower: [eventName],
+              includeLower: false,
+              upper: [],
+            ));
       } else {
         return query
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'eventName',
-                lower: [eventName],
-                includeLower: false,
-                upper: [],
-              ),
-            )
-            .addWhereClause(
-              IndexWhereClause.between(
-                indexName: r'eventName',
-                lower: [],
-                upper: [eventName],
-                includeUpper: false,
-              ),
-            );
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'eventName',
+              lower: [eventName],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'eventName',
+              lower: [],
+              upper: [eventName],
+              includeUpper: false,
+            ));
       }
     });
   }
@@ -325,111 +309,109 @@ extension EventSummaryQueryWhere
 extension EventSummaryQueryFilter
     on QueryBuilder<EventSummary, EventSummary, QFilterCondition> {
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventCountEqualTo(int value) {
+      eventCountEqualTo(int value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'eventCount', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'eventCount',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventCountGreaterThan(int value, {bool include = false}) {
+      eventCountGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'eventCount',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'eventCount',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventCountLessThan(int value, {bool include = false}) {
+      eventCountLessThan(
+    int value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'eventCount',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'eventCount',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventCountBetween(
+      eventCountBetween(
     int lower,
     int upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'eventCount',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'eventCount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventNameEqualTo(String value, {bool caseSensitive = true}) {
+      eventNameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(
-          property: r'eventName',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'eventName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventNameGreaterThan(
+      eventNameGreaterThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'eventName',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'eventName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventNameLessThan(
+      eventNameLessThan(
     String value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'eventName',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'eventName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventNameBetween(
+      eventNameBetween(
     String lower,
     String upper, {
     bool includeLower = true,
@@ -437,96 +419,94 @@ extension EventSummaryQueryFilter
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'eventName',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'eventName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventNameStartsWith(String value, {bool caseSensitive = true}) {
+      eventNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.startsWith(
-          property: r'eventName',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'eventName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventNameEndsWith(String value, {bool caseSensitive = true}) {
+      eventNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.endsWith(
-          property: r'eventName',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'eventName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventNameContains(String value, {bool caseSensitive = true}) {
+      eventNameContains(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.contains(
-          property: r'eventName',
-          value: value,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'eventName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventNameMatches(String pattern, {bool caseSensitive = true}) {
+      eventNameMatches(String pattern, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.matches(
-          property: r'eventName',
-          wildcard: pattern,
-          caseSensitive: caseSensitive,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'eventName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventNameIsEmpty() {
+      eventNameIsEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'eventName', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'eventName',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  eventNameIsNotEmpty() {
+      eventNameIsNotEmpty() {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(property: r'eventName', value: ''),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'eventName',
+        value: '',
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition> idEqualTo(
-    Id value,
-  ) {
+      Id value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'id', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'id',
+        value: value,
+      ));
     });
   }
 
@@ -535,13 +515,11 @@ extension EventSummaryQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'id',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
     });
   }
 
@@ -550,13 +528,11 @@ extension EventSummaryQueryFilter
     bool include = false,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'id',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
     });
   }
 
@@ -567,70 +543,69 @@ extension EventSummaryQueryFilter
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'id',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  lastSeenEqualTo(DateTime value) {
+      lastSeenEqualTo(DateTime value) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.equalTo(property: r'lastSeen', value: value),
-      );
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastSeen',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  lastSeenGreaterThan(DateTime value, {bool include = false}) {
+      lastSeenGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.greaterThan(
-          include: include,
-          property: r'lastSeen',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastSeen',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  lastSeenLessThan(DateTime value, {bool include = false}) {
+      lastSeenLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.lessThan(
-          include: include,
-          property: r'lastSeen',
-          value: value,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastSeen',
+        value: value,
+      ));
     });
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterFilterCondition>
-  lastSeenBetween(
+      lastSeenBetween(
     DateTime lower,
     DateTime upper, {
     bool includeLower = true,
     bool includeUpper = true,
   }) {
     return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(
-        FilterCondition.between(
-          property: r'lastSeen',
-          lower: lower,
-          includeLower: includeLower,
-          upper: upper,
-          includeUpper: includeUpper,
-        ),
-      );
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastSeen',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
     });
   }
 }
@@ -650,7 +625,7 @@ extension EventSummaryQuerySortBy
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterSortBy>
-  sortByEventCountDesc() {
+      sortByEventCountDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'eventCount', Sort.desc);
     });
@@ -690,7 +665,7 @@ extension EventSummaryQuerySortThenBy
   }
 
   QueryBuilder<EventSummary, EventSummary, QAfterSortBy>
-  thenByEventCountDesc() {
+      thenByEventCountDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'eventCount', Sort.desc);
     });
@@ -741,9 +716,8 @@ extension EventSummaryQueryWhereDistinct
     });
   }
 
-  QueryBuilder<EventSummary, EventSummary, QDistinct> distinctByEventName({
-    bool caseSensitive = true,
-  }) {
+  QueryBuilder<EventSummary, EventSummary, QDistinct> distinctByEventName(
+      {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'eventName', caseSensitive: caseSensitive);
     });

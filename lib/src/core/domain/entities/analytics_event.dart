@@ -85,10 +85,7 @@ class AnalyticsEvent extends Equatable {
   final bool isFiltered;
 
   /// A map containing all parameters, including both parsed and manual ones.
-  Map<String, String> get allParameters => {
-        ...parameters,
-        ...manualParameters,
-      };
+  Map<String, String> get allParameters => {...parameters, ...manualParameters};
 
   /// A string representation of the timestamp for display purposes.
   ///

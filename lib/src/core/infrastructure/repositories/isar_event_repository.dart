@@ -43,17 +43,11 @@ class IsarEventRepository implements EventRepository {
   }) async {
     final isar = await database.db;
     final eventNames = criteria?.eventNames ?? const <String>[];
-    final queryAfterNames = isar.isarAnalyticsEvents
-        .where()
-        .anyOf<String, QAfterWhereClause>(
-          eventNames,
-          (
-            QueryBuilder<IsarAnalyticsEvent, IsarAnalyticsEvent, QWhereClause>
-                q,
-            String eventName,
-          ) =>
-              q.eventNameEqualTo(eventName),
-        );
+    final queryAfterNames =
+        isar.isarAnalyticsEvents.where().anyOf<String, QAfterWhereClause>(
+              eventNames,
+              (q, eventName) => q.eventNameEqualTo(eventName),
+            );
 
     final fetchLimit = limit != null ? ((offset ?? 0) + limit) : limit;
     final queried = criteria?.timeRange != null
@@ -66,7 +60,7 @@ class IsarEventRepository implements EventRepository {
             base: queryAfterNames,
             fetchLimit: fetchLimit,
           );
-    var events = queried.map((IsarAnalyticsEvent e) => e.toDomain()).toList();
+    var events = queried.map((e) => e.toDomain()).toList();
 
     if (criteria != null) {
       events = _applyAdditionalFilters(events, criteria);
@@ -102,10 +96,7 @@ class IsarEventRepository implements EventRepository {
   }) async {
     final filtered = base
         .filter()
-        .timestampBetween(
-          range.start,
-          range.end,
-        )
+        .timestampBetween(range.start, range.end)
         .sortByTimestampDesc();
     final limited = fetchLimit != null ? filtered.limit(fetchLimit) : filtered;
     return limited.findAll();

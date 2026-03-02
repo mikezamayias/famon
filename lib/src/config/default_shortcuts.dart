@@ -16,6 +16,8 @@ class DefaultShortcuts {
     'clear_screen': const KeyBinding(key: 'l', ctrl: true),
     'show_help': const KeyBinding(key: '?'),
     'quit': const KeyBinding(key: 'q'),
+    'toggle_global_params': const KeyBinding(key: 'g'),
+    'toggle_event_params': const KeyBinding(key: 'e'),
   };
 
   /// Get the default binding for an action.

@@ -7,24 +7,40 @@ import 'package:mason_logger/mason_logger.dart';
 ///
 /// Handles event formatting with color support and raw output modes.
 /// FA warning buffering is delegated to [FaWarningBuffer].
+///
+/// Supports separating "global parameters" (set via Firebase's
+/// `setDefaultEventParameters`) from event-specific parameters.
+/// When global parameter names are provided, parameters whose keys match the
+/// set are displayed in a distinct "Global Parameters:" section, making it
+/// easy to distinguish per-event data from session-wide defaults.
 class EventFormatterService {
   /// Creates a new EventFormatterService.
   ///
   /// The [_logger] is used for output. Options:
   /// - `rawOutput`: If true, print without section labels (default: false)
   /// - `colorEnabled`: If true, use ANSI colors (default: true)
+  /// - `globalParamNames`: Parameter names to classify as global/default
   EventFormatterService(
     this._logger, {
     bool rawOutput = false,
     bool colorEnabled = true,
+    Set<String> globalParamNames = const {},
   })  : _rawOutput = rawOutput,
-        _colorEnabled = colorEnabled {
+        _colorEnabled = colorEnabled,
+        _globalParamNames = globalParamNames {
     _faWarningBuffer = FaWarningBuffer(onFlush: _printFaWarnings);
   }
 
   final Logger _logger;
   final bool _rawOutput;
   final bool _colorEnabled;
+  final Set<String> _globalParamNames;
+
+  /// Whether global parameters are currently hidden from output.
+  bool hideGlobalParams = false;
+
+  /// Whether event-specific parameters are currently hidden from output.
+  bool hideEventParams = false;
 
   /// Buffer for grouping FA invalid parameter warnings.
   late final FaWarningBuffer _faWarningBuffer;
@@ -53,8 +69,13 @@ class EventFormatterService {
   void _printRaw(AnalyticsEvent event) {
     final timestamp = event.displayTimestamp;
     final eventName = event.eventName;
-    final params = event.parameters;
-    _logger.info('$timestamp | $eventName | $params');
+    final params = _filterParamsForRaw(event.parameters);
+    if (event.items.isEmpty) {
+      _logger.info('$timestamp | $eventName | $params');
+      return;
+    }
+
+    _logger.info('$timestamp | $eventName | $params | items=${event.items}');
   }
 
   void _printFormatted(AnalyticsEvent event) {
@@ -68,15 +89,11 @@ class EventFormatterService {
       _logger.info('[$timestamp] $eventName');
     }
 
-    // Print parameters
-    if (event.parameters.isNotEmpty) {
-      _logger.info('  Parameters:');
-      for (final entry in event.parameters.entries) {
-        final paramLine = '    ${entry.key}: ${entry.value}';
-        _logger.info(
-          _colorEnabled ? (darkGray.wrap(paramLine) ?? paramLine) : paramLine,
-        );
-      }
+    // Split parameters into global vs event-specific when configured
+    if (_globalParamNames.isNotEmpty) {
+      _printSeparatedParams(event.parameters);
+    } else if (!hideEventParams) {
+      _printAllParams(event.parameters);
     }
 
     // Print items
@@ -92,6 +109,86 @@ class EventFormatterService {
     }
 
     _logger.info('');
+  }
+
+  /// Prints all parameters under a single "Parameters:" section.
+  void _printAllParams(Map<String, String> params) {
+    if (params.isNotEmpty) {
+      _logger.info('  Parameters:');
+      for (final entry in params.entries) {
+        final paramLine = '    ${entry.key}: ${entry.value}';
+        _logger.info(
+          _colorEnabled ? (darkGray.wrap(paramLine) ?? paramLine) : paramLine,
+        );
+      }
+    }
+  }
+
+  /// Filters parameters for raw output based on hide flags.
+  Map<String, String> _filterParamsForRaw(Map<String, String> params) {
+    if (_globalParamNames.isEmpty) {
+      return hideEventParams ? <String, String>{} : params;
+    }
+    if (!hideGlobalParams && !hideEventParams) return params;
+
+    return Map<String, String>.fromEntries(
+      params.entries.where((e) {
+        final isGlobal = _globalParamNames.contains(e.key);
+        if (isGlobal && hideGlobalParams) return false;
+        if (!isGlobal && hideEventParams) return false;
+        return true;
+      }),
+    );
+  }
+
+  /// Prints parameters separated into global and event-specific sections.
+  ///
+  /// Respects [hideGlobalParams] and [hideEventParams] to control which
+  /// sections are displayed.
+  void _printSeparatedParams(Map<String, String> params) {
+    final globalParams = <String, String>{};
+    final eventParams = <String, String>{};
+
+    for (final entry in params.entries) {
+      if (_globalParamNames.contains(entry.key)) {
+        globalParams[entry.key] = entry.value;
+      } else {
+        eventParams[entry.key] = entry.value;
+      }
+    }
+
+    // When both sections are hidden, nothing to print
+    if (hideGlobalParams && hideEventParams) return;
+
+    // When one section is hidden, use neutral "Parameters:" header
+    if (hideGlobalParams) {
+      _printAllParams(eventParams);
+      return;
+    }
+    if (hideEventParams) {
+      _printAllParams(globalParams);
+      return;
+    }
+
+    // Show both sections with their headers
+    if (globalParams.isNotEmpty) {
+      _logger.info('  Global Parameters:');
+      for (final entry in globalParams.entries) {
+        final paramLine = '    ${entry.key}: ${entry.value}';
+        _logger.info(
+          _colorEnabled ? (darkGray.wrap(paramLine) ?? paramLine) : paramLine,
+        );
+      }
+    }
+    if (eventParams.isNotEmpty) {
+      _logger.info('  Event Parameters:');
+      for (final entry in eventParams.entries) {
+        final paramLine = '    ${entry.key}: ${entry.value}';
+        _logger.info(
+          _colorEnabled ? (darkGray.wrap(paramLine) ?? paramLine) : paramLine,
+        );
+      }
+    }
   }
 
   /// Flushes any pending accumulated FA warnings to the output.

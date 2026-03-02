@@ -17,12 +17,14 @@ class FilterCriteria extends Equatable {
   factory FilterCriteria.fromJson(Map<String, dynamic> json) {
     return FilterCriteria(
       eventNames: List<String>.from(json['eventNames'] as List? ?? []),
-      excludeEventNames:
-          List<String>.from(json['excludeEventNames'] as List? ?? []),
+      excludeEventNames: List<String>.from(
+        json['excludeEventNames'] as List? ?? [],
+      ),
       minFrequency: json['minFrequency'] as double?,
       maxFrequency: json['maxFrequency'] as double?,
-      parameterFilters:
-          Map<String, String>.from(json['parameterFilters'] as Map? ?? {}),
+      parameterFilters: Map<String, String>.from(
+        json['parameterFilters'] as Map? ?? {},
+      ),
       timeRange: json['timeRange'] != null
           ? TimeRange.fromJson(json['timeRange'] as Map<String, dynamic>)
           : null,
@@ -110,10 +112,7 @@ class FilterCriteria extends Equatable {
 /// Value object representing a time range for filtering.
 class TimeRange extends Equatable {
   /// Creates a new [TimeRange].
-  const TimeRange({
-    required this.start,
-    required this.end,
-  });
+  const TimeRange({required this.start, required this.end});
 
   /// Create from JSON for export/import
   factory TimeRange.fromJson(Map<String, dynamic> json) {
@@ -138,22 +137,13 @@ class TimeRange extends Equatable {
   }
 
   /// Creates a copy of this [TimeRange] with the given fields replaced.
-  TimeRange copyWith({
-    DateTime? start,
-    DateTime? end,
-  }) {
-    return TimeRange(
-      start: start ?? this.start,
-      end: end ?? this.end,
-    );
+  TimeRange copyWith({DateTime? start, DateTime? end}) {
+    return TimeRange(start: start ?? this.start, end: end ?? this.end);
   }
 
   /// Convert to JSON for export/import
   Map<String, dynamic> toJson() {
-    return {
-      'start': start.toIso8601String(),
-      'end': end.toIso8601String(),
-    };
+    return {'start': start.toIso8601String(), 'end': end.toIso8601String()};
   }
 
   @override

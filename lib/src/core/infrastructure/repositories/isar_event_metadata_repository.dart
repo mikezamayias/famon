@@ -41,16 +41,11 @@ class IsarEventMetadataRepository implements EventMetadataRepository {
   }) async {
     final isar = await database.db;
     final names = eventNames ?? const <String>[];
-    final whereQuery = isar.isarEventMetadatas
-        .where()
-        .anyOf<String, QAfterWhereClause>(
-          names,
-          (
-            QueryBuilder<IsarEventMetadata, IsarEventMetadata, QWhereClause> q,
-            String name,
-          ) =>
-              q.eventNameEqualTo(name),
-        );
+    final whereQuery =
+        isar.isarEventMetadatas.where().anyOf<String, QAfterWhereClause>(
+              names,
+              (q, name) => q.eventNameEqualTo(name),
+            );
 
     if (isHidden != null || isWatched != null) {
       final filterBase = whereQuery.filter();
@@ -67,15 +62,11 @@ class IsarEventMetadataRepository implements EventMetadataRepository {
       }
 
       final filtered = await filteredQuery.findAll();
-      return filtered
-          .map((IsarEventMetadata metadata) => metadata.toDomain())
-          .toList();
+      return filtered.map((metadata) => metadata.toDomain()).toList();
     }
 
     final results = await whereQuery.findAll();
-    return results
-        .map((IsarEventMetadata metadata) => metadata.toDomain())
-        .toList();
+    return results.map((metadata) => metadata.toDomain()).toList();
   }
 
   @override
@@ -220,13 +211,7 @@ class IsarEventMetadataRepository implements EventMetadataRepository {
           .filter()
           .anyOf<String, QAfterFilterCondition>(
             eventNames,
-            (
-              QueryBuilder<IsarEventMetadata, IsarEventMetadata,
-                      QFilterCondition>
-                  q,
-              String name,
-            ) =>
-                q.eventNameEqualTo(name),
+            (q, name) => q.eventNameEqualTo(name),
           )
           .idProperty()
           .findAll();

@@ -166,14 +166,6 @@ class LogParserService implements LogParserInterface {
     RegExp(r'(\w+)\s*=\s*([^,\[\]{}()]+)(?=[,\]}]|$)'),
   ];
 
-  /// Pre-compiled regex pattern for items array extraction.
-  static final RegExp _itemsArrayPattern = RegExp(
-    r'items=\[(Bundle\[\{[^\}]+\}\](?:,\s*Bundle\[\{[^\}]+\}\])*)\]',
-  );
-
-  /// Pre-compiled regex pattern for individual item extraction.
-  static final RegExp _itemPattern = RegExp(r'Bundle\[\{([^\}]+)\}\]');
-
   /// Pre-compiled regex pattern for typed value wrappers.
   ///
   /// Matches patterns like String(...), Long(...), Double(...), etc.
@@ -273,9 +265,14 @@ class LogParserService implements LogParserInterface {
         cleanParamsString = cleanParamsString.substring(8);
       }
       if (cleanParamsString.endsWith('}]')) {
-        cleanParamsString =
-            cleanParamsString.substring(0, cleanParamsString.length - 2);
+        cleanParamsString = cleanParamsString.substring(
+          0,
+          cleanParamsString.length - 2,
+        );
       }
+
+      // Remove items array so item_* fields don't bleed into top-level params.
+      cleanParamsString = _stripItemsArray(cleanParamsString);
 
       // Use pre-compiled static patterns for better performance
       for (final pattern in _paramPatterns) {
@@ -321,6 +318,59 @@ class LogParserService implements LogParserInterface {
     return params;
   }
 
+  /// Removes the items array from a Bundle params string if present.
+  ///
+  /// This prevents item-level fields from being parsed as top-level params.
+  /// Handles nested brackets inside Bundle[...] entries by tracking depth.
+  String _stripItemsArray(String paramsString) {
+    final itemsKeyIndex = paramsString.indexOf('items=[');
+    if (itemsKeyIndex == -1) {
+      return paramsString;
+    }
+
+    final startBracketIndex = paramsString.indexOf('[', itemsKeyIndex);
+    if (startBracketIndex == -1) {
+      return paramsString;
+    }
+
+    var depth = 0;
+    var endBracketIndex = -1;
+    for (var i = startBracketIndex; i < paramsString.length; i++) {
+      final ch = paramsString[i];
+      if (ch == '[') {
+        depth++;
+      } else if (ch == ']') {
+        depth--;
+        if (depth == 0) {
+          endBracketIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (endBracketIndex == -1) {
+      // Truncated items array; drop everything from items=[ onward.
+      return paramsString.substring(0, itemsKeyIndex).trimRight();
+    }
+
+    final before = paramsString.substring(0, itemsKeyIndex).trimRight();
+    final after = paramsString.substring(endBracketIndex + 1).trimLeft();
+
+    if (before.isEmpty) {
+      return after.startsWith(',') ? after.substring(1).trimLeft() : after;
+    }
+
+    if (after.isEmpty) {
+      return before.endsWith(',')
+          ? before.substring(0, before.length - 1)
+          : before;
+    }
+
+    final cleanedAfter =
+        after.startsWith(',') ? after.substring(1).trimLeft() : after;
+    return '$before, $cleanedAfter';
+  }
+
   /// More aggressive parameter parsing for complex formats
   void _parseParamsAggressive(String paramsString, Map<String, String> params) {
     // Split by comma and try to extract key=value pairs
@@ -364,23 +414,47 @@ class LogParserService implements LogParserInterface {
     }
 
     try {
-      // Look for items array using pre-compiled static pattern
-      final itemsMatch = _itemsArrayPattern.firstMatch(paramsString);
+      final itemsString = _extractItemsSubstring(paramsString);
+      if (itemsString == null) return items;
 
-      if (itemsMatch != null) {
-        final itemsString = itemsMatch.group(1);
-        if (itemsString != null) {
-          // Extract individual Bundle[{...}] items using pre-compiled pattern
-          final itemMatches = _itemPattern.allMatches(itemsString);
+      // Extract individual Bundle[{...}] items using a depth-aware scan so
+      // that nested Bundle[{...}] content is handled correctly (a regex using
+      // [^}]+ would stop at the first '}' inside a nested bundle).
+      var i = 0;
+      while (i < itemsString.length) {
+        final bundleStart = itemsString.indexOf('Bundle[{', i);
+        if (bundleStart == -1) break;
 
-          for (final itemMatch in itemMatches) {
-            final itemParamsString = itemMatch.group(1);
-            if (itemParamsString != null) {
-              final itemParams = _parseParams('Bundle[{$itemParamsString}]');
-              if (itemParams.isNotEmpty) {
-                items.add(itemParams);
-              }
+        // Index of the '{' in 'Bundle[{' (+7 to skip past 'Bundle[')
+        final braceStart = bundleStart + 7;
+        var depth = 1;
+        var endBrace = -1;
+
+        for (var j = braceStart + 1; j < itemsString.length; j++) {
+          final ch = itemsString[j];
+          if (ch == '{') {
+            depth++;
+          } else if (ch == '}') {
+            depth--;
+            if (depth == 0) {
+              endBrace = j;
+              break;
             }
+          }
+        }
+
+        if (endBrace == -1) {
+          // Truncated item (no matching '}'): stop; don't include partial data.
+          break;
+        }
+
+        final itemContent = itemsString.substring(braceStart + 1, endBrace);
+        i = endBrace + 1;
+
+        if (itemContent.isNotEmpty) {
+          final itemParams = _parseParams('Bundle[{$itemContent}]');
+          if (itemParams.isNotEmpty) {
+            items.add(itemParams);
           }
         }
       }
@@ -401,6 +475,49 @@ class LogParserService implements LogParserInterface {
     }
 
     return items;
+  }
+
+  /// Extracts the items array substring, bounded by the matching `]`.
+  ///
+  /// Uses `[`/`]` depth tracking to find the closing bracket of the
+  /// `items=[...]` array. Falls back to end-of-string when the array is
+  /// truncated (no matching `]` exists), so complete items before the cut-off
+  /// are still parsed.
+  String? _extractItemsSubstring(String paramsString) {
+    final itemsKeyIndex = paramsString.indexOf('items=[');
+    if (itemsKeyIndex == -1) {
+      return null;
+    }
+
+    final startIndex = paramsString.indexOf('[', itemsKeyIndex);
+    if (startIndex == -1) {
+      return null;
+    }
+
+    // Depth-track '['/']' to find the matching close of the items array.
+    var depth = 0;
+    var endIndex = -1;
+    for (var i = startIndex; i < paramsString.length; i++) {
+      final ch = paramsString[i];
+      if (ch == '[') {
+        depth++;
+      } else if (ch == ']') {
+        depth--;
+        if (depth == 0) {
+          endIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (endIndex != -1) {
+      // Non-truncated: return only the content inside items=[...].
+      return paramsString.substring(startIndex + 1, endIndex);
+    }
+
+    // Truncated array: return everything after 'items=[' so complete items
+    // before the cut-off can still be parsed.
+    return paramsString.substring(startIndex + 1);
   }
 
   /// Clean and normalize parameter values

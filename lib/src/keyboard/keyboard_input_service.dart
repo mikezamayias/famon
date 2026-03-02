@@ -68,7 +68,7 @@ class KeyboardInputService implements KeyboardInputInterface {
     if (!_isStarted) return;
 
     // Cancel subscription
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel());
     _subscription = null;
 
     // Restore terminal settings
@@ -82,7 +82,7 @@ class KeyboardInputService implements KeyboardInputInterface {
     }
 
     // Close controller
-    _controller?.close();
+    unawaited(_controller?.close());
     _controller = null;
     _isStarted = false;
   }
@@ -148,10 +148,7 @@ class KeyboardInputService implements KeyboardInputInterface {
     if (bytes.length >= 2) {
       // Alt+key combination: ESC followed by key
       if (bytes[1] >= 32 && bytes[1] <= 126) {
-        return KeyInputEvent(
-          key: String.fromCharCode(bytes[1]),
-          alt: true,
-        );
+        return KeyInputEvent(key: String.fromCharCode(bytes[1]), alt: true);
       }
 
       // Arrow keys and function keys

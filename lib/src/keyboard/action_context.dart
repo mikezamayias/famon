@@ -13,6 +13,8 @@ class ActionContext {
     required this.eventCache,
     required this.logger,
     this.isPaused = false,
+    this.hideGlobalParams = false,
+    this.hideEventParams = false,
     this.eventCountToExport = 10,
   });
 
@@ -30,6 +32,12 @@ class ActionContext {
   /// Whether event streaming is currently paused.
   final bool isPaused;
 
+  /// Whether global/default parameters are currently hidden from output.
+  final bool hideGlobalParams;
+
+  /// Whether event-specific parameters are currently hidden from output.
+  final bool hideEventParams;
+
   /// Number of events to include when exporting to clipboard.
   final int eventCountToExport;
 
@@ -39,6 +47,8 @@ class ActionContext {
     EventCacheInterface? eventCache,
     Logger? logger,
     bool? isPaused,
+    bool? hideGlobalParams,
+    bool? hideEventParams,
     int? eventCountToExport,
   }) {
     return ActionContext(
@@ -46,6 +56,8 @@ class ActionContext {
       eventCache: eventCache ?? this.eventCache,
       logger: logger ?? this.logger,
       isPaused: isPaused ?? this.isPaused,
+      hideGlobalParams: hideGlobalParams ?? this.hideGlobalParams,
+      hideEventParams: hideEventParams ?? this.hideEventParams,
       eventCountToExport: eventCountToExport ?? this.eventCountToExport,
     );
   }

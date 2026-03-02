@@ -26,16 +26,13 @@ const description =
 /// $ famon --version
 /// ```
 /// {@endtemplate}
-class FamonCommandRunner
-    extends CompletionCommandRunner<int> {
+class FamonCommandRunner extends CompletionCommandRunner<int> {
   /// {@macro famon_command_runner}
   ///
   /// Creates a new command runner. If [logger] and [pubUpdater] are not
   /// provided, they are resolved from the DI container.
-  FamonCommandRunner({
-    Logger? logger,
-    PubUpdater? pubUpdater,
-  })  : _logger = logger ?? getIt<Logger>(),
+  FamonCommandRunner({Logger? logger, PubUpdater? pubUpdater})
+      : _logger = logger ?? getIt<Logger>(),
         _pubUpdater = pubUpdater ?? getIt<PubUpdater>(),
         super(executableName, description) {
     // Add root options and flags

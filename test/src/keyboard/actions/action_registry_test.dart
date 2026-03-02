@@ -67,10 +67,7 @@ void main() {
       registry.register(action1);
 
       // Should throw ArgumentError for duplicate ID
-      expect(
-        () => registry.register(action2),
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(() => registry.register(action2), throwsA(isA<ArgumentError>()));
 
       // Original action should remain
       expect(registry.allActions, hasLength(1));

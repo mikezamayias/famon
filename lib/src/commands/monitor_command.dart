@@ -13,6 +13,8 @@ import 'package:famon/src/keyboard/actions/quit_action.dart';
 import 'package:famon/src/keyboard/actions/save_to_file_action.dart';
 import 'package:famon/src/keyboard/actions/show_help_action.dart';
 import 'package:famon/src/keyboard/actions/show_stats_action.dart';
+import 'package:famon/src/keyboard/actions/toggle_event_params_action.dart';
+import 'package:famon/src/keyboard/actions/toggle_global_params_action.dart';
 import 'package:famon/src/keyboard/actions/toggle_pause_action.dart';
 import 'package:famon/src/keyboard/keyboard_input_interface.dart';
 import 'package:famon/src/keyboard/keyboard_input_service.dart';
@@ -62,19 +64,12 @@ class MonitorCommand extends Command<int> {
         help: 'Only show these event names. Can be used multiple times.',
         valueHelp: 'EVENT_NAME',
       )
-      ..addFlag(
-        'no-color',
-        negatable: false,
-        help: 'Disables colorful output.',
-      )
+      ..addFlag('no-color', negatable: false, help: 'Disables colorful output.')
       ..addFlag(
         'suggestions',
         help: 'Show smart suggestions based on session history.',
       )
-      ..addFlag(
-        'stats',
-        help: 'Show session statistics periodically.',
-      )
+      ..addFlag('stats', help: 'Show session statistics periodically.')
       ..addFlag(
         'raw',
         abbr: 'r',
@@ -105,6 +100,26 @@ class MonitorCommand extends Command<int> {
         'no-shortcuts',
         negatable: false,
         help: 'Disable keyboard shortcuts (for non-interactive environments).',
+      )
+      ..addMultiOption(
+        'global-params',
+        abbr: 'g',
+        help: 'Parameter names to classify as global/default. '
+            'These are separated from event-specific parameters in the '
+            'output and can be toggled with the G key at runtime.',
+        valueHelp: 'PARAM_NAME',
+      )
+      ..addFlag(
+        'hide-global-params',
+        negatable: false,
+        help: 'Start with global parameters hidden from output. '
+            'Toggle at runtime with G.',
+      )
+      ..addFlag(
+        'hide-event-params',
+        negatable: false,
+        help: 'Start with event-specific parameters hidden from output. '
+            'Toggle at runtime with E.',
       );
   }
 
@@ -127,6 +142,8 @@ class MonitorCommand extends Command<int> {
   KeyboardInputInterface? _keyboardInput;
   ShortcutManager? _shortcutManager;
   bool _isPaused = false;
+  bool _hideGlobalParams = false;
+  bool _hideEventParams = false;
   bool _shouldQuit = false;
 
   /// Pre-compiled regex pattern for detecting Firebase Analytics related logs.
@@ -153,12 +170,19 @@ class MonitorCommand extends Command<int> {
     final enableDebugFor = argResults?['enable-debug'] as String?;
     final raiseLogLevels = argResults?['raise-log-levels'] as bool? ?? false;
     final noShortcuts = argResults?['no-shortcuts'] as bool? ?? false;
+    final globalParamNames =
+        ((argResults?['global-params'] as List<String>?) ?? <String>[]).toSet();
+    final initialHideGlobal =
+        argResults?['hide-global-params'] as bool? ?? false;
+    final initialHideEvent = argResults?['hide-event-params'] as bool? ?? false;
 
     // Parse platform type from argument
     final platformType = PlatformType.fromCliValue(platformArg);
 
     // Reset state for new session
     _isPaused = false;
+    _hideGlobalParams = initialHideGlobal;
+    _hideEventParams = initialHideEvent;
     _shouldQuit = false;
 
     // Ensure verbose logs are visible when monitor --verbose is used
@@ -166,12 +190,15 @@ class MonitorCommand extends Command<int> {
       _logger.level = Level.verbose;
     }
 
-    // Initialize formatter with color and raw settings
+    // Initialize formatter with color, raw, and global params settings
     _formatter = EventFormatterService(
       _logger,
       rawOutput: rawOutput,
       colorEnabled: !noColor,
-    );
+      globalParamNames: globalParamNames,
+    )
+      ..hideGlobalParams = initialHideGlobal
+      ..hideEventParams = initialHideEvent;
 
     // Reset tracking for new session
     _formatter.resetTracking();
@@ -216,6 +243,10 @@ class MonitorCommand extends Command<int> {
 
     if (showOnlyEvents.isNotEmpty) {
       _logger.info('👀 Showing only: ${showOnlyEvents.join(', ')}');
+    }
+
+    if (globalParamNames.isNotEmpty) {
+      _logger.info('🌐 Global parameters: ${globalParamNames.join(', ')}');
     }
 
     // Initialize keyboard shortcuts if enabled
@@ -276,7 +307,7 @@ class MonitorCommand extends Command<int> {
       void cleanup() {
         statsTimer?.cancel();
         suggestionsTimer?.cancel();
-        keyboardSub?.cancel();
+        unawaited(keyboardSub?.cancel());
         _keyboardInput?.dispose();
         process.kill();
       }
@@ -461,6 +492,18 @@ class MonitorCommand extends Command<int> {
       TogglePauseAction(
         onToggle: ({required isPaused}) => _isPaused = isPaused,
       ),
+      ToggleGlobalParamsAction(
+        onToggle: ({required hideGlobalParams}) {
+          _hideGlobalParams = hideGlobalParams;
+          _formatter.hideGlobalParams = hideGlobalParams;
+        },
+      ),
+      ToggleEventParamsAction(
+        onToggle: ({required hideEventParams}) {
+          _hideEventParams = hideEventParams;
+          _formatter.hideEventParams = hideEventParams;
+        },
+      ),
       ShowStatsAction(),
       ClearScreenAction(),
       QuitAction(onQuit: () => _shouldQuit = true),
@@ -496,6 +539,8 @@ class MonitorCommand extends Command<int> {
       eventCache: _eventCache,
       logger: _logger,
       isPaused: _isPaused,
+      hideGlobalParams: _hideGlobalParams,
+      hideEventParams: _hideEventParams,
     );
 
     await _shortcutManager!.handleKeyEvent(event, context);

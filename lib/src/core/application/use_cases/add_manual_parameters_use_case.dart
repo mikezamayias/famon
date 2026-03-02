@@ -48,10 +48,7 @@ class AddManualParametersUseCase {
   ) async {
     // Create a new event with the manual parameters added
     final updatedEvent = event.copyWith(
-      manualParameters: {
-        ...event.manualParameters,
-        ...manualParameters,
-      },
+      manualParameters: {...event.manualParameters, ...manualParameters},
     );
 
     // Save the updated event
@@ -73,9 +70,7 @@ class AddManualParametersUseCase {
           .where((tag) => tag != 'manual_parameters')
           .toList();
 
-      final updatedMetadata = metadata.copyWith(
-        customTags: updatedTags,
-      );
+      final updatedMetadata = metadata.copyWith(customTags: updatedTags);
 
       await eventMetadataRepository.saveEventMetadata(updatedMetadata);
     }

@@ -27,11 +27,8 @@ class SaveToFileAction implements ShortcutAction {
   String get description => 'Save events to a file';
 
   @override
-  KeyBinding get defaultBinding => const KeyBinding(
-        key: 's',
-        ctrl: true,
-        shift: true,
-      );
+  KeyBinding get defaultBinding =>
+      const KeyBinding(key: 's', ctrl: true, shift: true);
 
   @override
   Future<bool> execute(ActionContext context) async {

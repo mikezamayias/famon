@@ -92,7 +92,7 @@ class EventFilterService {
       eventCounts[event.eventName] = (eventCounts[event.eventName] ?? 0) + 1;
     }
 
-    return events.where((AnalyticsEvent e) {
+    return events.where((e) {
       final count = eventCounts[e.eventName] ?? 0;
       if (minFrequency != null && count < minFrequency) return false;
       if (maxFrequency != null && count > maxFrequency) return false;
@@ -107,10 +107,7 @@ class EventFilterService {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    final events = await getFilteredEvents(
-      fromDate: fromDate,
-      toDate: toDate,
-    );
+    final events = await getFilteredEvents(fromDate: fromDate, toDate: toDate);
 
     final frequencies = <String, int>{};
     for (final event in events) {
@@ -180,10 +177,7 @@ class EventFilterService {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    final events = await getFilteredEvents(
-      fromDate: fromDate,
-      toDate: toDate,
-    );
+    final events = await getFilteredEvents(fromDate: fromDate, toDate: toDate);
 
     final frequencies = <String, int>{};
     DateTime? earliest;
@@ -223,10 +217,7 @@ class EventFilterService {
     DateTime? fromDate,
     DateTime? toDate,
   }) async {
-    final events = await getFilteredEvents(
-      fromDate: fromDate,
-      toDate: toDate,
-    );
+    final events = await getFilteredEvents(fromDate: fromDate, toDate: toDate);
 
     return events.where((event) {
       if (!event.parameters.containsKey(parameterName)) return false;

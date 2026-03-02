@@ -31,16 +31,64 @@ void main() {
 
     test('should parse log with items array', () {
       const logLine =
-          '12-25 10:30:45.123 I/FA-SVC  : Logging event: origin=app,name=purchase,params=Bundle[{items=[Bundle[{item_id=sku123, item_name=String(T-Shirt), price=Double(19.99)}], Bundle[{item_id=sku456, item_name=String(Jeans), price=Double(49.99)}]], currency=USD}]';
+          '12-25 10:30:45.123 I/FA-SVC  : Logging event: origin=app,name=purchase,params=Bundle[{items=[Bundle[{item_id=item1, item_name=String(ProductA), price=Double(19.99)}], Bundle[{item_id=item2, item_name=String(ProductB), price=Double(49.99)}]], currency=USD}]';
 
       final result = parser.parse(logLine);
 
       expect(result, isNotNull);
       expect(result!.eventName, equals('purchase'));
       expect(result.items.length, equals(2));
-      expect(result.items[0]['item_id'], equals('sku123'));
-      expect(result.items[0]['item_name'], equals('T-Shirt'));
-      expect(result.items[1]['item_id'], equals('sku456'));
+      expect(result.items[0]['item_id'], equals('item1'));
+      expect(result.items[0]['item_name'], equals('ProductA'));
+      expect(result.items[1]['item_id'], equals('item2'));
+      expect(result.parameters.containsKey('item_id'), isFalse);
+      expect(result.parameters.containsKey('item_name'), isFalse);
+      expect(result.parameters['currency'], equals('USD'));
+    });
+
+    test('parses items when items array is truncated (no partial item)', () {
+      const logLine =
+          '12-25 10:30:45.123 I/FA-SVC  : Logging event: origin=app,name=view_item_list,params=Bundle[{item_list_name=list_a, items=[Bundle[{item_id=item1, item_name=String(ProductA)}], Bundle[{item_id=item2, item_name=String(ProductB)}], Bundle[{item_id=item3, item_name=String(ProductC)}]';
+
+      final result = parser.parse(logLine);
+
+      expect(result, isNotNull);
+      expect(result!.eventName, equals('view_item_list'));
+      expect(result.items.length, equals(3));
+      expect(result.items[0]['item_id'], equals('item1'));
+      expect(result.items[1]['item_id'], equals('item2'));
+      expect(result.items[2]['item_id'], equals('item3'));
+      expect(result.parameters.containsKey('item_id'), isFalse);
+      expect(result.parameters['item_list_name'], equals('list_a'));
+    });
+
+    test('parses complete items when logcat truncates mid-item', () {
+      // Simulates logcat truncating the line in the middle of a 4th item,
+      // after 3 complete items. The 4th item has no closing }].
+      const logLine =
+          '02-11 10:30:45.123  3815 28115 V FA-SVC  : Logging event: '
+          'origin=app,name=view_item_list,params=Bundle[{'
+          'list_name=my_list, environment=staging, '
+          'items=['
+          'Bundle[{item_id=p1, item_name=ProductA, index=1, price=10.0}], '
+          'Bundle[{item_id=p2, item_name=ProductB, index=2, price=20.0}], '
+          'Bundle[{item_id=p3, item_name=ProductC, index=3, price=30.0}], '
+          'Bundle[{item_id=p4, item_name=ProductD, index=4, pr';
+
+      final result = parser.parse(logLine);
+
+      expect(result, isNotNull);
+      expect(result!.eventName, equals('view_item_list'));
+      // Should find the 3 complete items, not the truncated 4th
+      expect(result.items.length, equals(3));
+      expect(result.items[0]['item_id'], equals('p1'));
+      expect(result.items[1]['item_id'], equals('p2'));
+      expect(result.items[2]['item_id'], equals('p3'));
+      // Item fields must NOT appear as top-level params
+      expect(result.parameters.containsKey('item_id'), isFalse);
+      expect(result.parameters.containsKey('item_name'), isFalse);
+      expect(result.parameters['list_name'], equals('my_list'));
+      expect(result.parameters['environment'], equals('staging'));
     });
 
     test('should handle log without parameters', () {
@@ -145,6 +193,33 @@ void main() {
       expect(result.parameters['language'], equals('en'));
       expect(result.parameters['country_app'], equals('GB'));
       expect(result.parameters['environment'], equals('test'));
+    });
+
+    test('parses items with nested Bundle content', () {
+      // Each item contains a nested Bundle[{...}] value. The old regex
+      // (Bundle\[\{([^}]+)\}\]) would stop at the first '}' inside the
+      // nested bundle and mis-parse or drop the item.
+      const logLine =
+          '12-25 10:30:45.123 I/FA-SVC  : Logging event: origin=app,name=purchase, '
+          'params=Bundle[{'
+          'items=['
+          'Bundle[{item_id=item1, item_extra=Bundle[{color=red, size=M}], '
+          'price=Double(9.99)}], '
+          'Bundle[{item_id=item2, item_extra=Bundle[{color=blue, size=L}], '
+          'price=Double(19.99)}]'
+          '], currency=USD}]';
+
+      final result = parser.parse(logLine);
+
+      expect(result, isNotNull);
+      expect(result!.eventName, equals('purchase'));
+      expect(result.items.length, equals(2));
+      expect(result.items[0]['item_id'], equals('item1'));
+      expect(result.items[0]['price'], equals('9.99'));
+      expect(result.items[1]['item_id'], equals('item2'));
+      expect(result.items[1]['price'], equals('19.99'));
+      expect(result.parameters['currency'], equals('USD'));
+      expect(result.parameters.containsKey('item_id'), isFalse);
     });
   });
 }

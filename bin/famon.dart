@@ -17,6 +17,8 @@ Future<void> main(List<String> args) async {
 /// exited already. This is useful to prevent Future chains from continuing
 /// after the program has been killed.
 Future<void> _flushThenExit(int status) {
-  return Future.wait<void>([stdout.close(), stderr.close()])
-      .then<void>((_) => exit(status));
+  return Future.wait<void>([
+    stdout.close(),
+    stderr.close(),
+  ]).then<void>((_) => exit(status));
 }

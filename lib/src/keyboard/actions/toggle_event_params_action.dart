@@ -4,7 +4,7 @@ import 'package:famon/src/keyboard/key_binding.dart';
 
 /// Callback type for toggling event parameters visibility.
 typedef EventParamsToggleCallback = void Function(
-    {required bool hideEventParams});
+    {required bool hideEventParams,});
 
 /// Action to toggle visibility of event-specific parameters.
 ///

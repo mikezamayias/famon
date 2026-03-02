@@ -468,7 +468,7 @@ void main() {
           EventFilterUtils.shouldSkipEvent('screen_view', <String>[
             'screen_view',
             '_vs',
-          ], <String>[]),
+          ], <String>[],),
           isTrue,
         );
 
@@ -476,7 +476,7 @@ void main() {
           EventFilterUtils.shouldSkipEvent('purchase', <String>[
             'screen_view',
             '_vs',
-          ], <String>[]),
+          ], <String>[],),
           isFalse,
         );
       });

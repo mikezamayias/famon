@@ -109,7 +109,7 @@ class ClipboardService implements ClipboardInterface {
       'powershell',
       '-command',
       r'$input | Set-Clipboard',
-    ], runInShell: true);
+    ], runInShell: true,);
     process.stdin.write(text);
     await process.stdin.close();
     final exitCode = await process.exitCode;
@@ -122,7 +122,7 @@ class ClipboardService implements ClipboardInterface {
       'powershell',
       '-command',
       'Get-Clipboard',
-    ], runInShell: true);
+    ], runInShell: true,);
     if (result.exitCode == 0) {
       return (result.stdout as String).trim();
     }

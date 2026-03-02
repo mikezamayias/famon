@@ -138,7 +138,7 @@ class FileDialogService implements FileDialogInterface {
       'powershell',
       '-command',
       script,
-    ], runInShell: true);
+    ], runInShell: true,);
 
     if (result.exitCode == 0) {
       final output = (result.stdout as String).trim();

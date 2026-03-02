@@ -1,7 +1,7 @@
 # 🔥 famon - Firebase Analytics Monitor
 
 [![pub package][pub_badge]][pub_link]
-![coverage][coverage_badge]
+[![codecov][coverage_badge]][coverage_link]
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
 [![License: MIT][license_badge]][license_link]
 
@@ -393,7 +393,8 @@ open coverage/index.html
 
 [pub_badge]: https://img.shields.io/pub/v/famon.svg
 [pub_link]: https://pub.dev/packages/famon
-[coverage_badge]: coverage_badge.svg
+[coverage_badge]: https://codecov.io/gh/mikezamayias/famon/branch/main/graph/badge.svg
+[coverage_link]: https://codecov.io/gh/mikezamayias/famon
 [license_badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [license_link]: https://opensource.org/licenses/MIT
 [very_good_analysis_badge]: https://img.shields.io/badge/style-very_good_analysis-B22C89.svg

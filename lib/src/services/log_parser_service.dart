@@ -166,14 +166,6 @@ class LogParserService implements LogParserInterface {
     RegExp(r'(\w+)\s*=\s*([^,\[\]{}()]+)(?=[,\]}]|$)'),
   ];
 
-  /// Pre-compiled regex pattern for items array extraction.
-  static final RegExp _itemsArrayPattern = RegExp(
-    r'items=\[(Bundle\[\{[^\}]+\}\](?:,\s*Bundle\[\{[^\}]+\}\])*)\]',
-  );
-
-  /// Pre-compiled regex pattern for individual item extraction.
-  static final RegExp _itemPattern = RegExp(r'Bundle\[\{([^\}]+)\}\]');
-
   /// Pre-compiled regex pattern for typed value wrappers.
   ///
   /// Matches patterns like String(...), Long(...), Double(...), etc.
@@ -420,22 +412,49 @@ class LogParserService implements LogParserInterface {
     }
 
     try {
-      // Look for items array using pre-compiled static pattern
-      final itemsMatch = _itemsArrayPattern.firstMatch(paramsString);
-      final itemsString =
-          itemsMatch?.group(1) ?? _extractItemsSubstring(paramsString);
+      final itemsString = _extractItemsSubstring(paramsString);
+      if (itemsString == null) return items;
 
-      if (itemsString != null) {
-        // Extract individual Bundle[{...}] items using pre-compiled pattern
-        final itemMatches = _itemPattern.allMatches(itemsString);
+      // Extract individual Bundle[{...}] items using a depth-aware scan so
+      // that nested Bundle[{...}] content is handled correctly (a regex using
+      // [^}]+ would stop at the first '}' inside a nested bundle).
+      var i = 0;
+      while (i < itemsString.length) {
+        final bundleStart = itemsString.indexOf('Bundle[{', i);
+        if (bundleStart == -1) break;
 
-        for (final itemMatch in itemMatches) {
-          final itemParamsString = itemMatch.group(1);
-          if (itemParamsString != null) {
-            final itemParams = _parseParams('Bundle[{$itemParamsString}]');
-            if (itemParams.isNotEmpty) {
-              items.add(itemParams);
+        // Index of the '{' in 'Bundle[{' (+7 to skip past 'Bundle[')
+        final braceStart = bundleStart + 7;
+        var depth = 1;
+        var endBrace = -1;
+
+        for (var j = braceStart + 1; j < itemsString.length; j++) {
+          final ch = itemsString[j];
+          if (ch == '{') {
+            depth++;
+          } else if (ch == '}') {
+            depth--;
+            if (depth == 0) {
+              endBrace = j;
+              break;
             }
+          }
+        }
+
+        final String itemContent;
+        if (endBrace != -1) {
+          itemContent = itemsString.substring(braceStart + 1, endBrace);
+          i = endBrace + 1;
+        } else {
+          // Truncated item: parse what's available
+          itemContent = itemsString.substring(braceStart + 1);
+          i = itemsString.length;
+        }
+
+        if (itemContent.isNotEmpty) {
+          final itemParams = _parseParams('Bundle[{$itemContent}]');
+          if (itemParams.isNotEmpty) {
+            items.add(itemParams);
           }
         }
       }

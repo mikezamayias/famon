@@ -19,12 +19,15 @@ import 'package:mason_logger/mason_logger.dart';
 /// Patterns are ordered by expected frequency of occurrence to minimize
 /// unnecessary regex evaluations:
 ///
-/// 1. **Standard format** (`Logging event: origin=app,name=...`) - Most common
-///    format in modern Firebase Analytics implementations.
+/// 1. **Standard format** (`Logging event: origin=\w+,name=...`) - Most common
+///    format in modern Firebase Analytics implementations. Accepts any origin
+///    value (`app`, `auto`, `firebase`).
 /// 2. **FA-SVC tagged patterns** - Firebase Analytics Service logs, frequently
 ///    seen in debug builds.
 /// 3. **FA tagged patterns** - General Firebase Analytics logs.
-/// 4. **I/FA patterns** - Info-level FA logs, less common but still used.
+/// 4. **FA `Logging event (FE)` / `Event logged` formats** - Native Firebase
+///    SDK auto-events. Matched by `\bFA\b` to cover both brief (`I/FA:`) and
+///    `-v time` (`V FA-SVC  :`, `V FA  :`) logcat output formats.
 /// 5. **Basic/legacy formats** - Older or simplified log formats.
 ///
 /// ### Early Termination Optimization
@@ -177,6 +180,14 @@ class LogParserService implements LogParserInterface {
   /// Matches patterns like String(...), Long(...), Double(...), etc.
   static final RegExp _typedWrapperPattern = RegExp(r'^[A-Za-z]+\((.*)\)$');
 
+  /// Validates Firebase event names: letters/digits/underscores, starts with
+  /// a letter, max 40 characters.
+  static final RegExp _validFirebaseNamePattern =
+      RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*$');
+
+  /// Matches ASCII control characters (0x00–0x1F and 0x7F).
+  static final RegExp _controlCharPattern = RegExp(r'[\x00-\x1F\x7F]');
+
   /// Pre-compiled patterns for cleaning parameter values.
   static final RegExp _surroundingQuotesPattern = RegExp(r'^"|"$');
   static final RegExp _surroundingSingleQuotesPattern = RegExp(r"^'|'$");
@@ -226,10 +237,20 @@ class LogParserService implements LogParserInterface {
     return false;
   }
 
-  /// Create AnalyticsEvent from regex match
-  AnalyticsEvent _createAnalyticsEvent(RegExpMatch match) {
+  /// Create AnalyticsEvent from regex match.
+  ///
+  /// Returns `null` if the captured event name does not conform to the
+  /// Firebase naming convention (`^[a-zA-Z][a-zA-Z0-9_]*$`, max 40 chars),
+  /// dropping malformed or potentially malicious log lines.
+  AnalyticsEvent? _createAnalyticsEvent(RegExpMatch match) {
     final timestamp = match.group(1)!;
     final eventName = match.group(2)!;
+
+    if (eventName.length > 40 ||
+        !_validFirebaseNamePattern.hasMatch(eventName)) {
+      return null;
+    }
+
     final paramsString = match.groupCount >= 3 ? match.group(3) ?? '' : '';
 
     final params = _parseParams(paramsString);
@@ -526,22 +547,34 @@ class LogParserService implements LogParserInterface {
     return paramsString.substring(startIndex + 1);
   }
 
-  /// Clean and normalize parameter values
+  /// Clean and normalize parameter values.
   ///
   /// Uses pre-compiled static regex patterns for performance.
+  /// Also strips ASCII control characters and truncates to 100 characters to
+  /// prevent log injection and bound memory usage per security guidelines.
   String _cleanValue(String value) {
     // Unwrap typed wrappers like String(...), Long(...), Double(...),
     // Boolean(...) using pre-compiled pattern
     final wrapperMatch = _typedWrapperPattern.firstMatch(value.trim());
     final v = wrapperMatch != null ? (wrapperMatch.group(1) ?? value) : value;
 
-    // Use pre-compiled static patterns for cleaning
-    return v
+    // Remove surrounding delimiters using pre-compiled static patterns
+    var cleaned = v
         .replaceAll(_surroundingQuotesPattern, '') // Remove surrounding quotes
         .replaceAll(_surroundingSingleQuotesPattern, '') // Remove single quotes
         .replaceAll(_surroundingParenthesesPattern, '') // Remove parentheses
         .replaceAll(_surroundingBracketsPattern, '') // Remove brackets
         .replaceAll(_surroundingBracesPattern, '') // Remove braces
         .trim();
+
+    // Strip control characters (prevents log injection)
+    cleaned = cleaned.replaceAll(_controlCharPattern, '');
+
+    // Bound value length to 100 characters
+    if (cleaned.length > 100) {
+      cleaned = cleaned.substring(0, 100);
+    }
+
+    return cleaned;
   }
 }

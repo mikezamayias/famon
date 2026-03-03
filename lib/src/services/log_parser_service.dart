@@ -185,15 +185,11 @@ class LogParserService implements LogParserInterface {
   static final RegExp _validFirebaseNamePattern =
       RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*$');
 
-  /// Matches ASCII control characters (0x00–0x1F and 0x7F).
-  static final RegExp _controlCharPattern = RegExp(r'[\x00-\x1F\x7F]');
+  /// Maximum allowed length for a Firebase event name.
+  static const int _maxEventNameLength = 40;
 
-  /// Pre-compiled patterns for cleaning parameter values.
-  static final RegExp _surroundingQuotesPattern = RegExp(r'^"|"$');
-  static final RegExp _surroundingSingleQuotesPattern = RegExp(r"^'|'$");
-  static final RegExp _surroundingParenthesesPattern = RegExp(r'^\(|\)$');
-  static final RegExp _surroundingBracketsPattern = RegExp(r'^\[|\]$');
-  static final RegExp _surroundingBracesPattern = RegExp(r'^{|}$');
+  /// Maximum allowed length for a Firebase parameter value.
+  static const int _maxParamValueLength = 100;
 
   @override
   AnalyticsEvent? parse(String logLine) {
@@ -207,11 +203,12 @@ class LogParserService implements LogParserInterface {
     }
 
     // Evaluate patterns in order of expected frequency.
-    // Short-circuits on first successful match.
+    // Short-circuits on first successful match with a valid event name.
     for (final regex in _logPatterns) {
       final match = regex.firstMatch(logLine);
       if (match != null) {
-        return _createAnalyticsEvent(match);
+        final event = _createAnalyticsEvent(match);
+        if (event != null) return event;
       }
     }
 
@@ -246,8 +243,8 @@ class LogParserService implements LogParserInterface {
     final timestamp = match.group(1)!;
     final eventName = match.group(2)!;
 
-    if (eventName.length > 40 ||
-        !_validFirebaseNamePattern.hasMatch(eventName)) {
+    if (!_isValidEventName(eventName)) {
+      _logger?.warn('Skipping invalid Firebase event name: "$eventName"');
       return null;
     }
 
@@ -547,34 +544,60 @@ class LogParserService implements LogParserInterface {
     return paramsString.substring(startIndex + 1);
   }
 
-  /// Clean and normalize parameter values.
+  /// Returns true if [name] conforms to Firebase event name conventions.
+  bool _isValidEventName(String name) =>
+      name.isNotEmpty &&
+      name.length <= _maxEventNameLength &&
+      _validFirebaseNamePattern.hasMatch(name);
+
+  /// Clean and normalize a parameter value in a single pass.
   ///
-  /// Uses pre-compiled static regex patterns for performance.
-  /// Also strips ASCII control characters and truncates to 100 characters to
-  /// prevent log injection and bound memory usage per security guidelines.
+  /// Steps (all in one StringBuffer scan to avoid chained replaceAll):
+  /// 1. Unwrap typed wrappers e.g. `String(v)`, `Long(v)`.
+  /// 2. Strip leading/trailing delimiter characters (`"'()[]{}`) from the raw
+  ///    string.
+  /// 3. Iterate the remaining characters once: skip ASCII control characters
+  ///    and stop after [_maxParamValueLength] characters have been written.
   String _cleanValue(String value) {
-    // Unwrap typed wrappers like String(...), Long(...), Double(...),
-    // Boolean(...) using pre-compiled pattern
+    // Unwrap typed wrappers: String(...), Long(...), Double(...), Boolean(...)
     final wrapperMatch = _typedWrapperPattern.firstMatch(value.trim());
-    final v = wrapperMatch != null ? (wrapperMatch.group(1) ?? value) : value;
+    final raw = wrapperMatch != null ? (wrapperMatch.group(1) ?? value) : value;
 
-    // Remove surrounding delimiters using pre-compiled static patterns
-    var cleaned = v
-        .replaceAll(_surroundingQuotesPattern, '') // Remove surrounding quotes
-        .replaceAll(_surroundingSingleQuotesPattern, '') // Remove single quotes
-        .replaceAll(_surroundingParenthesesPattern, '') // Remove parentheses
-        .replaceAll(_surroundingBracketsPattern, '') // Remove brackets
-        .replaceAll(_surroundingBracesPattern, '') // Remove braces
-        .trim();
-
-    // Strip control characters (prevents log injection)
-    cleaned = cleaned.replaceAll(_controlCharPattern, '');
-
-    // Bound value length to 100 characters
-    if (cleaned.length > 100) {
-      cleaned = cleaned.substring(0, 100);
+    // Strip surrounding delimiter characters from both ends.
+    var start = 0;
+    var end = raw.length;
+    while (start < end && _isWrapperDelimiter(raw.codeUnitAt(start))) {
+      start++;
+    }
+    while (end > start && _isWrapperDelimiter(raw.codeUnitAt(end - 1))) {
+      end--;
     }
 
-    return cleaned;
+    final candidate = raw.substring(start, end).trim();
+
+    // Single pass: skip control characters, collect up to _maxParamValueLength.
+    final out = StringBuffer();
+    for (final codeUnit in candidate.codeUnits) {
+      final isControl =
+          (codeUnit >= 0x00 && codeUnit <= 0x1F) || codeUnit == 0x7F;
+      if (!isControl) {
+        out.writeCharCode(codeUnit);
+        if (out.length >= _maxParamValueLength) break;
+      }
+    }
+
+    return out.toString();
   }
+
+  /// Returns true if [codeUnit] is a delimiter that should be stripped from
+  /// the start or end of a parameter value.
+  static bool _isWrapperDelimiter(int codeUnit) =>
+      codeUnit == 0x22 || // "
+      codeUnit == 0x27 || // '
+      codeUnit == 0x28 || // (
+      codeUnit == 0x29 || // )
+      codeUnit == 0x5B || // [
+      codeUnit == 0x5D || // ]
+      codeUnit == 0x7B || // {
+      codeUnit == 0x7D; // }
 }

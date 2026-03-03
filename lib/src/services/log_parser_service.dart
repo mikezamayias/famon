@@ -70,11 +70,13 @@ class LogParserService implements LogParserInterface {
   /// - Group 2: Event name
   /// - Group 3: Parameters (Bundle format, optional in some patterns)
   static final List<RegExp> _logPatterns = [
-    // Pattern 1: Standard format (most common in modern FA implementations)
-    // Example: Logging event: origin=app,name=screen_view,params=Bundle[{...}]
+    // Pattern 1: Standard format with explicit origin field
+    // Matches both app-logged (origin=app) and auto/native (origin=auto, origin=firebase) events.
+    // Example: Logging event: origin=app,name=purchase,params=Bundle[{...}]
+    // Example: Logging event: origin=auto,name=screen_view,params=Bundle[{...}]
     RegExp(
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*Logging event: '
-      r'origin=app,name=([^,]+),params=(Bundle\[.*\])',
+      r'origin=\w+,name=([^,]+),params=(Bundle\[.*\])',
     ),
 
     // Pattern 2: FA-SVC with "Logging event" format
@@ -101,16 +103,20 @@ class LogParserService implements LogParserInterface {
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*\bFA\b.*Event: ([^,\s]+).*Bundle\[(.*)\]',
     ),
 
-    // Pattern 6: I/FA "Logging event (FE)" format
-    // Example: I/FA: Logging event (FE): screen_view, Bundle[{...}]
+    // Pattern 6: FA "Logging event (FE)" format without name= prefix
+    // Matches both brief (I/FA:) and -v time (V FA-SVC  :) logcat formats.
+    // Example (brief):    I/FA: Logging event (FE): screen_view, Bundle[...]
+    // Example (-v time):  V FA-SVC  : Logging event (FE): screen_view, ...
     RegExp(
-      r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*I/FA.*Logging event \(FE\): ([^,\s]+),.*(Bundle\[.*\])',
+      r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*\bFA\b.*Logging event \(FE\): ([^,\s]+),.*(Bundle\[.*\])',
     ),
 
-    // Pattern 7: I/FA "Event logged" format
-    // Example: I/FA: Event logged: purchase, params=Bundle[{...}]
+    // Pattern 7: FA "Event logged" format
+    // Matches both brief (I/FA:) and -v time (V FA  :) logcat formats.
+    // Example (brief):   I/FA: Event logged: purchase, params=Bundle[{...}]
+    // Example (-v time): V FA  : Event logged: purchase, params=Bundle[{...}]
     RegExp(
-      r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*I/FA.*Event logged: ([^,\s]+).*params[:=](Bundle\[.*\])',
+      r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*\bFA\b.*Event logged: ([^,\s]+).*params[:=](Bundle\[.*\])',
     ),
 
     // Pattern 8: Alternative "Event logged" format (less common)

@@ -13,8 +13,8 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 
-if ! git show-ref --verify --quiet refs/heads/development; then
-  echo "Branch 'development' not found. Ensure it exists locally." >&2
+if ! git show-ref --verify --quiet refs/heads/dev; then
+  echo "Branch 'dev' not found. Ensure it exists locally." >&2
   exit 1
 fi
 
@@ -23,7 +23,7 @@ if ! git show-ref --verify --quiet refs/heads/main; then
   exit 1
 fi
 
-git checkout development
+git checkout dev
 
 if ! grep -q "version: $VERSION" pubspec.yaml; then
   echo "pubspec.yaml version is not set to $VERSION" >&2
@@ -43,7 +43,7 @@ if ! grep -q "const packageVersion = '$VERSION';" lib/src/version.dart; then
 fi
 
 git checkout main
-git merge --no-ff development
+git merge --no-ff dev
 
 git tag -a "v$VERSION" -m "Release $VERSION"
 

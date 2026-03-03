@@ -5,10 +5,10 @@ This document describes the recommended lightweight release workflow for
 
 ## Branches
 
-- `development` is the default branch for day-to-day work and pull requests.
+- `dev` is the default branch for day-to-day work and pull requests.
 - `main` tracks code that has been released to pub.dev.
 
-All feature and fix branches should be based on `development` and merged back
+All feature and fix branches should be based on `dev` and merged back
 via pull requests.
 
 ## Versioning and changelog
@@ -23,13 +23,13 @@ via pull requests.
 
 ## Tagging releases
 
-After preparing a release on `development`:
+After preparing a release on `dev`:
 
-1. Merge `development` into `main`:
+1. Merge `dev` into `main`:
 
    ```bash
    git checkout main
-   git merge --no-ff development
+   git merge --no-ff dev
    ```
 
 2. Create an annotated tag that matches the version in `pubspec.yaml`:
@@ -47,7 +47,7 @@ After preparing a release on `development`:
 
 ## Dependabot and maintenance branches
 
-- Dependabot pull requests should target `development`.
+- Dependabot pull requests should target `dev`.
 - Group/defer dependency updates as needed, but keep release-specific changes
   (version bump and changelog) in a dedicated `chore(release)` commit.
 

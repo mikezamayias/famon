@@ -201,9 +201,9 @@ dart run build_runner build --delete-conflicting-outputs
 
 ## Git Workflow
 
-- Main branch: `development`
+- Main branch: `dev`
 - Feature branches: `feature/<name>`
-- Release branches: merge `development` to `main`, tag with version
+- Release branches: merge `dev` to `main`, tag with version
 
 ## Security Guidelines
 

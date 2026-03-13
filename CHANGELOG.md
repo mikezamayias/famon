@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-03-13
+
+### Added
+
+- Issue submission command (`famon issue`) for easy bug reporting with system info and log collection
+
+### Fixed
+
+- Keyboard shortcuts `q` (quit) and `Ctrl+C` now work immediately without delay
+- Native Firebase events in `Logging event (FE)` format are now parsed correctly
+
 ## [1.1.1] - 2026-03-02
 
 ### Added

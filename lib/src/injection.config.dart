@@ -8,13 +8,14 @@
 // coverage:ignore-file
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'package:famon/src/cli/commands/database_command.dart' as _i30;
-import 'package:famon/src/cli/commands/filtered_monitor_command.dart' as _i29;
-import 'package:famon/src/commands/monitor_command.dart' as _i26;
+import 'package:famon/src/cli/commands/database_command.dart' as _i31;
+import 'package:famon/src/cli/commands/filtered_monitor_command.dart' as _i30;
+import 'package:famon/src/commands/issue_command.dart' as _i24;
+import 'package:famon/src/commands/monitor_command.dart' as _i27;
 import 'package:famon/src/commands/update_command.dart' as _i17;
 import 'package:famon/src/config/shortcuts_config_loader.dart' as _i16;
 import 'package:famon/src/core/application/services/event_filter_service.dart'
-    as _i28;
+    as _i29;
 import 'package:famon/src/core/application/use_cases/export_data_use_case.dart'
     as _i22;
 import 'package:famon/src/core/application/use_cases/import_data_use_case.dart'
@@ -31,10 +32,10 @@ import 'package:famon/src/core/infrastructure/repositories/isar_data_export_repo
     as _i19;
 import 'package:famon/src/core/infrastructure/repositories/isar_event_repository.dart'
     as _i21;
-import 'package:famon/src/di/register_module.dart' as _i31;
+import 'package:famon/src/di/register_module.dart' as _i32;
 import 'package:famon/src/keyboard/actions/action_registry.dart' as _i3;
 import 'package:famon/src/keyboard/keyboard_input_service.dart' as _i12;
-import 'package:famon/src/keyboard/shortcut_manager.dart' as _i27;
+import 'package:famon/src/keyboard/shortcut_manager.dart' as _i28;
 import 'package:famon/src/platform/clipboard_service.dart' as _i4;
 import 'package:famon/src/platform/file_dialog_service.dart' as _i10;
 import 'package:famon/src/services/event_cache_service.dart' as _i8;
@@ -42,9 +43,9 @@ import 'package:famon/src/services/interfaces/event_cache_interface.dart'
     as _i7;
 import 'package:famon/src/services/interfaces/log_parser_interface.dart'
     as _i13;
-import 'package:famon/src/services/log_parser_factory.dart' as _i24;
+import 'package:famon/src/services/log_parser_factory.dart' as _i25;
 import 'package:famon/src/services/log_parser_service.dart' as _i14;
-import 'package:famon/src/services/log_source_factory.dart' as _i25;
+import 'package:famon/src/services/log_source_factory.dart' as _i26;
 import 'package:get_it/get_it.dart' as _i1;
 import 'package:injectable/injectable.dart' as _i2;
 import 'package:mason_logger/mason_logger.dart' as _i9;
@@ -97,44 +98,49 @@ extension GetItInjectableX on _i1.GetIt {
         () => _i22.ExportDataUseCase(gh<_i18.DataExportRepository>()));
     gh.factory<_i23.ImportDataUseCase>(
         () => _i23.ImportDataUseCase(gh<_i18.DataExportRepository>()));
-    gh.factory<_i24.LogParserFactory>(
-        () => _i24.LogParserFactory(gh<_i9.Logger>()));
-    gh.factory<_i25.LogSourceFactory>(() => _i25.LogSourceFactory(
+    gh.factory<_i24.IssueCommand>(() => _i24.IssueCommand(
+          logger: gh<_i9.Logger>(),
+          processManager: gh<_i5.ProcessManager>(),
+          clipboard: gh<_i4.ClipboardService>(),
+        ));
+    gh.factory<_i25.LogParserFactory>(
+        () => _i25.LogParserFactory(gh<_i9.Logger>()));
+    gh.factory<_i26.LogSourceFactory>(() => _i26.LogSourceFactory(
           gh<_i5.ProcessManager>(),
           gh<_i9.Logger>(),
         ));
-    gh.factory<_i26.MonitorCommand>(() => _i26.MonitorCommand(
+    gh.factory<_i27.MonitorCommand>(() => _i27.MonitorCommand(
           logger: gh<_i9.Logger>(),
-          logSourceFactory: gh<_i25.LogSourceFactory>(),
-          logParserFactory: gh<_i24.LogParserFactory>(),
+          logSourceFactory: gh<_i26.LogSourceFactory>(),
+          logParserFactory: gh<_i25.LogParserFactory>(),
           eventCache: gh<_i7.EventCacheInterface>(),
         ));
-    gh.factory<_i27.ShortcutManager>(() => _i27.ShortcutManager(
+    gh.factory<_i28.ShortcutManager>(() => _i28.ShortcutManager(
           actionRegistry: gh<_i3.ActionRegistry>(),
           configLoader: gh<_i16.ShortcutsConfigLoader>(),
           logger: gh<_i9.Logger>(),
         ));
-    gh.factory<_i28.EventFilterService>(() =>
-        _i28.EventFilterService(eventRepository: gh<_i20.EventRepository>()));
-    gh.factory<_i29.FilteredMonitorDependencies>(
-        () => _i29.FilteredMonitorDependencies(
+    gh.factory<_i29.EventFilterService>(() =>
+        _i29.EventFilterService(eventRepository: gh<_i20.EventRepository>()));
+    gh.factory<_i30.FilteredMonitorDependencies>(
+        () => _i30.FilteredMonitorDependencies(
               logger: gh<_i9.Logger>(),
               processManager: gh<_i5.ProcessManager>(),
               logParser: gh<_i13.LogParserInterface>(),
-              filterService: gh<_i28.EventFilterService>(),
+              filterService: gh<_i29.EventFilterService>(),
               eventRepository: gh<_i20.EventRepository>(),
             ));
-    gh.factory<_i30.DatabaseCommand>(() => _i30.DatabaseCommand(
+    gh.factory<_i31.DatabaseCommand>(() => _i31.DatabaseCommand(
           logger: gh<_i9.Logger>(),
           database: gh<_i11.IsarDatabase>(),
           exportUseCase: gh<_i22.ExportDataUseCase>(),
           importUseCase: gh<_i23.ImportDataUseCase>(),
-          filterService: gh<_i28.EventFilterService>(),
+          filterService: gh<_i29.EventFilterService>(),
         ));
-    gh.factory<_i29.FilteredMonitorCommand>(() =>
-        _i29.FilteredMonitorCommand(gh<_i29.FilteredMonitorDependencies>()));
+    gh.factory<_i30.FilteredMonitorCommand>(() =>
+        _i30.FilteredMonitorCommand(gh<_i30.FilteredMonitorDependencies>()));
     return this;
   }
 }
 
-class _$RegisterModule extends _i31.RegisterModule {}
+class _$RegisterModule extends _i32.RegisterModule {}

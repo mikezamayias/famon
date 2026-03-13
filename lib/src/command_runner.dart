@@ -53,6 +53,7 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
     addCommand(getIt<FilteredMonitorCommand>());
     addCommand(getIt<DatabaseCommand>());
     addCommand(getIt<UpdateCommand>());
+    addCommand(getIt<IssueCommand>());
   }
 
   @override
@@ -97,17 +98,17 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
       ..detail('  Top level options:');
     for (final option in topLevelResults.options) {
       if (topLevelResults.wasParsed(option)) {
-        _logger.detail('  - $option: ${topLevelResults[option]}');
+        _logger.detail('  - \$option: \${topLevelResults[option]}');
       }
     }
     if (topLevelResults.command != null) {
       final commandResult = topLevelResults.command!;
       _logger
-        ..detail('  Command: ${commandResult.name}')
+        ..detail('  Command: \${commandResult.name}')
         ..detail('    Command options:');
       for (final option in commandResult.options) {
         if (commandResult.wasParsed(option)) {
-          _logger.detail('    - $option: ${commandResult[option]}');
+          _logger.detail('    - \$option: \${commandResult[option]}');
         }
       }
     }
@@ -123,7 +124,8 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
 
     // Check for updates (skip for completion and update commands)
     if (topLevelResults.command?.name != UpdateCommand.commandName &&
-        topLevelResults.command?.name != 'completion') {
+        topLevelResults.command?.name != 'completion' &&
+        topLevelResults.command?.name != IssueCommand.commandName) {
       await _checkForUpdates();
     }
 
@@ -141,8 +143,8 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
         _logger
           ..info('')
           ..info('''
-${lightYellow.wrap('Update available!')} ${lightCyan.wrap(packageVersion)} \u2192 ${lightCyan.wrap(latestVersion)}
-Run ${lightCyan.wrap('$executableName update')} to update''');
+\${lightYellow.wrap('Update available!')} \${lightCyan.wrap(packageVersion)} \u2192 \${lightCyan.wrap(latestVersion)}
+Run \${lightCyan.wrap('\$executableName update')} to update''');
       }
     } on Exception catch (_) {
       _logger.err('Failed to check for updates.');

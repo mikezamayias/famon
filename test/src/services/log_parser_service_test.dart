@@ -195,6 +195,97 @@ void main() {
       expect(result.parameters['environment'], equals('test'));
     });
 
+    test('should parse native Firebase event with origin=auto', () {
+      const logLine =
+          '09-10 15:41:35.626  3815 28115 V FA-SVC  : Logging event: '
+          'origin=auto,name=screen_view,params=Bundle[{ga_screen=HomeScreen, '
+          'ga_screen_class=HomeActivity, ga_previous_screen=LoginScreen}]';
+
+      final result = parser.parse(logLine);
+
+      expect(result, isNotNull);
+      expect(result!.eventName, equals('screen_view'));
+      expect(result.parameters['ga_screen'], equals('HomeScreen'));
+      expect(result.parameters['ga_screen_class'], equals('HomeActivity'));
+      expect(result.parameters['ga_previous_screen'], equals('LoginScreen'));
+    });
+
+    test('should parse native Firebase event with origin=firebase', () {
+      const logLine =
+          '09-10 15:41:35.626  3815 28115 I FA      : Logging event: '
+          'origin=firebase,name=session_start,params=Bundle[{'
+          'ga_session_id=1234567890, ga_session_number=Long(1)}]';
+
+      final result = parser.parse(logLine);
+
+      expect(result, isNotNull);
+      expect(result!.eventName, equals('session_start'));
+      expect(result.parameters['ga_session_id'], equals('1234567890'));
+    });
+
+    group('Logging event (FE) format', () {
+      test('parses (FE) format with brief logcat style (I/FA)', () {
+        const logLine =
+            '12-25 10:30:45.123 I/FA: Logging event (FE): screen_view, '
+            'Bundle[{ga_screen=HomeScreen, '
+            'ga_screen_class=com.example.HomeActivity}]';
+
+        final result = parser.parse(logLine);
+
+        expect(result, isNotNull);
+        expect(result!.eventName, equals('screen_view'));
+        expect(result.parameters['ga_screen'], equals('HomeScreen'));
+        expect(
+          result.parameters['ga_screen_class'],
+          equals('com.example.HomeActivity'),
+        );
+      });
+
+      test('parses (FE) format with -v time FA-SVC tag', () {
+        // This is the actual format produced by "adb logcat -v time" in debug
+        // mode. Previously Pattern 6 required "I/FA" (brief format only) so
+        // this was missed.
+        const logLine = '12-25 10:30:45.123  3815 28115 V FA-SVC  : '
+            'Logging event (FE): screen_view, '
+            'Bundle[{ga_screen=HomeScreen, '
+            'ga_screen_class=com.example.HomeActivity}]';
+
+        final result = parser.parse(logLine);
+
+        expect(result, isNotNull);
+        expect(result!.eventName, equals('screen_view'));
+        expect(result.parameters['ga_screen'], equals('HomeScreen'));
+        expect(
+          result.parameters['ga_screen_class'],
+          equals('com.example.HomeActivity'),
+        );
+      });
+
+      test('parses (FE) format with -v time FA tag', () {
+        const logLine =
+            '12-25 10:30:45.123  3815 28115 V FA      : Logging event (FE): '
+            'user_engagement, Bundle[{engagement_time_msec=Long(1500)}]';
+
+        final result = parser.parse(logLine);
+
+        expect(result, isNotNull);
+        expect(result!.eventName, equals('user_engagement'));
+        expect(result.parameters['engagement_time_msec'], equals('1500'));
+      });
+
+      test('parses (FE) format with name= prefix via Pattern 2', () {
+        const logLine =
+            '12-25 10:30:45.123  3815 28115 V FA-SVC  : Logging event (FE): '
+            'name=screen_view, params=Bundle[{ga_screen=HomeScreen}]';
+
+        final result = parser.parse(logLine);
+
+        expect(result, isNotNull);
+        expect(result!.eventName, equals('screen_view'));
+        expect(result.parameters['ga_screen'], equals('HomeScreen'));
+      });
+    });
+
     test('parses items with nested Bundle content', () {
       // Each item contains a nested Bundle[{...}] value. The old regex
       // (Bundle\[\{([^}]+)\}\]) would stop at the first '}' inside the

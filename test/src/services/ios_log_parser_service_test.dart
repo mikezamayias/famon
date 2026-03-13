@@ -231,5 +231,39 @@ void main() {
         expect(result.parameters.containsKey('item_id'), isFalse);
       });
     });
+
+    group('native Firebase events (origin=auto)', () {
+      test('parses screen_view with origin=auto', () {
+        // iOS Firebase SDK logs automatic events with "auto" as origin.
+        // Pattern 1 uses \w+ for origin so it handles both "app" and "auto".
+        const logLine =
+            '[FirebaseAnalytics][I-ACS023051] Logging event: origin, name, '
+            'params: auto, screen_view (_vs), { ga_screen (_sn) = HomeScreen; '
+            'ga_screen_class (_sc) = HomeViewController; }';
+
+        final result = parser.parse(logLine);
+
+        expect(result, isNotNull);
+        expect(result?.eventName, equals('screen_view'));
+        expect(result?.parameters['ga_screen'], equals('HomeScreen'));
+        expect(
+          result?.parameters['ga_screen_class'],
+          equals('HomeViewController'),
+        );
+      });
+
+      test('parses session_start with origin=auto', () {
+        const logLine =
+            '[FirebaseAnalytics][I-ACS023051] Logging event: origin, name, '
+            'params: auto, session_start, { '
+            'ga_session_id (_si) = 1234567890; '
+            'ga_session_number (_sn) = 1; }';
+
+        final result = parser.parse(logLine);
+
+        expect(result, isNotNull);
+        expect(result?.eventName, equals('session_start'));
+      });
+    });
   });
 }

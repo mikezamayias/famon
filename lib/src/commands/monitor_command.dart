@@ -144,7 +144,7 @@ class MonitorCommand extends Command<int> {
   bool _isPaused = false;
   bool _hideGlobalParams = false;
   bool _hideEventParams = false;
-  bool _shouldQuit = false;
+  Completer<void>? _quitCompleter;
 
   /// Pre-compiled regex pattern for detecting Firebase Analytics related logs.
   ///
@@ -183,7 +183,6 @@ class MonitorCommand extends Command<int> {
     _isPaused = false;
     _hideGlobalParams = initialHideGlobal;
     _hideEventParams = initialHideEvent;
-    _shouldQuit = false;
 
     // Ensure verbose logs are visible when monitor --verbose is used
     if (verbose) {
@@ -304,23 +303,28 @@ class MonitorCommand extends Command<int> {
       StreamSubscription<ProcessSignal>? sigtermSub;
       StreamSubscription<KeyInputEvent>? keyboardSub;
 
-      void cleanup() {
+      void cleanup({bool triggerQuit = false}) {
         statsTimer?.cancel();
         suggestionsTimer?.cancel();
         unawaited(keyboardSub?.cancel());
         _keyboardInput?.dispose();
         process.kill();
+        if (triggerQuit) {
+          _quitCompleter?.complete();
+        }
       }
 
       sigintSub = ProcessSignal.sigint.watch().listen((_) {
-        cleanup();
+        cleanup(triggerQuit: true);
         unawaited(sigintSub?.cancel());
         unawaited(sigtermSub?.cancel());
+        exit(0);
       });
       sigtermSub = ProcessSignal.sigterm.watch().listen((_) {
-        cleanup();
+        cleanup(triggerQuit: true);
         unawaited(sigintSub?.cancel());
         unawaited(sigtermSub?.cancel());
+        exit(0);
       });
 
       // Setup keyboard shortcuts listener
@@ -330,19 +334,18 @@ class MonitorCommand extends Command<int> {
           await _handleKeyEvent(event);
         });
       }
+      // Initialize quit completer for immediate exit
+      _quitCompleter = Completer<void>();
+      StreamSubscription<String>? stdoutSub;
 
       var malformedByteCount = 0;
       var lastMalformedWarning = DateTime.now();
 
-      await for (final line in process.stdout
+      // Setup stdout listener with cancellation support
+      stdoutSub = process.stdout
           .transform(const Utf8Decoder(allowMalformed: true))
-          .transform(const LineSplitter())) {
-        // Check if quit was requested
-        if (_shouldQuit) {
-          cleanup();
-          break;
-        }
-
+          .transform(const LineSplitter())
+          .listen((line) {
         // Detect malformed UTF-8 sequences (replacement character U+FFFD)
         final replacementCount = '\uFFFD'.allMatches(line).length;
         if (replacementCount > 0) {
@@ -380,12 +383,12 @@ class MonitorCommand extends Command<int> {
             hideEvents,
             showOnlyEvents,
           )) {
-            continue;
+            return;
           }
 
           // Skip display if paused (events still captured)
           if (_isPaused) {
-            continue;
+            return;
           }
 
           // Format and display the event
@@ -394,13 +397,24 @@ class MonitorCommand extends Command<int> {
           sawRelevantLine = true;
           _formatter.formatAndPrint(event);
         }
-      }
+      }, onDone: () {
+        // Stream closed naturally
+        if (!_quitCompleter!.isCompleted) {
+          _quitCompleter!.complete();
+        }
+      }, onError: (Object e) {
+        _logger.err('Error reading log stream: $e');
+        if (!_quitCompleter!.isCompleted) {
+          _quitCompleter!.complete();
+        }
+      },);
 
-      // Cleanup resources
-      statsTimer?.cancel();
-      suggestionsTimer?.cancel();
-      unawaited(keyboardSub?.cancel());
-      _keyboardInput?.dispose();
+      // Wait for quit signal or stream completion
+      await _quitCompleter!.future;
+
+      // Cancel signal subscriptions
+      unawaited(stdoutSub.cancel());
+      cleanup();
       unawaited(sigintSub.cancel());
       unawaited(sigtermSub.cancel());
     } on ProcessException catch (e, stackTrace) {
@@ -506,7 +520,7 @@ class MonitorCommand extends Command<int> {
       ),
       ShowStatsAction(),
       ClearScreenAction(),
-      QuitAction(onQuit: () => _shouldQuit = true),
+      QuitAction(onQuit: _handleQuit),
     ]);
 
     // Create shortcut manager
@@ -544,5 +558,10 @@ class MonitorCommand extends Command<int> {
     );
 
     await _shortcutManager!.handleKeyEvent(event, context);
+  }
+
+  /// Handle quit request from keyboard shortcut.
+  void _handleQuit() {
+    _quitCompleter?.complete();
   }
 }

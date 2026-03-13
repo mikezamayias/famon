@@ -19,12 +19,15 @@ import 'package:mason_logger/mason_logger.dart';
 /// Patterns are ordered by expected frequency of occurrence to minimize
 /// unnecessary regex evaluations:
 ///
-/// 1. **Standard format** (`Logging event: origin=app,name=...`) - Most common
-///    format in modern Firebase Analytics implementations.
+/// 1. **Standard format** (`Logging event: origin=\w+,name=...`) - Most common
+///    format in modern Firebase Analytics implementations. Accepts any origin
+///    value (`app`, `auto`, `firebase`).
 /// 2. **FA-SVC tagged patterns** - Firebase Analytics Service logs, frequently
 ///    seen in debug builds.
 /// 3. **FA tagged patterns** - General Firebase Analytics logs.
-/// 4. **I/FA patterns** - Info-level FA logs, less common but still used.
+/// 4. **FA `Logging event (FE)` / `Event logged` formats** - Native Firebase
+///    SDK auto-events. Matched by `\bFA\b` to cover both brief (`I/FA:`) and
+///    `-v time` (`V FA-SVC  :`, `V FA  :`) logcat output formats.
 /// 5. **Basic/legacy formats** - Older or simplified log formats.
 ///
 /// ### Early Termination Optimization
@@ -70,11 +73,13 @@ class LogParserService implements LogParserInterface {
   /// - Group 2: Event name
   /// - Group 3: Parameters (Bundle format, optional in some patterns)
   static final List<RegExp> _logPatterns = [
-    // Pattern 1: Standard format (most common in modern FA implementations)
-    // Example: Logging event: origin=app,name=screen_view,params=Bundle[{...}]
+    // Pattern 1: Standard format with explicit origin field
+    // Matches both app-logged (origin=app) and auto/native (origin=auto, origin=firebase) events.
+    // Example: Logging event: origin=app,name=purchase,params=Bundle[{...}]
+    // Example: Logging event: origin=auto,name=screen_view,params=Bundle[{...}]
     RegExp(
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*Logging event: '
-      r'origin=app,name=([^,]+),params=(Bundle\[.*\])',
+      r'origin=\w+,name=([^,]+),params=(Bundle\[.*\])',
     ),
 
     // Pattern 2: FA-SVC with "Logging event" format
@@ -101,16 +106,20 @@ class LogParserService implements LogParserInterface {
       r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*\bFA\b.*Event: ([^,\s]+).*Bundle\[(.*)\]',
     ),
 
-    // Pattern 6: I/FA "Logging event (FE)" format
-    // Example: I/FA: Logging event (FE): screen_view, Bundle[{...}]
+    // Pattern 6: FA "Logging event (FE)" format without name= prefix
+    // Matches both brief (I/FA:) and -v time (V FA-SVC  :) logcat formats.
+    // Example (brief):    I/FA: Logging event (FE): screen_view, Bundle[...]
+    // Example (-v time):  V FA-SVC  : Logging event (FE): screen_view, ...
     RegExp(
-      r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*I/FA.*Logging event \(FE\): ([^,\s]+),.*(Bundle\[.*\])',
+      r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*\bFA\b.*Logging event \(FE\): ([^,\s]+),.*(Bundle\[.*\])',
     ),
 
-    // Pattern 7: I/FA "Event logged" format
-    // Example: I/FA: Event logged: purchase, params=Bundle[{...}]
+    // Pattern 7: FA "Event logged" format
+    // Matches both brief (I/FA:) and -v time (V FA  :) logcat formats.
+    // Example (brief):   I/FA: Event logged: purchase, params=Bundle[{...}]
+    // Example (-v time): V FA  : Event logged: purchase, params=Bundle[{...}]
     RegExp(
-      r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*I/FA.*Event logged: ([^,\s]+).*params[:=](Bundle\[.*\])',
+      r'(\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}).*\bFA\b.*Event logged: ([^,\s]+).*params[:=](Bundle\[.*\])',
     ),
 
     // Pattern 8: Alternative "Event logged" format (less common)
@@ -171,12 +180,16 @@ class LogParserService implements LogParserInterface {
   /// Matches patterns like String(...), Long(...), Double(...), etc.
   static final RegExp _typedWrapperPattern = RegExp(r'^[A-Za-z]+\((.*)\)$');
 
-  /// Pre-compiled patterns for cleaning parameter values.
-  static final RegExp _surroundingQuotesPattern = RegExp(r'^"|"$');
-  static final RegExp _surroundingSingleQuotesPattern = RegExp(r"^'|'$");
-  static final RegExp _surroundingParenthesesPattern = RegExp(r'^\(|\)$');
-  static final RegExp _surroundingBracketsPattern = RegExp(r'^\[|\]$');
-  static final RegExp _surroundingBracesPattern = RegExp(r'^{|}$');
+  /// Validates Firebase event names: letters/digits/underscores, starts with
+  /// a letter, max 40 characters.
+  static final RegExp _validFirebaseNamePattern =
+      RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*$');
+
+  /// Maximum allowed length for a Firebase event name.
+  static const int _maxEventNameLength = 40;
+
+  /// Maximum allowed length for a Firebase parameter value.
+  static const int _maxParamValueLength = 100;
 
   @override
   AnalyticsEvent? parse(String logLine) {
@@ -190,11 +203,12 @@ class LogParserService implements LogParserInterface {
     }
 
     // Evaluate patterns in order of expected frequency.
-    // Short-circuits on first successful match.
+    // Short-circuits on first successful match with a valid event name.
     for (final regex in _logPatterns) {
       final match = regex.firstMatch(logLine);
       if (match != null) {
-        return _createAnalyticsEvent(match);
+        final event = _createAnalyticsEvent(match);
+        if (event != null) return event;
       }
     }
 
@@ -220,10 +234,20 @@ class LogParserService implements LogParserInterface {
     return false;
   }
 
-  /// Create AnalyticsEvent from regex match
-  AnalyticsEvent _createAnalyticsEvent(RegExpMatch match) {
+  /// Create AnalyticsEvent from regex match.
+  ///
+  /// Returns `null` if the captured event name does not conform to the
+  /// Firebase naming convention (`^[a-zA-Z][a-zA-Z0-9_]*$`, max 40 chars),
+  /// dropping malformed or potentially malicious log lines.
+  AnalyticsEvent? _createAnalyticsEvent(RegExpMatch match) {
     final timestamp = match.group(1)!;
     final eventName = match.group(2)!;
+
+    if (!_isValidEventName(eventName)) {
+      _logger?.warn('Skipping invalid Firebase event name: "$eventName"');
+      return null;
+    }
+
     final paramsString = match.groupCount >= 3 ? match.group(3) ?? '' : '';
 
     final params = _parseParams(paramsString);
@@ -520,22 +544,60 @@ class LogParserService implements LogParserInterface {
     return paramsString.substring(startIndex + 1);
   }
 
-  /// Clean and normalize parameter values
-  ///
-  /// Uses pre-compiled static regex patterns for performance.
-  String _cleanValue(String value) {
-    // Unwrap typed wrappers like String(...), Long(...), Double(...),
-    // Boolean(...) using pre-compiled pattern
-    final wrapperMatch = _typedWrapperPattern.firstMatch(value.trim());
-    final v = wrapperMatch != null ? (wrapperMatch.group(1) ?? value) : value;
+  /// Returns true if [name] conforms to Firebase event name conventions.
+  bool _isValidEventName(String name) =>
+      name.isNotEmpty &&
+      name.length <= _maxEventNameLength &&
+      _validFirebaseNamePattern.hasMatch(name);
 
-    // Use pre-compiled static patterns for cleaning
-    return v
-        .replaceAll(_surroundingQuotesPattern, '') // Remove surrounding quotes
-        .replaceAll(_surroundingSingleQuotesPattern, '') // Remove single quotes
-        .replaceAll(_surroundingParenthesesPattern, '') // Remove parentheses
-        .replaceAll(_surroundingBracketsPattern, '') // Remove brackets
-        .replaceAll(_surroundingBracesPattern, '') // Remove braces
-        .trim();
+  /// Clean and normalize a parameter value in a single pass.
+  ///
+  /// Steps (all in one StringBuffer scan to avoid chained replaceAll):
+  /// 1. Unwrap typed wrappers e.g. `String(v)`, `Long(v)`.
+  /// 2. Strip leading/trailing delimiter characters (`"'()[]{}`) from the raw
+  ///    string.
+  /// 3. Iterate the remaining characters once: skip ASCII control characters
+  ///    and stop after [_maxParamValueLength] characters have been written.
+  String _cleanValue(String value) {
+    // Unwrap typed wrappers: String(...), Long(...), Double(...), Boolean(...)
+    final wrapperMatch = _typedWrapperPattern.firstMatch(value.trim());
+    final raw = wrapperMatch != null ? (wrapperMatch.group(1) ?? value) : value;
+
+    // Strip surrounding delimiter characters from both ends.
+    var start = 0;
+    var end = raw.length;
+    while (start < end && _isWrapperDelimiter(raw.codeUnitAt(start))) {
+      start++;
+    }
+    while (end > start && _isWrapperDelimiter(raw.codeUnitAt(end - 1))) {
+      end--;
+    }
+
+    final candidate = raw.substring(start, end).trim();
+
+    // Single pass: skip control characters, collect up to _maxParamValueLength.
+    final out = StringBuffer();
+    for (final codeUnit in candidate.codeUnits) {
+      final isControl =
+          (codeUnit >= 0x00 && codeUnit <= 0x1F) || codeUnit == 0x7F;
+      if (!isControl) {
+        out.writeCharCode(codeUnit);
+        if (out.length >= _maxParamValueLength) break;
+      }
+    }
+
+    return out.toString();
   }
+
+  /// Returns true if [codeUnit] is a delimiter that should be stripped from
+  /// the start or end of a parameter value.
+  static bool _isWrapperDelimiter(int codeUnit) =>
+      codeUnit == 0x22 || // "
+      codeUnit == 0x27 || // '
+      codeUnit == 0x28 || // (
+      codeUnit == 0x29 || // )
+      codeUnit == 0x5B || // [
+      codeUnit == 0x5D || // ]
+      codeUnit == 0x7B || // {
+      codeUnit == 0x7D; // }
 }

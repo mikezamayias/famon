@@ -7,6 +7,7 @@ import 'package:famon/src/core/domain/repositories/data_export_repository.dart';
 import 'package:famon/src/core/domain/repositories/event_repository.dart';
 import 'package:famon/src/core/infrastructure/data_sources/isar_database.dart';
 import 'package:famon/src/injection.dart';
+import 'package:famon/src/platform/clipboard_service.dart';
 import 'package:famon/src/services/interfaces/event_cache_interface.dart';
 import 'package:famon/src/services/interfaces/log_parser_interface.dart';
 import 'package:famon/src/services/log_parser_factory.dart';
@@ -43,6 +44,8 @@ class MockLogSourceFactory extends Mock implements LogSourceFactory {}
 
 class MockLogParserFactory extends Mock implements LogParserFactory {}
 
+class MockClipboardService extends Mock implements ClipboardService {}
+
 /// Create a mock analytics event for testing
 AnalyticsEvent createMockAnalyticsEvent({
   String eventName = 'test_event',
@@ -75,6 +78,7 @@ Future<void> setUpTestDependencies({
   ExportDataUseCase? exportUseCase,
   ImportDataUseCase? importUseCase,
   LogSourceFactory? logSourceFactory,
+  ClipboardService? clipboard,
 }) async {
   // Reset GetIt to clean state
   await getIt.reset();
@@ -92,6 +96,7 @@ Future<void> setUpTestDependencies({
   final resolvedImportUseCase = importUseCase ?? MockImportDataUseCase();
   final resolvedLogSourceFactory = logSourceFactory ?? MockLogSourceFactory();
   final resolvedLogParserFactory = logParserFactory ?? MockLogParserFactory();
+  final resolvedClipboard = clipboard ?? MockClipboardService();
 
   // Register core dependencies
   getIt
@@ -108,6 +113,7 @@ Future<void> setUpTestDependencies({
     ..registerSingleton<ImportDataUseCase>(resolvedImportUseCase)
     ..registerSingleton<LogSourceFactory>(resolvedLogSourceFactory)
     ..registerSingleton<LogParserFactory>(resolvedLogParserFactory)
+    ..registerSingleton<ClipboardService>(resolvedClipboard)
     // Register commands that are resolved via DI in the command runner
     ..registerFactory<MonitorCommand>(
       () => MonitorCommand(
@@ -142,6 +148,13 @@ Future<void> setUpTestDependencies({
       () => UpdateCommand(
         logger: resolvedLogger,
         pubUpdater: getIt<PubUpdater>(),
+      ),
+    )
+    ..registerFactory<IssueCommand>(
+      () => IssueCommand(
+        logger: resolvedLogger,
+        processManager: resolvedProcessManager,
+        clipboard: resolvedClipboard,
       ),
     );
 }

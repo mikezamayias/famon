@@ -67,8 +67,7 @@ class IssueCommand extends Command<int> {
         await _createIssueWithGh(systemInfo),
       'Copy bug report template to clipboard' =>
         await _copyTemplateToClipboard(systemInfo),
-      'View system info only' =>
-        _showSystemInfo(systemInfo),
+      'View system info only' => _showSystemInfo(systemInfo),
       _ => ExitCode.success.code,
     };
   }
@@ -116,8 +115,7 @@ class IssueCommand extends Command<int> {
     final encodedBody = Uri.encodeComponent(body);
     final encodedTitle = Uri.encodeComponent(title);
 
-    final url =
-        'https://github.com/mikezamayias/famon/issues/new?title='
+    final url = 'https://github.com/mikezamayias/famon/issues/new?title='
         '$encodedTitle&body=$encodedBody';
 
     final opened = await _openUrl(url);

@@ -345,69 +345,73 @@ class MonitorCommand extends Command<int> {
       stdoutSub = process.stdout
           .transform(const Utf8Decoder(allowMalformed: true))
           .transform(const LineSplitter())
-          .listen((line) {
-        // Detect malformed UTF-8 sequences (replacement character U+FFFD)
-        final replacementCount = '\uFFFD'.allMatches(line).length;
-        if (replacementCount > 0) {
-          malformedByteCount += replacementCount;
-          // Warn at most once per minute to avoid spam
-          final now = DateTime.now();
-          if (now.difference(lastMalformedWarning).inSeconds >= 60) {
-            _logger.warn(
-              'Detected $malformedByteCount malformed UTF-8 byte(s) in logcat '
-              'output. Some log data may be corrupted.',
-            );
-            lastMalformedWarning = now;
+          .listen(
+        (line) {
+          // Detect malformed UTF-8 sequences (replacement character U+FFFD)
+          final replacementCount = '\uFFFD'.allMatches(line).length;
+          if (replacementCount > 0) {
+            malformedByteCount += replacementCount;
+            // Warn at most once per minute to avoid spam
+            final now = DateTime.now();
+            if (now.difference(lastMalformedWarning).inSeconds >= 60) {
+              _logger.warn(
+                'Detected $malformedByteCount malformed UTF-8 byte(s) in logcat '
+                'output. Some log data may be corrupted.',
+              );
+              lastMalformedWarning = now;
+            }
           }
-        }
 
-        // If verbose, print all Firebase Analytics/Crashlytics related lines
-        if (verbose && !_isPaused) {
-          // Filter to only FA/Crashlytics noise to keep it relevant
-          // Use pre-compiled static pattern for better performance
-          if (_firebaseRelatedPattern.hasMatch(line)) {
+          // If verbose, print all Firebase Analytics/Crashlytics related lines
+          if (verbose && !_isPaused) {
+            // Filter to only FA/Crashlytics noise to keep it relevant
+            // Use pre-compiled static pattern for better performance
+            if (_firebaseRelatedPattern.hasMatch(line)) {
+              sawRelevantLine = true;
+              _logger.detail(line);
+            }
+          }
+
+          final event = _logParser.parse(line);
+
+          if (event != null) {
+            // Add full event to cache for export support
+            _eventCache.addFullEvent(event);
+
+            // Apply filtering using shared utility
+            if (EventFilterUtils.shouldSkipEvent(
+              event.eventName,
+              hideEvents,
+              showOnlyEvents,
+            )) {
+              return;
+            }
+
+            // Skip display if paused (events still captured)
+            if (_isPaused) {
+              return;
+            }
+
+            // Format and display the event
+            // Ensure any buffered grouped output is flushed at end
+            _formatter.flushPending();
             sawRelevantLine = true;
-            _logger.detail(line);
+            _formatter.formatAndPrint(event);
           }
-        }
-
-        final event = _logParser.parse(line);
-
-        if (event != null) {
-          // Add full event to cache for export support
-          _eventCache.addFullEvent(event);
-
-          // Apply filtering using shared utility
-          if (EventFilterUtils.shouldSkipEvent(
-            event.eventName,
-            hideEvents,
-            showOnlyEvents,
-          )) {
-            return;
+        },
+        onDone: () {
+          // Stream closed naturally
+          if (!_quitCompleter!.isCompleted) {
+            _quitCompleter!.complete();
           }
-
-          // Skip display if paused (events still captured)
-          if (_isPaused) {
-            return;
+        },
+        onError: (Object e) {
+          _logger.err('Error reading log stream: $e');
+          if (!_quitCompleter!.isCompleted) {
+            _quitCompleter!.complete();
           }
-
-          // Format and display the event
-          // Ensure any buffered grouped output is flushed at end
-          _formatter.flushPending();
-          sawRelevantLine = true;
-          _formatter.formatAndPrint(event);
-        }
-      }, onDone: () {
-        // Stream closed naturally
-        if (!_quitCompleter!.isCompleted) {
-          _quitCompleter!.complete();
-        }
-      }, onError: (Object e) {
-        _logger.err('Error reading log stream: $e');
-        if (!_quitCompleter!.isCompleted) {
-          _quitCompleter!.complete();
-        }
-      },);
+        },
+      );
 
       // Wait for quit signal or stream completion
       await _quitCompleter!.future;

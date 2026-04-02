@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-04-02
+
+### Added
+
+- `--show-only-params` (`-P`) flag to filter which parameter keys are displayed in event output
+  - Applies to both `parameters` and `items` in formatted and raw modes
+  - Works on both `monitor` and `filter` commands
+  - Composes with existing flags (`-g`, `--hide-global-params`, `--hide-event-params`)
+
+### Fixed
+
+- Orphaned "Items:" header no longer appears when all items are filtered out by `--show-only-params`
+- Consistent user feedback message for `--show-only-params` in both `monitor` and `filter` commands
+
+### Tests
+
+- Added 16 unit tests for `IssueCommand` template builder (`_generateIssueBody`)
+- Added 7 unit tests for `EventFormatterService` show-only-params filtering
+
 ## [1.2.0] - 2026-03-13
 
 ### Added

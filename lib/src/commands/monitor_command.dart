@@ -120,6 +120,14 @@ class MonitorCommand extends Command<int> {
         negatable: false,
         help: 'Start with event-specific parameters hidden from output. '
             'Toggle at runtime with E.',
+      )
+      ..addMultiOption(
+        'show-only-params',
+        abbr: 'P',
+        help: 'Only show these parameter keys in output. '
+            'Can be used multiple times. '
+            'Applies to both parameters and items.',
+        valueHelp: 'PARAM_NAME',
       );
   }
 
@@ -172,6 +180,9 @@ class MonitorCommand extends Command<int> {
     final noShortcuts = argResults?['no-shortcuts'] as bool? ?? false;
     final globalParamNames =
         ((argResults?['global-params'] as List<String>?) ?? <String>[]).toSet();
+    final showOnlyParamNames =
+        ((argResults?['show-only-params'] as List<String>?) ?? <String>[])
+            .toSet();
     final initialHideGlobal =
         argResults?['hide-global-params'] as bool? ?? false;
     final initialHideEvent = argResults?['hide-event-params'] as bool? ?? false;
@@ -195,6 +206,7 @@ class MonitorCommand extends Command<int> {
       rawOutput: rawOutput,
       colorEnabled: !noColor,
       globalParamNames: globalParamNames,
+      showOnlyParamNames: showOnlyParamNames,
     )
       ..hideGlobalParams = initialHideGlobal
       ..hideEventParams = initialHideEvent;
@@ -246,6 +258,12 @@ class MonitorCommand extends Command<int> {
 
     if (globalParamNames.isNotEmpty) {
       _logger.info('🌐 Global parameters: ${globalParamNames.join(', ')}');
+    }
+
+    if (showOnlyParamNames.isNotEmpty) {
+      _logger.info(
+        '🔎 Showing only params: ${showOnlyParamNames.join(', ')}',
+      );
     }
 
     // Initialize keyboard shortcuts if enabled
@@ -355,8 +373,9 @@ class MonitorCommand extends Command<int> {
             final now = DateTime.now();
             if (now.difference(lastMalformedWarning).inSeconds >= 60) {
               _logger.warn(
-                'Detected $malformedByteCount malformed UTF-8 byte(s) in logcat '
-                'output. Some log data may be corrupted.',
+                'Detected $malformedByteCount malformed '
+                'UTF-8 byte(s) in logcat output. '
+                'Some log data may be corrupted.',
               );
               lastMalformedWarning = now;
             }

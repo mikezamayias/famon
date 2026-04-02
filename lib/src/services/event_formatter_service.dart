@@ -20,14 +20,17 @@ class EventFormatterService {
   /// - `rawOutput`: If true, print without section labels (default: false)
   /// - `colorEnabled`: If true, use ANSI colors (default: true)
   /// - `globalParamNames`: Parameter names to classify as global/default
+  /// - `showOnlyParamNames`: If non-empty, only display these parameter keys
   EventFormatterService(
     this._logger, {
     bool rawOutput = false,
     bool colorEnabled = true,
     Set<String> globalParamNames = const {},
+    Set<String> showOnlyParamNames = const {},
   })  : _rawOutput = rawOutput,
         _colorEnabled = colorEnabled,
-        _globalParamNames = globalParamNames {
+        _globalParamNames = globalParamNames,
+        _showOnlyParamNames = showOnlyParamNames {
     _faWarningBuffer = FaWarningBuffer(onFlush: _printFaWarnings);
   }
 
@@ -35,6 +38,7 @@ class EventFormatterService {
   final bool _rawOutput;
   final bool _colorEnabled;
   final Set<String> _globalParamNames;
+  final Set<String> _showOnlyParamNames;
 
   /// Whether global parameters are currently hidden from output.
   bool hideGlobalParams = false;
@@ -69,13 +73,19 @@ class EventFormatterService {
   void _printRaw(AnalyticsEvent event) {
     final timestamp = event.displayTimestamp;
     final eventName = event.eventName;
-    final params = _filterParamsForRaw(event.parameters);
+    final params = _filterParamsForRaw(
+      _applyShowOnlyParams(event.parameters),
+    );
     if (event.items.isEmpty) {
       _logger.info('$timestamp | $eventName | $params');
       return;
     }
 
-    _logger.info('$timestamp | $eventName | $params | items=${event.items}');
+    final filteredItems =
+        event.items.map(_applyShowOnlyParams).where((item) => item.isNotEmpty);
+    _logger.info(
+      '$timestamp | $eventName | $params | items=${filteredItems.toList()}',
+    );
   }
 
   void _printFormatted(AnalyticsEvent event) {
@@ -89,18 +99,26 @@ class EventFormatterService {
       _logger.info('[$timestamp] $eventName');
     }
 
+    // Filter parameters to only include requested keys
+    final filteredParams = _applyShowOnlyParams(event.parameters);
+
     // Split parameters into global vs event-specific when configured
     if (_globalParamNames.isNotEmpty) {
-      _printSeparatedParams(event.parameters);
+      _printSeparatedParams(filteredParams);
     } else if (!hideEventParams) {
-      _printAllParams(event.parameters);
+      _printAllParams(filteredParams);
     }
 
     // Print items
     if (event.items.isNotEmpty) {
-      _logger.info('  Items:');
+      var headerPrinted = false;
       for (var i = 0; i < event.items.length; i++) {
-        final item = event.items[i];
+        final item = _applyShowOnlyParams(event.items[i]);
+        if (item.isEmpty) continue;
+        if (!headerPrinted) {
+          _logger.info('  Items:');
+          headerPrinted = true;
+        }
         _logger.info('    Item ${i + 1}:');
         for (final entry in item.entries) {
           _logger.info('      ${entry.key}: ${entry.value}');
@@ -109,6 +127,15 @@ class EventFormatterService {
     }
 
     _logger.info('');
+  }
+
+  /// Filters parameters to only include keys in [_showOnlyParamNames].
+  /// Returns the original map if no filter is active.
+  Map<String, String> _applyShowOnlyParams(Map<String, String> params) {
+    if (_showOnlyParamNames.isEmpty) return params;
+    return Map<String, String>.fromEntries(
+      params.entries.where((e) => _showOnlyParamNames.contains(e.key)),
+    );
   }
 
   /// Prints all parameters under a single "Parameters:" section.

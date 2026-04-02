@@ -1,4 +1,4 @@
-import 'package:famon/src/utils/event_filter_utils.dart';
+import 'package:famon_core/famon_core.dart';
 import 'package:test/test.dart';
 
 void main() {

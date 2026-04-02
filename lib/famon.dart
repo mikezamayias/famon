@@ -1,8 +1,9 @@
 /// Firebase Analytics Monitor - Real-time monitoring of Firebase Analytics
 /// events from Android logcat.
 ///
-/// This library provides tools for parsing and formatting Firebase Analytics
-/// events captured from `adb logcat`.
+/// This library re-exports core types from `famon_core` for backward
+/// compatibility. The business logic lives in the `famon_core` package;
+/// this package provides the CLI frontend.
 ///
 /// ## Quick Start
 ///
@@ -23,7 +24,7 @@
 ///
 /// ```bash
 /// # Install globally
-/// dart pub global activate firebase_analytics_monitor
+/// dart pub global activate famon
 ///
 /// # Monitor events
 /// famon monitor
@@ -33,10 +34,5 @@
 /// ```
 library;
 
-// Core domain entity
-export 'src/core/domain/entities/analytics_event.dart';
-// Session statistics model
-export 'src/models/session_stats.dart';
-// Services for parsing and formatting
-export 'src/services/event_formatter_service.dart';
-export 'src/services/log_parser_service.dart';
+// Re-export core types for backward compatibility
+export 'package:famon_core/famon_core.dart';

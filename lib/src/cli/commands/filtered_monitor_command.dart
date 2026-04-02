@@ -3,13 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:famon/src/constants.dart';
-import 'package:famon/src/core/application/services/event_filter_service.dart';
-import 'package:famon/src/core/domain/entities/analytics_event.dart';
-import 'package:famon/src/core/domain/repositories/event_repository.dart';
-import 'package:famon/src/services/event_formatter_service.dart';
-import 'package:famon/src/services/interfaces/log_parser_interface.dart';
-import 'package:famon/src/utils/event_filter_utils.dart';
+import 'package:famon_core/famon_core.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:process/process.dart';

@@ -118,6 +118,14 @@ class FilteredMonitorCommand extends Command<int> {
         abbr: 'r',
         negatable: false,
         help: 'Print raw parameter values without formatting or grouping.',
+      )
+      ..addMultiOption(
+        'show-only-params',
+        abbr: 'P',
+        help: 'Only show these parameter keys in output. '
+            'Can be used multiple times. '
+            'Applies to both parameters and items.',
+        valueHelp: 'PARAM_NAME',
       );
   }
 
@@ -160,12 +168,16 @@ class FilteredMonitorCommand extends Command<int> {
     final statsOnly = argResults?['stats-only'] as bool? ?? false;
     final noColor = argResults?['no-color'] as bool? ?? false;
     final rawOutput = argResults?['raw'] as bool? ?? false;
+    final showOnlyParamNames =
+        ((argResults?['show-only-params'] as List<String>?) ?? <String>[])
+            .toSet();
 
     // Initialize formatter with runtime settings
     _formatter = EventFormatterService(
       _logger,
       colorEnabled: !noColor,
       rawOutput: rawOutput,
+      showOnlyParamNames: showOnlyParamNames,
     );
 
     // Parse custom parameters

@@ -4,9 +4,11 @@ import 'package:famon_core/src/core/domain/entities/event_metadata.dart';
 import 'package:famon_core/src/core/domain/repositories/event_repository.dart';
 import 'package:famon_core/src/core/infrastructure/data_sources/isar_database.dart';
 import 'package:famon_core/src/core/infrastructure/data_sources/isar_models.dart';
+import 'package:injectable/injectable.dart';
 import 'package:isar/isar.dart';
 
 /// Isar implementation of EventMetadataRepository
+@Injectable(as: EventMetadataRepository)
 class IsarEventMetadataRepository implements EventMetadataRepository {
   /// Creates a new [IsarEventMetadataRepository] with the given [database].
   IsarEventMetadataRepository({required this.database});

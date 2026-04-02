@@ -8,11 +8,11 @@
 import 'dart:async' as _i2;
 
 import 'package:famon_core/src/core/application/services/event_filter_service.dart'
-    as _i19;
+    as _i20;
 import 'package:famon_core/src/core/application/use_cases/export_data_use_case.dart'
-    as _i17;
-import 'package:famon_core/src/core/application/use_cases/import_data_use_case.dart'
     as _i18;
+import 'package:famon_core/src/core/application/use_cases/import_data_use_case.dart'
+    as _i19;
 import 'package:famon_core/src/core/domain/repositories/data_export_repository.dart'
     as _i13;
 import 'package:famon_core/src/core/domain/repositories/event_repository.dart'
@@ -23,8 +23,10 @@ import 'package:famon_core/src/core/infrastructure/data_sources/isar_database.da
     as _i7;
 import 'package:famon_core/src/core/infrastructure/repositories/isar_data_export_repository.dart'
     as _i14;
-import 'package:famon_core/src/core/infrastructure/repositories/isar_event_repository.dart'
+import 'package:famon_core/src/core/infrastructure/repositories/isar_event_metadata_repository.dart'
     as _i16;
+import 'package:famon_core/src/core/infrastructure/repositories/isar_event_repository.dart'
+    as _i17;
 import 'package:famon_core/src/services/event_cache_service.dart' as _i5;
 import 'package:famon_core/src/services/interfaces/event_cache_interface.dart'
     as _i4;
@@ -59,13 +61,15 @@ class FamonCorePackageModule extends _i1.MicroPackageModule {
         ));
     gh.factory<_i13.DataExportRepository>(
         () => _i14.IsarDataExportRepository(database: gh<_i7.IsarDatabase>()));
+    gh.factory<_i15.EventMetadataRepository>(() =>
+        _i16.IsarEventMetadataRepository(database: gh<_i7.IsarDatabase>()));
     gh.factory<_i15.EventRepository>(
-        () => _i16.IsarEventRepository(database: gh<_i7.IsarDatabase>()));
-    gh.factory<_i17.ExportDataUseCase>(
-        () => _i17.ExportDataUseCase(gh<_i13.DataExportRepository>()));
-    gh.factory<_i18.ImportDataUseCase>(
-        () => _i18.ImportDataUseCase(gh<_i13.DataExportRepository>()));
-    gh.factory<_i19.EventFilterService>(() =>
-        _i19.EventFilterService(eventRepository: gh<_i15.EventRepository>()));
+        () => _i17.IsarEventRepository(database: gh<_i7.IsarDatabase>()));
+    gh.factory<_i18.ExportDataUseCase>(
+        () => _i18.ExportDataUseCase(gh<_i13.DataExportRepository>()));
+    gh.factory<_i19.ImportDataUseCase>(
+        () => _i19.ImportDataUseCase(gh<_i13.DataExportRepository>()));
+    gh.factory<_i20.EventFilterService>(() =>
+        _i20.EventFilterService(eventRepository: gh<_i15.EventRepository>()));
   }
 }

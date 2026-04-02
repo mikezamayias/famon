@@ -355,8 +355,9 @@ class MonitorCommand extends Command<int> {
             final now = DateTime.now();
             if (now.difference(lastMalformedWarning).inSeconds >= 60) {
               _logger.warn(
-                'Detected $malformedByteCount malformed UTF-8 byte(s) in logcat '
-                'output. Some log data may be corrupted.',
+                'Detected $malformedByteCount malformed '
+                'UTF-8 byte(s) in logcat output. '
+                'Some log data may be corrupted.',
               );
               lastMalformedWarning = now;
             }

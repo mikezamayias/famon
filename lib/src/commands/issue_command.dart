@@ -43,8 +43,9 @@ class IssueCommand extends Command<int> {
 
   @override
   Future<int> run() async {
-    _logger.info(lightCyan.wrap('🔥 Famon Issue Reporter'));
-    _logger.info('');
+    _logger
+      ..info(lightCyan.wrap('🔥 Famon Issue Reporter'))
+      ..info('');
 
     // Collect system information
     final systemInfo = await _collectSystemInfo();
@@ -272,7 +273,7 @@ class IssueCommand extends Command<int> {
     if (userDescription != null && userDescription.isNotEmpty) {
       buffer
         ..writeln(userDescription)
-        ..writeln('');
+        ..writeln();
     }
 
     if (includePrompts) {
@@ -281,23 +282,23 @@ class IssueCommand extends Command<int> {
         ..writeln(
           '<!-- A clear and concise description of what the bug is -->',
         )
-        ..writeln('')
+        ..writeln()
         ..writeln('## Steps to reproduce')
         ..writeln('1. ')
         ..writeln('2. ')
         ..writeln('3. ')
-        ..writeln('')
+        ..writeln()
         ..writeln('## Expected behavior')
         ..writeln('<!-- What you expected to happen -->')
-        ..writeln('')
+        ..writeln()
         ..writeln('## Actual behavior')
         ..writeln('<!-- What actually happened -->')
-        ..writeln('');
+        ..writeln();
     }
 
     buffer
       ..writeln('## Environment')
-      ..writeln('')
+      ..writeln()
       ..writeln('| Property | Value |')
       ..writeln('|----------|-------|')
       ..writeln('| famon version | ${info['famon_version']} |')
@@ -305,13 +306,13 @@ class IssueCommand extends Command<int> {
       ..writeln('| OS Version | ${info['os_version']} |')
       ..writeln('| Dart version | ${info['dart_version']} |')
       ..writeln('| Timestamp | ${info['timestamp']} |')
-      ..writeln('');
+      ..writeln();
 
     if (includePrompts) {
       buffer
         ..writeln('## Additional context')
         ..writeln('<!-- Add any other context about the problem here -->')
-        ..writeln('');
+        ..writeln();
     }
 
     return buffer.toString();

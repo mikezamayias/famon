@@ -28,3 +28,13 @@ coverage/
 *.so
 *.dll
 libisar.dylib
+
+# AI/agent tool artifacts
+.todos/
+TODO.md
+agent_errors.jsonl
+command_usage.jsonl
+
+# Database runtime files
+db.lock
+issues.db

@@ -14,7 +14,6 @@ dependencies:
     path: packages/famon_core
   get_it: ">=7.6.7 <10.0.0"
   injectable: ^2.3.5
-  isar: ^3.1.0+1
   mason_logger: ">=0.2.11 <0.4.0"
   path: ^1.8.3
   process: ^5.0.2
@@ -25,7 +24,6 @@ dev_dependencies:
   build_runner: ^2.4.9
   build_verify: ^3.1.0
   injectable_generator: ^2.1.6
-  isar_generator: ^3.1.0+1
   lints: ">=3.0.0 <7.0.0"
   mocktail: ^1.0.3
   test: ^1.25.2

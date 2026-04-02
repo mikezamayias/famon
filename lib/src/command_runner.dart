@@ -98,17 +98,17 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
       ..detail('  Top level options:');
     for (final option in topLevelResults.options) {
       if (topLevelResults.wasParsed(option)) {
-        _logger.detail('  - \$option: \${topLevelResults[option]}');
+        _logger.detail('  - $option: ${topLevelResults[option]}');
       }
     }
     if (topLevelResults.command != null) {
       final commandResult = topLevelResults.command!;
       _logger
-        ..detail('  Command: \${commandResult.name}')
+        ..detail('  Command: ${commandResult.name}')
         ..detail('    Command options:');
       for (final option in commandResult.options) {
         if (commandResult.wasParsed(option)) {
-          _logger.detail('    - \$option: \${commandResult[option]}');
+          _logger.detail('    - $option: ${commandResult[option]}');
         }
       }
     }
@@ -142,9 +142,12 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
       if (!isUpToDate) {
         _logger
           ..info('')
-          ..info('''
-\${lightYellow.wrap('Update available!')} \${lightCyan.wrap(packageVersion)} \u2192 \${lightCyan.wrap(latestVersion)}
-Run \${lightCyan.wrap('\$executableName update')} to update''');
+          ..info(
+            '${lightYellow.wrap('Update available!')} '
+            '${lightCyan.wrap(packageVersion)} \u2192 '
+            '${lightCyan.wrap(latestVersion)}\n'
+            'Run ${lightCyan.wrap('$executableName update')} to update',
+          );
       }
     } on Exception catch (_) {
       _logger.err('Failed to check for updates.');

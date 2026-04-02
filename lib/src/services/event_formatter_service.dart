@@ -81,12 +81,10 @@ class EventFormatterService {
       return;
     }
 
-    final filteredItems = event.items
-        .map(_applyShowOnlyParams)
-        .where((item) => item.isNotEmpty)
-        .toList();
+    final filteredItems =
+        event.items.map(_applyShowOnlyParams).where((item) => item.isNotEmpty);
     _logger.info(
-      '$timestamp | $eventName | $params | items=$filteredItems',
+      '$timestamp | $eventName | $params | items=${filteredItems.toList()}',
     );
   }
 

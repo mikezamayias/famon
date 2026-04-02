@@ -187,6 +187,12 @@ class FilteredMonitorCommand extends Command<int> {
       ..info('🔍 ${lightCyan.wrap('Advanced Firebase Analytics Monitor')}')
       ..info('📊 Using database-based filtering...');
 
+    if (showOnlyParamNames.isNotEmpty) {
+      _logger.info(
+        '🔎 Showing only params: ${showOnlyParamNames.join(', ')}',
+      );
+    }
+
     if (statsOnly) {
       return _showStatsOnly(
         hideEvents: hideEvents,

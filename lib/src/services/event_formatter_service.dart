@@ -113,10 +113,14 @@ class EventFormatterService {
 
     // Print items
     if (event.items.isNotEmpty) {
-      _logger.info('  Items:');
+      var headerPrinted = false;
       for (var i = 0; i < event.items.length; i++) {
         final item = _applyShowOnlyParams(event.items[i]);
         if (item.isEmpty) continue;
+        if (!headerPrinted) {
+          _logger.info('  Items:');
+          headerPrinted = true;
+        }
         _logger.info('    Item ${i + 1}:');
         for (final entry in item.entries) {
           _logger.info('      ${entry.key}: ${entry.value}');

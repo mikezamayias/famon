@@ -89,6 +89,8 @@ void main() {
 
       // Item has no matching keys, so "Item 1:" should not appear
       verifyNever(() => logger.info(any(that: contains('Item 1'))));
+      // "Items:" header should not appear either
+      verifyNever(() => logger.info(any(that: contains('Items:'))));
     });
 
     test('works in raw mode', () {

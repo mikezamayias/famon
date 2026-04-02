@@ -1,4 +1,3 @@
-// ignore_for_file: unused_import
 import 'package:famon_core/src/core_injection.module.dart';
 import 'package:injectable/injectable.dart';
 

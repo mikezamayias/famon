@@ -2,6 +2,7 @@ name: famon
 description: A command-line tool to monitor Firebase Analytics events from logcat.
 version: 1.3.0
 repository: https://github.com/mikezamayias/famon
+publish_to: none
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

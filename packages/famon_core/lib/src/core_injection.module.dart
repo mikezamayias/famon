@@ -1,6 +1,5 @@
 //@GeneratedMicroModule;FamonCorePackageModule;package:famon_core/src/core_injection.module.dart
 // GENERATED CODE - DO NOT MODIFY BY HAND
-// dart format width=80
 // ignore_for_file: type=lint
 // coverage:ignore-file
 

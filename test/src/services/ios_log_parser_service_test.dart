@@ -1,5 +1,4 @@
-import 'package:famon/src/models/platform_type.dart';
-import 'package:famon/src/services/ios_log_parser_service.dart';
+import 'package:famon_core/famon_core.dart';
 import 'package:test/test.dart';
 
 void main() {

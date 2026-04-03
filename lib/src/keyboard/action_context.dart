@@ -1,5 +1,4 @@
-import 'package:famon/src/core/domain/entities/analytics_event.dart';
-import 'package:famon/src/services/interfaces/event_cache_interface.dart';
+import 'package:famon_core/famon_core.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 /// Context passed to shortcut actions containing current application state.

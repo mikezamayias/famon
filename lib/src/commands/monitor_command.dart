@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:famon/src/config/shortcuts_config_loader.dart';
-import 'package:famon/src/constants.dart';
 import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/action_registry.dart';
 import 'package:famon/src/keyboard/actions/clear_screen_action.dart';
@@ -19,16 +18,9 @@ import 'package:famon/src/keyboard/actions/toggle_pause_action.dart';
 import 'package:famon/src/keyboard/keyboard_input_interface.dart';
 import 'package:famon/src/keyboard/keyboard_input_service.dart';
 import 'package:famon/src/keyboard/shortcut_manager.dart';
-import 'package:famon/src/models/platform_type.dart';
 import 'package:famon/src/platform/clipboard_service.dart';
 import 'package:famon/src/platform/file_dialog_service.dart';
-import 'package:famon/src/services/event_formatter_service.dart';
-import 'package:famon/src/services/interfaces/event_cache_interface.dart';
-import 'package:famon/src/services/interfaces/log_parser_interface.dart';
-import 'package:famon/src/services/interfaces/log_source_interface.dart';
-import 'package:famon/src/services/log_parser_factory.dart';
-import 'package:famon/src/services/log_source_factory.dart';
-import 'package:famon/src/utils/event_filter_utils.dart';
+import 'package:famon_core/famon_core.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 

@@ -1,5 +1,4 @@
-import 'package:famon/src/services/event_cache_service.dart';
-import 'package:famon/src/services/interfaces/event_cache_interface.dart';
+import 'package:famon_core/famon_core.dart';
 import 'package:test/test.dart';
 
 void main() {

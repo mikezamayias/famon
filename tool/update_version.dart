@@ -1,11 +1,12 @@
 #!/usr/bin/env dart
+// This is a development tool that uses print for CLI output.
 // ignore_for_file: avoid_print
 
 import 'dart:io';
 
 /// Updates the version in both pubspec.yaml and lib/src/version.dart.
 ///
-/// Usage: dart run tool/update_version.dart <version>
+/// Usage: `dart run tool/update_version.dart VERSION`
 void main(List<String> args) {
   if (args.isEmpty) {
     print('Usage: dart run tool/update_version.dart <version>');

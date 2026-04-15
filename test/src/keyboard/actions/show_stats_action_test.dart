@@ -1,7 +1,6 @@
 import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/show_stats_action.dart';
 import 'package:famon_core/famon_core.dart';
-import 'package:famon_core/src/models/session_stats.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 

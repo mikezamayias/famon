@@ -79,6 +79,11 @@ void main() {
     test('saves single event to file', () async {
       final tempDir = Directory.systemTemp.createTempSync('famon_test_');
       final filePath = '${tempDir.path}/test_export.json';
+      addTearDown(() {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
 
       when(
         () => fileDialog.showSaveDialog(
@@ -110,15 +115,16 @@ void main() {
       expect(content, contains('value1'));
       expect(content, contains('exportedAt'));
       expect(content, contains('eventCount'));
-
-      // Cleanup
-      file.deleteSync();
-      tempDir.deleteSync();
     });
 
     test('saves multiple events to file', () async {
       final tempDir = Directory.systemTemp.createTempSync('famon_test_');
       final filePath = '${tempDir.path}/multi_export.json';
+      addTearDown(() {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
 
       when(
         () => fileDialog.showSaveDialog(
@@ -149,10 +155,6 @@ void main() {
       expect(content, contains('event1'));
       expect(content, contains('event2'));
       expect(content, contains('event3'));
-
-      // Cleanup
-      file.deleteSync();
-      tempDir.deleteSync();
     });
 
     test('returns false on file system error', () async {
@@ -208,6 +210,11 @@ void main() {
     test('file includes items when present', () async {
       final tempDir = Directory.systemTemp.createTempSync('famon_test_');
       final filePath = '${tempDir.path}/items_export.json';
+      addTearDown(() {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
 
       when(
         () => fileDialog.showSaveDialog(
@@ -238,9 +245,6 @@ void main() {
       expect(content, contains('items'));
       expect(content, contains('Product A'));
       expect(content, contains('Product B'));
-
-      file.deleteSync();
-      tempDir.deleteSync();
     });
   });
 }

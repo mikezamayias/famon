@@ -162,14 +162,22 @@ void main() {
 
       await action.execute(context);
 
-      // Should display shortcuts for registered actions
-      // Note: Exact format depends on KeyBinding.toDisplayString()
+      // Should display the rendered shortcuts for registered actions.
       final infoCalls = verify(() => logger.info(captureAny())).captured;
-      final hasShortcuts = infoCalls.any((call) {
-        final str = call.toString();
-        return str.contains('a') || str.contains('ctrl+b');
-      });
-      expect(hasShortcuts, isTrue);
+      expect(
+        infoCalls.any((call) {
+          final str = call.toString();
+          return str.contains('A') && str.contains('First test action');
+        }),
+        isTrue,
+      );
+      expect(
+        infoCalls.any((call) {
+          final str = call.toString();
+          return str.contains('Ctrl+B') && str.contains('Second test action');
+        }),
+        isTrue,
+      );
     });
 
     test('handles empty registry', () async {

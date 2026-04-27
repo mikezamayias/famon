@@ -204,7 +204,7 @@ void main() {
           .called(1);
     });
 
-    test('uses darkGray separator lines', () async {
+    test('outputs title between separator lines', () async {
       final context = ActionContext(
         logger: logger,
         eventCache: eventCache,
@@ -213,13 +213,24 @@ void main() {
 
       await action.execute(context);
 
-      // Verify darkGray is used for separators (lightCyan for title)
+      // Verify structural output: title appears, and separators bookend it
       final infoCalls = verify(() => logger.info(captureAny())).captured;
-      // Title should be lightCyan
-      expect(
-        infoCalls.any((c) => c.toString().contains('Keyboard Shortcuts')),
-        isTrue,
+      final strings = infoCalls.map((c) => c.toString()).toList();
+
+      final titleIndex = strings.indexWhere(
+        (s) => s.contains('Keyboard Shortcuts'),
       );
+      final separatorIndices = <int>[];
+      for (var i = 0; i < strings.length; i++) {
+        if (strings[i].contains('═') && strings[i].length > 20) {
+          separatorIndices.add(i);
+        }
+      }
+
+      expect(titleIndex, greaterThan(-1));
+      expect(separatorIndices.length, greaterThanOrEqualTo(2));
+      // First separator comes after title
+      expect(separatorIndices.first, greaterThan(titleIndex));
     });
   });
 }

@@ -198,7 +198,8 @@ void main() {
 
       expect(result, isTrue);
       verify(() => logger.info(any(that: contains('only_event')))).called(1);
-      verify(() => logger.info(any(that: contains('10')))).called(1);
+      verify(() => logger.info(any(that: contains('Total Events:  10'))))
+          .called(1);
     });
   });
 }

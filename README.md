@@ -236,19 +236,6 @@ famon monitor [OPTIONS]
 - `--verbose`: Enable verbose logging
 - `--help`: Show general help
 
-### Issue Command
-
-Quickly report a bug or issue with system information pre-filled:
-
-```bash
-famon issue
-```
-
-This command will:
-1. Collect your system information (OS, Dart version, famon version)
-2. Offer to copy a bug report template to your clipboard
-3. Or use the GitHub CLI (`gh`) to create an issue directly
-
 ## 🧪 Testing Your Setup
 
 1. **Test adb connection:**

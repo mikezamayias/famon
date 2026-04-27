@@ -1,4 +1,3 @@
-// This file contains CLI examples that use print for demonstration.
 // ignore_for_file: avoid_print
 
 /// Firebase Analytics Monitor (famon) - CLI Usage Examples

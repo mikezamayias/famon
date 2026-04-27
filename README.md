@@ -1,192 +1,121 @@
-# 🔥 famon - Firebase Analytics Monitor
+# famon - Firebase Analytics Monitor
 
 [![pub package][pub_badge]][pub_link]
 [![codecov][coverage_badge]][coverage_link]
 [![style: very good analysis][very_good_analysis_badge]][very_good_analysis_link]
 [![License: MIT][license_badge]][license_link]
 
-A powerful command-line tool for real-time monitoring and filtering of Firebase Analytics events from Android and iOS. Perfect for developers and QA engineers working with Firebase Analytics implementations.
+CLI tool for real-time monitoring of Firebase Analytics events from Android and iOS.
 
-## ✨ Features
+## Features
 
-- **🔍 Real-time monitoring**: Stream Firebase Analytics events as they happen
-- **📱 Multi-platform support**: Works with Android, iOS Simulator, and iOS devices
-- **🎯 Smart filtering**: Hide noisy events or show only specific ones
-- **🎨 Beautiful output**: Colorized, well-formatted event display with emoji icons
-- **📊 Smart suggestions**: Get recommendations for filtering based on session data
-- **📈 Session statistics**: Track event frequency and patterns
-- **⚡ Event parsing**: Comprehensive parsing of parameters and item arrays
-- **🔄 Auto-detection**: Automatically detects connected devices/simulators
-- **🛠 Developer-friendly**: Designed for debugging and analytics validation
+- Stream events as they happen
+- Android, iOS Simulator, and iOS device support
+- Filter by event name (hide or show-only)
+- Colorized, formatted output
+- Session statistics and filter suggestions
+- Full parameter and item array parsing
+- Auto-detects connected devices/simulators
 
 ---
 
-## 🚀 Installation
-
-### Global Installation via Pub
+## Installation
 
 ```bash
 dart pub global activate famon
 ```
 
-### Local Development Installation
-
-```bash
-dart pub global activate --source=path <path to this package>
-```
-
-### From Source
+**From source:**
 
 ```bash
 git clone https://github.com/mikezamayias/famon.git
-cd firebase_analytics_monitor
+cd famon
 dart pub get
 dart compile exe bin/famon.dart -o famon
 # Move famon to your PATH
 ```
 
-## 📋 Prerequisites
+## Prerequisites
 
 ### Android
 
-- ✅ Android SDK platform-tools installed
-- ✅ `adb` command available in your PATH
-- ✅ Android device or emulator connected
-- ✅ USB debugging enabled on your device
-- ✅ App with Firebase Analytics running
-
-Verify your Android setup:
+- Android SDK platform-tools + `adb` in PATH
+- Android device or emulator connected with USB debugging enabled
 
 ```bash
-adb devices  # Should show your connected device
-adb logcat -s FA-SVC | head  # Should show Firebase Analytics logs
+adb devices                        # verify connection
+adb logcat -s FA-SVC | head        # verify Firebase logs
 ```
 
 ### iOS Simulator
 
-- ✅ Xcode installed with Command Line Tools
-- ✅ `xcrun` available in your PATH
-- ✅ iOS Simulator running
-- ✅ App with Firebase Analytics debug mode enabled
-
-Verify your iOS Simulator setup:
+- Xcode + Command Line Tools (`xcrun` in PATH)
+- Simulator running with Firebase Analytics debug mode enabled
 
 ```bash
-xcrun simctl list booted  # Should show running simulator
+xcrun simctl list booted
 ```
 
 ### iOS Device
 
-- ✅ libimobiledevice installed (`brew install libimobiledevice`)
-- ✅ `idevicesyslog` available in your PATH
-- ✅ iOS device connected via USB
-- ✅ Device trusted to this computer
-- ✅ App with Firebase Analytics debug mode enabled
-
-Verify your iOS device setup:
+- `idevicesyslog` installed (`brew install libimobiledevice`)
+- Device connected via USB and trusted
 
 ```bash
-idevice_id -l  # Should show connected device UDID
+idevice_id -l
 ```
 
-### iOS Firebase Analytics Debug Mode
+### Enabling Firebase Analytics debug mode on iOS
 
-To see Firebase Analytics logs on iOS, enable debug mode in your app:
+Add `-FIRAnalyticsDebugEnabled` to your scheme's launch arguments (Product > Scheme > Edit Scheme > Run > Arguments), or set it programmatically:
 
-1. **Xcode Scheme Arguments**: Add `-FIRAnalyticsDebugEnabled` to:
-   Product > Scheme > Edit Scheme > Run > Arguments > Arguments Passed On Launch
-
-2. **Or programmatically**:
-   ```swift
-   // In your app's launch code
-   UserDefaults.standard.set(true, forKey: "/google/firebase/debug_mode")
-   ```
-
-## 🎯 Usage
-
-### Basic Monitoring
-
-Monitor all Firebase Analytics events (auto-detects platform):
-
-```bash
-famon monitor
+```swift
+UserDefaults.standard.set(true, forKey: "/google/firebase/debug_mode")
 ```
 
-### Platform Selection
-
-Monitor specific platforms:
+## Usage
 
 ```bash
-# Android device/emulator
+famon monitor                          # auto-detect platform
 famon monitor --platform android
-
-# iOS Simulator
 famon monitor --platform ios-simulator
-
-# iOS physical device
 famon monitor --platform ios-device
 
-# Auto-detect (default)
-famon monitor --platform auto
-```
-
-### Filter Events
-
-Hide specific noisy events:
-
-```bash
 famon monitor --hide screen_view --hide _vs
-```
+famon monitor --show-only my_event -s another_event
 
-Show only specific events:
-
-```bash
-famon monitor --show-only my_event --show-only another_event
-# or using short form:
-famon monitor -s my_event -s another_event
-```
-
-### Advanced Options
-
-Monitor with smart suggestions and statistics:
-
-```bash
 famon monitor --suggestions --stats
-```
-
-Disable colors (useful for CI/CD or logging):
-
-```bash
 famon monitor --no-color
-```
-
-Verbose mode (shows all Firebase-related logs):
-
-```bash
 famon monitor --verbose
-```
-
-Raw output (unformatted parameter values):
-
-```bash
 famon monitor --raw
 ```
 
-### Get Help
+### Issue reporting
 
 ```bash
-famon help           # Detailed help with examples
-famon --help         # Basic usage information
-famon --version      # Show version
+famon issue    # collects system info and opens a pre-filled bug report
 ```
 
-## 📊 Example Output
+## Command reference
+
+### `famon monitor`
+
+| Option | Description |
+|---|---|
+| `-p, --platform` | `android`, `ios-simulator`, `ios-device`, `auto` |
+| `--hide EVENT` | Hide event by name (repeatable) |
+| `-s, --show-only EVENT` | Show only named events (repeatable) |
+| `--no-color` | Disable color output |
+| `--suggestions` | Show filter suggestions from session data |
+| `--stats` | Show session statistics periodically |
+| `-r, --raw` | Raw parameter values, no formatting |
+| `-V, --verbose` | Stream all Firebase/Crashlytics log lines |
+| `-D, --enable-debug PKG` | Enable Analytics debug for a package (Android only) |
+| `--raise-log-levels` | Raise log levels to VERBOSE before monitoring |
+
+## Example output
 
 ```text
-🔥 Firebase Analytics Monitor Started
-📱 Connecting to adb logcat...
-Press Ctrl+C to stop monitoring
-
 [12-25 10:30:45.123] my_custom_event
   Parameters:
     param_one: value1
@@ -197,208 +126,76 @@ Press Ctrl+C to stop monitoring
     screen_name: SomeScreen
     screen_class: MainActivity
 
-💡 Smart Suggestions:
-   Most frequent events: screen_view, _vs, app_update, user_engagement
-   Consider hiding: screen_view, _vs
+Smart Suggestions:
+   Most frequent: screen_view, _vs, app_update, user_engagement
    Use: famon monitor --hide screen_view --hide _vs
 
-📊 Session Stats:
+Session Stats:
    Unique Events: 8
    Total Events: 45
 ```
 
+## Troubleshooting
 
-## 🔧 Command Reference
+### Android
 
-### Monitor Command
+**`adb: command not found`** — Install Android SDK platform-tools and add to PATH.
 
-```bash
-famon monitor [OPTIONS]
-```
+**No devices found** — Enable USB debugging, try `adb kill-server && adb start-server`.
 
-**Options:**
+**Permission denied** — Check USB debugging permissions or try a different cable/port.
 
-- `-p, --platform`: Target platform (`android`, `ios-simulator`, `ios-device`, `auto`)
-- `--hide EVENT_NAME`: Hide specific event names (can be used multiple times)
-- `-s, --show-only EVENT_NAME`: Only show specified events (can be used multiple times)
-- `--no-color`: Disable colored output
-- `--suggestions`: Show smart filtering suggestions based on session data
-- `--stats`: Display session statistics periodically
-- `-r, --raw`: Print raw parameter values without formatting
-- `-V, --verbose`: Stream all Firebase Analytics/Crashlytics log lines
-- `-D, --enable-debug PACKAGE`: Enable Analytics debug for a package (Android only)
-- `--raise-log-levels`: Raise log levels to VERBOSE before monitoring
-- `--help`: Show help for the monitor command
+### iOS Simulator
 
-### Global Options
+**`xcrun: command not found`** — Run `xcode-select --install`.
 
-- `-v, --version`: Show version information
-- `--verbose`: Enable verbose logging
-- `--help`: Show general help
+**No booted simulator** — `xcrun simctl boot "iPhone 15"`, verify with `xcrun simctl list booted`.
 
-### Issue Command
+**No Firebase logs** — Enable debug mode (see Prerequisites), verify app is running.
 
-Quickly report a bug or issue with system information pre-filled:
+### iOS Device
 
-```bash
-famon issue
-```
+**`idevicesyslog: command not found`** — `brew install libimobiledevice`.
 
-This command will:
-1. Collect your system information (OS, Dart version, famon version)
-2. Offer to copy a bug report template to your clipboard
-3. Or use the GitHub CLI (`gh`) to create an issue directly
+**No device found** — Trust the computer when prompted, verify with `idevice_id -l`.
 
-## 🧪 Testing Your Setup
+**Could not connect** — Unlock device, unplug/replug, or restart usbmuxd: `sudo launchctl stop com.apple.usbmuxd`.
 
-1. **Test adb connection:**
+### No events appearing
 
-   ```bash
-   adb devices
-   ```
+- Confirm Firebase Analytics is integrated and debug mode is active
+- iOS events may have delays
+- Run `adb logcat -s FA-SVC | head -10` to check raw log output
 
-2. **Test Firebase Analytics logs:**
+### Missing parameters
 
-   ```bash
-   adb logcat -s FA-SVC | head -20
-   ```
-
-3. **Test with sample events:**
-   - Open your app with Firebase Analytics
-   - Navigate through screens or trigger events
-   - Run `famon monitor` to see events in real-time
-
-## 🐛 Troubleshooting
-
-### Android Issues
-
-#### "adb: command not found"
-
-- Install Android SDK platform-tools
-- Add platform-tools to your PATH
-
-#### "No devices found"
-
-- Connect your Android device via USB
-- Enable USB debugging in Developer Options
-- Try `adb kill-server && adb start-server`
-
-#### "Permission denied" errors
-
-- Check USB debugging permissions on device
-- Try different USB cable or port
-
-### iOS Simulator Issues
-
-#### "xcrun: command not found"
-
-- Install Xcode Command Line Tools: `xcode-select --install`
-
-#### "No booted simulator found"
-
-- Start an iOS Simulator from Xcode or: `xcrun simctl boot "iPhone 15"`
-- Verify with: `xcrun simctl list booted`
-
-#### "No Firebase Analytics logs appearing"
-
-- Enable Firebase Analytics debug mode (see Prerequisites)
-- Check that your app is running in the simulator
-- Try: `xcrun simctl spawn booted log stream --predicate 'subsystem CONTAINS "firebase"'`
-
-### iOS Device Issues
-
-#### "idevicesyslog: command not found"
-
-- Install libimobiledevice: `brew install libimobiledevice`
-
-#### "No device found"
-
-- Connect your iOS device via USB
-- Trust the computer on your device when prompted
-- Verify with: `idevice_id -l`
-
-#### "Could not connect to device"
-
-- Make sure the device is unlocked
-- Try unplugging and reconnecting
-- Restart the usbmuxd service: `sudo launchctl stop com.apple.usbmuxd`
-
-### General Issues
-
-### "No Firebase Analytics events"
-
-- Ensure your app has Firebase Analytics integrated
-- Check that events are being sent (may have delays)
-- Verify Firebase Analytics is properly configured
-- **iOS**: Enable debug mode with `-FIRAnalyticsDebugEnabled`
-
-### "Not all event parameters are showing"
-
-If you're seeing events but missing parameters, this could be due to:
-
-1. **Log format variations**: Firebase Analytics uses different log formats
-2. **Parameter parsing issues**: Complex parameter structures may need adjustment
-
-**To debug parameter parsing:**
-
-```bash
-# First, check the raw Firebase Analytics logs
-adb logcat -s FA-SVC | head -10
-
-# Look for patterns like:
-# Logging event: origin=app,name=EVENT_NAME,params=Bundle[{param1=value1, param2=value2}]
-```
-
-**Common log formats supported:**
-
-- `Logging event: origin=app,name=EVENT_NAME,params=Bundle[{...}]`
-- `Event logged: EVENT_NAME params:Bundle[{...}]`
-- `FA-SVC event_name:EVENT_NAME`
-
-**If parameters are still missing:**
-
-1. Check if the Bundle format in your logs matches the expected patterns
-2. Some newer Firebase SDK versions may use different formats
-3. Parameters with special characters or nested objects may need additional parsing
-
-**Example of expected vs actual log format:**
-
-Expected:
+Check that your log format matches one of the supported patterns:
 
 ```text
-Logging event: origin=app,name=view_cart,params=Bundle[{value=0, currency=GBP, login_mode=email_login}]
+Logging event: origin=app,name=EVENT_NAME,params=Bundle[{param1=value1, param2=value2}]
+Event logged: EVENT_NAME params:Bundle[{...}]
+FA-SVC event_name:EVENT_NAME
 ```
 
-If your logs look different, please open an issue with a sample log line for format support.
+If your logs look different, open an issue with a sample line.
 
-## 🤝 Contributing
+## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-### Development Setup
+Open an issue before large changes. For small fixes, PRs are welcome.
 
 ```bash
 git clone https://github.com/mikezamayias/famon.git
-cd firebase_analytics_monitor
+cd famon
 dart pub get
-dart pub run build_runner build  # Generate model files
+dart pub run build_runner build
+dart test
+dart test --coverage=coverage
 ```
 
-### Running Tests
+Coverage report:
 
 ```bash
-dart test                           # Run all tests
-dart test --coverage=coverage      # Run with coverage
-dart pub run test                  # Alternative test command
-```
-
-To view the generated coverage report you can use [lcov](https://github.com/linux-test-project/lcov):
-
-```bash
-# Generate Coverage Report
 genhtml coverage/lcov.info -o coverage/
-
-# Open Coverage Report
 open coverage/index.html
 ```
 

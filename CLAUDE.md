@@ -1,25 +1,17 @@
 # Firebase Analytics Monitor - Development Guidelines
 
-This document provides context and guidelines for AI assistants and developers working on this codebase.
-
-## Project Overview
-
-Firebase Analytics Monitor (`famon`) is a Dart CLI tool that monitors Firebase Analytics events in real-time by parsing platform log output (Android logcat, iOS Simulator via xcrun simctl, and physical iOS devices via idevicesyslog). It provides filtering, formatting, and persistence capabilities.
+`famon` is a Dart CLI tool that monitors Firebase Analytics events in real-time by parsing platform log output (Android logcat, iOS Simulator via `xcrun simctl`, and physical iOS devices via `idevicesyslog`). It supports filtering, formatting, and persistence.
 
 ## Cross-Platform Parity
 
-**All supported platforms must behave identically from the user's perspective.**
+**All platforms must behave identically from the user's perspective.**
 
-When fixing a bug or adding a feature in one platform's log parser, always verify and apply the same fix/feature to every other platform parser. The CLI must produce consistent output regardless of whether the log source is Android, iOS Simulator, or iOS Device.
-
-Key rules:
+When fixing a bug or adding a feature in one platform's log parser, apply the same change to every other platform parser.
 
 1. **Bug fixes are cross-platform by default.** A parsing fix in `LogParserService` (Android) must be mirrored in `IosLogParserService` (iOS), and vice versa.
 2. **Test coverage must match.** If a test case is added for one parser (e.g. items array truncation), an equivalent test must exist for the other parser(s).
-3. **Output format is platform-agnostic.** `EventFormatterService` receives `AnalyticsEvent` objects — the same fields (`eventName`, `parameters`, `items`, `rawTimestamp`) must be populated consistently regardless of source platform.
+3. **Output format is platform-agnostic.** `EventFormatterService` receives `AnalyticsEvent` objects — `eventName`, `parameters`, `items`, and `rawTimestamp` must be populated consistently regardless of source platform.
 4. **New parsing capabilities require all-platform implementation.** Do not ship a feature (e.g. items array parsing) for only one platform.
-
-Platform parsers and their responsibilities:
 
 | Parser                | Platform               | Log format                                    |
 | --------------------- | ---------------------- | --------------------------------------------- |
@@ -44,11 +36,11 @@ lib/src/
 
 ## Performance Guidelines
 
-This CLI tool processes a continuous stream of logcat data. Efficient resource usage is critical for long-running sessions.
+This CLI processes a continuous logcat stream. Efficient resource usage is critical for long-running sessions.
 
 ### RegExp Patterns: Always Static Final
 
-**NEVER** compile regex patterns inside methods that are called frequently. Always use `static final`:
+Never compile regex patterns inside frequently-called methods. Always use `static final`:
 
 ```dart
 // CORRECT
@@ -80,8 +72,6 @@ Hot paths where this matters:
 
 ### Stream Processing
 
-When processing logcat streams:
-
 1. **Consume stderr** to prevent buffer overflow:
 
    ```dart
@@ -89,7 +79,7 @@ When processing logcat streams:
    process.stderr.drain<void>(); // Prevent buffer buildup
    ```
 
-2. **Use broadcast streams carefully** - prefer single listeners when possible
+2. **Prefer single listeners** over broadcast streams.
 
 3. **Add signal handlers** for graceful shutdown:
 
@@ -124,7 +114,7 @@ When processing logcat streams:
    }
    ```
 
-3. **Avoid creating intermediate collections** unnecessarily:
+3. **Avoid intermediate collections:**
 
    ```dart
    // Prefer
@@ -136,27 +126,22 @@ When processing logcat streams:
 
 ### String Operations
 
-1. **Avoid chained replaceAll** when possible:
+Use `StringBuffer` for string building in loops. For cleaning multiple patterns, prefer single-pass over chained `replaceAll`:
 
-   ```dart
-   // If cleaning multiple patterns, consider single-pass:
-   String clean(String value) {
-     final buffer = StringBuffer();
-     for (var i = 0; i < value.length; i++) {
-       final char = value[i];
-       if (!_skipChars.contains(char)) {
-         buffer.write(char);
-       }
-     }
-     return buffer.toString();
-   }
-   ```
-
-2. **Use StringBuffer** for building strings in loops
+```dart
+String clean(String value) {
+  final buffer = StringBuffer();
+  for (var i = 0; i < value.length; i++) {
+    final char = value[i];
+    if (!_skipChars.contains(char)) {
+      buffer.write(char);
+    }
+  }
+  return buffer.toString();
+}
+```
 
 ## Testing Guidelines
-
-### Test Structure
 
 ```text
 test/
@@ -169,8 +154,6 @@ test/
 └── integration/           # Integration tests
 ```
 
-### Running Tests
-
 ```bash
 # Run all tests with coverage
 dart test --coverage=coverage
@@ -181,9 +164,7 @@ dart pub global run coverage:format_coverage \
   --report-on=lib
 ```
 
-### Test Helpers
-
-Use `registerTestDependencies()` from `test/helpers/test_helpers.dart` for consistent DI setup in tests.
+Use `registerTestDependencies()` from `test/helpers/test_helpers.dart` for DI setup in tests.
 
 ## Dependency Injection
 
@@ -207,14 +188,11 @@ dart run build_runner build --delete-conflicting-outputs
 
 ## Security Guidelines
 
-This section documents security considerations and mitigations for the codebase. Follow these guidelines when adding new features to prevent security vulnerabilities.
-
 ### Command Injection Prevention
 
-When spawning external processes (adb, xcrun, idevicesyslog, clipboard tools), validate all user-provided arguments:
+Validate all user-provided arguments before passing them to external processes (adb, xcrun, idevicesyslog, clipboard tools):
 
 ```dart
-// CORRECT - Validate package names before shell commands
 static final _validPackageNamePattern = RegExp(r'^[a-zA-Z][a-zA-Z0-9_.]*$');
 
 Future<void> enableAnalyticsDebug(String? packageName) async {
@@ -227,22 +205,17 @@ Future<void> enableAnalyticsDebug(String? packageName) async {
 
   await _processManager.start(['adb', 'shell', 'setprop', '...', packageName]);
 }
-
-// WRONG - Passing unvalidated user input to shell
-await _processManager.start(['adb', 'shell', 'setprop', '...', userInput]); // Dangerous!
 ```
 
-**Known risk areas:**
-
+Known risk areas:
 - `LogSourceFactory.enableAnalyticsDebug()` - accepts package name from CLI
 - Any future feature accepting app identifiers, file names, or paths
 
 ### Path Traversal Prevention
 
-Always validate and canonicalize file paths from user input:
+Validate and canonicalize file paths from user input:
 
 ```dart
-// CORRECT - Use validation helpers
 String? _validateFilePath(String? filePath, {bool mustExist = false}) {
   if (filePath == null || filePath.isEmpty) return null;
 
@@ -252,31 +225,25 @@ String? _validateFilePath(String? filePath, {bool mustExist = false}) {
   // Canonicalize to resolve . and .. segments
   final canonicalPath = p.canonicalize(filePath);
 
-  // For files that must exist, verify they do
   if (mustExist && !File(canonicalPath).existsSync()) return null;
 
   return canonicalPath;
 }
 ```
 
-**Additional considerations:**
-
-- Symlink attacks: Consider using `file.resolveSymbolicLinksSync()` for sensitive operations
-- Directory containment: Verify resolved paths stay within expected directories
-- Existing validation in `database_command.dart` - extend this pattern to new features
+Additional considerations:
+- Symlink attacks: use `file.resolveSymbolicLinksSync()` for sensitive operations
+- Directory containment: verify resolved paths stay within expected directories
+- Extend the validation pattern in `database_command.dart` to new features
 
 ### Input Validation for External Data
 
-#### JSON Import/Deserialization
-
-When importing JSON data from files, validate structure and apply limits:
+**JSON Import:** Validate structure and apply limits before processing:
 
 ```dart
-// CORRECT - Validate before processing
 Future<void> importFromFile(String filePath) async {
   final file = File(filePath);
 
-  // Check file size before reading (prevent memory exhaustion)
   if (file.lengthSync() > maxImportFileSize) {
     throw ArgumentError('Import file exceeds maximum size');
   }
@@ -284,24 +251,19 @@ Future<void> importFromFile(String filePath) async {
   final content = await file.readAsString();
   final data = jsonDecode(content) as Map<String, dynamic>;
 
-  // Validate schema before processing
   if (!_validateImportSchema(data)) {
     throw FormatException('Invalid import file structure');
   }
 
-  // Validate individual records
   for (final event in data['events'] ?? []) {
     _validateEventData(event);
   }
 }
 ```
 
-#### Event Name and Parameter Validation
-
-Data from logcat may contain malformed or malicious content:
+**Event names and parameters:** Logcat data may be malformed or malicious:
 
 ```dart
-// CORRECT - Validate Firebase naming conventions
 static final _validFirebaseNamePattern = RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*$');
 
 bool _isValidFirebaseName(String name) {
@@ -309,32 +271,27 @@ bool _isValidFirebaseName(String name) {
   return _validFirebaseNamePattern.hasMatch(name);
 }
 
-// Validate parameter values (length limits, sanitization)
 String _sanitizeParameterValue(String value) {
   if (value.length > 100) return value.substring(0, 100);
-  // Remove control characters
   return value.replaceAll(RegExp(r'[\x00-\x1F\x7F]'), '');
 }
 ```
 
-### ReDoS (Regular Expression Denial of Service) Prevention
+### ReDoS Prevention
 
-User-provided patterns for search/filter must be validated:
+User-provided search/filter patterns must be validated:
 
 ```dart
-// CORRECT - Existing protection in EventCacheService
 static const int _maxPatternLength = 100;
 static final RegExp _dangerousPatternIndicators = RegExp(
   r'(\+\+|\*\*|\{\d+,\d*\}\{|\(\?\:.*\)\+|\(\?\:.*\)\*)',
 );
 
 List<String> searchEvents(String pattern) {
-  // Reject overly long patterns
   if (pattern.length > _maxPatternLength) {
-    return _substringSearch(pattern); // Fallback to safe search
+    return _substringSearch(pattern);
   }
 
-  // Reject patterns with exponential backtracking potential
   if (_dangerousPatternIndicators.hasMatch(pattern)) {
     return _substringSearch(pattern);
   }
@@ -343,17 +300,16 @@ List<String> searchEvents(String pattern) {
     final regex = RegExp(pattern, caseSensitive: false);
     return _uniqueEventNames.where(regex.hasMatch).toList();
   } on FormatException {
-    return []; // Invalid regex
+    return [];
   }
 }
 ```
 
-### Resource Cleanup (Memory Leak Prevention)
+### Resource Cleanup
 
-Ensure all resources are properly cleaned up, especially in long-running operations:
+Use `try-finally` in long-running operations:
 
 ```dart
-// CORRECT - Use try-finally for guaranteed cleanup
 Future<int> run() async {
   Timer? statsTimer;
   StreamSubscription? subscription;
@@ -361,23 +317,23 @@ Future<int> run() async {
   try {
     statsTimer = Timer.periodic(duration, callback);
     subscription = stream.listen(handler);
-
     // ... main logic
   } finally {
-    // Guaranteed cleanup even on exceptions
     statsTimer?.cancel();
     await subscription?.cancel();
     _keyboardInput?.dispose();
   }
 }
+```
 
-// CORRECT - Restore terminal state in keyboard service
+Always restore terminal state in keyboard services:
+
+```dart
 void dispose() {
   if (!_isStarted) return;
 
   _subscription?.cancel();
 
-  // Always restore terminal settings
   if (isInteractive) {
     try {
       stdin.lineMode = _originalLineMode;
@@ -392,12 +348,12 @@ void dispose() {
 }
 ```
 
-### Sensitive Data Handling
+### Sensitive Data
 
-- **Clipboard**: Currently uses stdin to pass data to clipboard tools (good)
-- **Logs**: Avoid logging sensitive parameter values in verbose mode
-- **Database**: Analytics events may contain PII - consider encryption for stored data
-- **Export files**: Backup files contain all stored events - warn users about sensitive data
+- **Clipboard**: passes data via stdin (correct)
+- **Logs**: avoid logging sensitive parameter values in verbose mode
+- **Database**: analytics events may contain PII — encryption is worth considering for stored data
+- **Export files**: backup files contain all stored events — warn users
 
 ### Attack Vector Summary
 

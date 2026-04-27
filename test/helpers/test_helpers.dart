@@ -1,6 +1,8 @@
 import 'package:famon/src/commands/commands.dart';
 import 'package:famon/src/injection.dart';
+import 'package:famon/src/platform/clipboard_interface.dart';
 import 'package:famon/src/platform/clipboard_service.dart';
+import 'package:famon/src/platform/file_dialog_interface.dart';
 import 'package:famon_core/famon_core.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
@@ -35,6 +37,10 @@ class MockLogSourceFactory extends Mock implements LogSourceFactory {}
 class MockLogParserFactory extends Mock implements LogParserFactory {}
 
 class MockClipboardService extends Mock implements ClipboardService {}
+
+class MockClipboardInterface extends Mock implements ClipboardInterface {}
+
+class MockFileDialogInterface extends Mock implements FileDialogInterface {}
 
 /// Create a mock analytics event for testing
 AnalyticsEvent createMockAnalyticsEvent({

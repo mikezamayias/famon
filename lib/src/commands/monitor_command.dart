@@ -325,16 +325,24 @@ class MonitorCommand extends Command<int> {
       }
 
       sigintSub = ProcessSignal.sigint.watch().listen((_) {
-        cleanup(triggerQuit: true);
-        unawaited(sigintSub?.cancel());
-        unawaited(sigtermSub?.cancel());
-        exit(0);
+        try {
+          cleanup(triggerQuit: true);
+        } finally {
+          // Always cancel subscriptions and exit, even if cleanup throws
+          unawaited(sigintSub?.cancel());
+          unawaited(sigtermSub?.cancel());
+          exit(0);
+        }
       });
       sigtermSub = ProcessSignal.sigterm.watch().listen((_) {
-        cleanup(triggerQuit: true);
-        unawaited(sigintSub?.cancel());
-        unawaited(sigtermSub?.cancel());
-        exit(0);
+        try {
+          cleanup(triggerQuit: true);
+        } finally {
+          // Always cancel subscriptions and exit, even if cleanup throws
+          unawaited(sigintSub?.cancel());
+          unawaited(sigtermSub?.cancel());
+          exit(0);
+        }
       });
 
       // Setup keyboard shortcuts listener

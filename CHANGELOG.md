@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-04-27
+
+### Added
+- Keyboard action tests: clear screen, copy to clipboard, quit, save to file, show help, show stats
+- Codecov component tracking: CLI and Core Library reported separately
+- Coverage collection from `famon_core` package in CI
+- `famon issue` command in help output and README
+- Demo recording, example scripts, submission drafts, blog post draft
+
+### Fixed
+- 3 use cases (`MonitorEventsUseCase`, `AddManualParametersUseCase`, `DataExportImportUseCase`) now registered in DI module
+- Monitor signal handlers hardened with try-finally for reliable shutdown
+- Test assertion accuracy in help and stats action tests
+- codecov/patch no longer blocks test-only PRs
+
+### Changed
+- Bumped `softprops/action-gh-release` from 2 to 3
+- All markdown files humanized: removed AI patterns, emoji overuse, redundancy, stale content (-727 lines)
+
 ## [1.3.0] - 2026-04-02
 
 ### Added

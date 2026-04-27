@@ -1,32 +1,31 @@
 # Performance and Memory Audit
 
-## Executive Summary
-
-This audit identifies performance and memory concerns in the Firebase Analytics Monitor CLI tool, focusing on areas that impact long-running monitoring sessions. The tool processes a continuous stream of logcat data, making efficient resource usage critical.
+This tool processes a continuous stream of logcat data. Resource efficiency matters in long-running sessions.
 
 ---
 
 ## Findings
 
-### HIGH Severity
+### HIGH
 
 #### 1. RegExp Compiled Per Parse Call in `_parseParams()`
 **File:** `lib/src/services/log_parser_service.dart:221-240`
 
-**Issue:** 12 RegExp patterns are compiled inside `_parseParams()` on every invocation. Since `_parseParams()` is called for every parsed event (and sometimes recursively for items), this creates significant overhead.
+12 RegExp patterns compiled inside `_parseParams()` on every invocation. This method is called for every parsed event, sometimes recursively for items.
 
 ```dart
-// CURRENT (inefficient)
+// CURRENT
 Map<String, String> _parseParams(String paramsString) {
   final patterns = [
     RegExp(r'(\w+)=([^,\[\]{}]+)(?=[,\]}]|$)'),  // compiled every call
-    RegExp(r'(\w+)=String\(([^)]*)\)'),          // compiled every call
-    // ... 10 more patterns
+    RegExp(r'(\w+)=String\(([^)]*)\)'),
+    // ... 10 more
   ];
 }
 ```
 
-**Fix:** Move patterns to static final class members:
+Fix: move to `static final`:
+
 ```dart
 static final List<RegExp> _paramPatterns = [
   RegExp(r'(\w+)=([^,\[\]{}]+)(?=[,\]}]|$)'),
@@ -38,19 +37,18 @@ static final List<RegExp> _paramPatterns = [
 #### 2. RegExp Compiled Per Parse Call in `_parseItems()`
 **File:** `lib/src/services/log_parser_service.dart:339-348`
 
-**Issue:** Two RegExp patterns compiled on each `_parseItems()` call.
+Two patterns compiled on each call. Same fix: `static final`.
 
 #### 3. RegExp Compiled Per Value Clean in `_cleanValue()`
 **File:** `lib/src/services/log_parser_service.dart:385-394`
 
-**Issue:** Six RegExp patterns compiled every time a value is cleaned. This method is called for every parameter value.
+Six patterns compiled on every call. This method runs for every parameter value. Same fix: `static final`.
 
-#### 4. Missing Signal Handlers for Graceful Shutdown
+#### 4. Missing Signal Handlers
 **File:** `lib/src/commands/monitor_command.dart`, `lib/src/cli/commands/filtered_monitor_command.dart`
 
-**Issue:** No SIGINT/SIGTERM handlers to gracefully terminate the adb process and close resources.
+No SIGINT/SIGTERM handlers — the adb process and open resources aren't cleaned up on Ctrl+C.
 
-**Fix:** Add signal handling:
 ```dart
 final sigintSubscription = ProcessSignal.sigint.watch().listen((_) {
   process.kill();
@@ -60,14 +58,13 @@ final sigintSubscription = ProcessSignal.sigint.watch().listen((_) {
 
 ---
 
-### MEDIUM Severity
+### MEDIUM
 
 #### 5. RegExp Compiled Per Timestamp Parse
 **File:** `lib/src/shared/log_timestamp_parser.dart:12`
 
-**Issue:** Timestamp parsing regex compiled on every call. This is called for every event.
+Timestamp regex compiled on every call. Called for every event.
 
-**Fix:** Make pattern static:
 ```dart
 static final _timestampPattern = RegExp(
   r'(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})',
@@ -77,24 +74,26 @@ static final _timestampPattern = RegExp(
 #### 6. RegExp Compiled Per Logcat Line in MonitorCommand
 **File:** `lib/src/commands/monitor_command.dart:228`
 
-**Issue:** Firebase relevance check regex compiled for every logcat line:
+Firebase relevance check compiled for every line:
+
 ```dart
 final isFirebaseRelated = RegExp(
   r'(FA|FA-SVC|FirebaseAnalytics|FirebaseCrashlytics)',
 ).hasMatch(line);
 ```
 
+Move to `static final`.
+
 #### 7. RegExp Compiled Per Validation in FilteredMonitorCommand
 **File:** `lib/src/cli/commands/filtered_monitor_command.dart:379`
 
-**Issue:** Parameter name validation regex compiled per validation call.
+Parameter name validation regex compiled per call. Move to `static final`.
 
 #### 8. Unbounded EventCache Growth
 **File:** `lib/src/services/event_cache_service.dart`
 
-**Issue:** `_uniqueEventNames` and `_eventCounts` grow unbounded. In long monitoring sessions (hours/days), memory usage increases continuously.
+`_uniqueEventNames` and `_eventCounts` grow unbounded. In multi-hour sessions, memory increases continuously.
 
-**Fix:** Implement LRU eviction or maximum size limits:
 ```dart
 static const _maxCacheSize = 10000;
 
@@ -109,78 +108,74 @@ void addEvent(String eventName) {
 #### 9. Database Connection Never Closed
 **File:** `lib/src/database/isar_database.dart`
 
-**Issue:** `Isar.close()` is never called, preventing clean resource release.
+`Isar.close()` is never called.
 
-**Fix:** Add dispose method and call from commands:
 ```dart
 Future<void> dispose() async {
   await _isar?.close();
 }
 ```
 
-#### 10. stderr Stream Not Consumed
+#### 10. stderr Not Consumed
 **File:** `lib/src/commands/monitor_command.dart`, `lib/src/cli/commands/filtered_monitor_command.dart`
 
-**Issue:** The adb process stderr is not consumed, which could cause buffer overflow if adb produces error output.
+adb process stderr is not drained. Can cause buffer overflow if adb emits errors.
 
-**Fix:** Drain stderr:
 ```dart
 process.stderr.drain<void>();
 ```
 
 ---
 
-### LOW Severity
+### LOW
 
-#### 11. Repeated List.unmodifiable() Allocations
+#### 11. Repeated `List.unmodifiable()` Allocations
 **File:** `lib/src/services/event_cache_service.dart`
 
-**Issue:** Methods like `allEventNames`, `getEventsByFrequency()`, `getTopEvents()` create new unmodifiable list wrappers on each call.
+`allEventNames`, `getEventsByFrequency()`, `getTopEvents()` create new unmodifiable list wrappers on every call. Cache results with a dirty flag, or document that callers should cache.
 
-**Mitigation:** Cache results with dirty flag, or document that callers should cache.
-
-#### 12. RegExp Compiled Per Search in EventCacheService
+#### 12. RegExp Per Search Call in EventCacheService
 **File:** `lib/src/services/event_cache_service.dart:51`
 
-**Issue:** User-provided regex pattern compiled on each `searchEvents()` call. This is acceptable since patterns vary, but could cache recent patterns.
+User-provided regex compiled on each `searchEvents()` call. Acceptable since patterns vary, but could cache recently seen patterns.
 
-#### 13. String Allocations in _cleanValue()
+#### 13. Chained `replaceAll()` in `_cleanValue()`
 **File:** `lib/src/services/log_parser_service.dart:389-395`
 
-**Issue:** Chain of `replaceAll()` creates intermediate strings. Minor impact but could be optimized with single-pass cleaning.
+Multiple `replaceAll()` calls create intermediate strings. Minor — consider single-pass cleaning if profiling shows impact.
 
 ---
 
 ## Implementation Priority
 
-### Phase 1: Critical Performance (High Impact, Low Risk)
-1. Make all regex patterns static final in `LogParserService`
-2. Make timestamp pattern static final in `LogTimestampParser`
-3. Make Firebase relevance pattern static final in `MonitorCommand`
-4. Make validation pattern static final in `FilteredMonitorCommand`
+### Phase 1: Regex (high impact, low risk)
+1. Static final patterns in `LogParserService` (`_parseParams`, `_parseItems`, `_cleanValue`)
+2. Static final timestamp pattern in `LogTimestampParser`
+3. Static final Firebase relevance pattern in `MonitorCommand`
+4. Static final validation pattern in `FilteredMonitorCommand`
 
-### Phase 2: Resource Management (Medium Impact)
-5. Add signal handlers (SIGINT/SIGTERM) to both monitor commands
-6. Add stderr draining for adb process
-7. Add database dispose method and cleanup
+### Phase 2: Resource Management
+5. Signal handlers (SIGINT/SIGTERM) in both monitor commands
+6. Drain stderr for adb process
+7. Database dispose method and cleanup on exit
 
-### Phase 3: Memory Bounds (For Long Sessions)
-8. Add maximum size limits to EventCacheService
-9. Implement LRU eviction or periodic cleanup
-10. Consider result caching in EventCacheService with dirty flags
-
----
-
-## Performance Testing Recommendations
-
-1. **Memory profiling:** Run `dart run --observe` during extended monitoring sessions
-2. **CPU profiling:** Use DevTools to identify hot paths
-3. **Benchmark regex:** Compare static vs dynamic regex compilation overhead
-4. **Load testing:** Simulate high-frequency event streams
+### Phase 3: Memory Bounds (long sessions)
+8. Max size limits in `EventCacheService`
+9. LRU eviction or periodic cleanup
+10. Result caching in `EventCacheService` with dirty flags
 
 ---
 
-## Metrics to Track
+## Performance Testing
+
+1. Memory profiling: `dart run --observe` during extended monitoring sessions
+2. CPU profiling: DevTools to identify hot paths
+3. Benchmark: static vs. dynamic regex compilation overhead
+4. Load test: simulate high-frequency event streams
+
+---
+
+## Metrics
 
 | Metric | Target | Current |
 |--------|--------|---------|
@@ -191,7 +186,7 @@ process.stderr.drain<void>();
 
 ---
 
-## Related Documentation
+## References
 
 - [Dart Performance Best Practices](https://dart.dev/tools/dart-devtools/performance)
-- [Effective Dart: Performance](https://dart.dev/effective-dart)
+- [Effective Dart](https://dart.dev/effective-dart)

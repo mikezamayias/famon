@@ -1,7 +1,9 @@
 import 'package:famon_core/src/core/domain/repositories/data_export_repository.dart';
 import 'package:famon_core/src/core/domain/repositories/event_repository.dart';
+import 'package:injectable/injectable.dart';
 
 /// Use case for exporting and importing data with JSON compatibility
+@injectable
 class DataExportImportUseCase {
   /// Creates a new [DataExportImportUseCase].
   const DataExportImportUseCase({

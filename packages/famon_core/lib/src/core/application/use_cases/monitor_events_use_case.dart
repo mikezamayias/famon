@@ -1,8 +1,10 @@
 import 'package:famon_core/src/core/domain/entities/analytics_event.dart';
 import 'package:famon_core/src/core/domain/repositories/event_repository.dart';
 import 'package:famon_core/src/core/domain/value_objects/filter_criteria.dart';
+import 'package:injectable/injectable.dart';
 
 /// Use case for monitoring analytics events with advanced filtering
+@injectable
 class MonitorEventsUseCase {
   /// Creates a new [MonitorEventsUseCase].
   const MonitorEventsUseCase({

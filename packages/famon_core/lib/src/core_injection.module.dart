@@ -7,11 +7,17 @@
 import 'dart:async' as _i2;
 
 import 'package:famon_core/src/core/application/services/event_filter_service.dart'
-    as _i20;
+    as _i23;
+import 'package:famon_core/src/core/application/use_cases/add_manual_parameters_use_case.dart'
+    as _i21;
+import 'package:famon_core/src/core/application/use_cases/data_export_import_use_case.dart'
+    as _i22;
 import 'package:famon_core/src/core/application/use_cases/export_data_use_case.dart'
     as _i18;
 import 'package:famon_core/src/core/application/use_cases/import_data_use_case.dart'
     as _i19;
+import 'package:famon_core/src/core/application/use_cases/monitor_events_use_case.dart'
+    as _i20;
 import 'package:famon_core/src/core/domain/repositories/data_export_repository.dart'
     as _i13;
 import 'package:famon_core/src/core/domain/repositories/event_repository.dart'
@@ -68,7 +74,20 @@ class FamonCorePackageModule extends _i1.MicroPackageModule {
         () => _i18.ExportDataUseCase(gh<_i13.DataExportRepository>()));
     gh.factory<_i19.ImportDataUseCase>(
         () => _i19.ImportDataUseCase(gh<_i13.DataExportRepository>()));
-    gh.factory<_i20.EventFilterService>(() =>
-        _i20.EventFilterService(eventRepository: gh<_i15.EventRepository>()));
+    gh.factory<_i20.MonitorEventsUseCase>(() => _i20.MonitorEventsUseCase(
+          eventRepository: gh<_i15.EventRepository>(),
+          eventMetadataRepository: gh<_i15.EventMetadataRepository>(),
+        ));
+    gh.factory<_i21.AddManualParametersUseCase>(
+        () => _i21.AddManualParametersUseCase(
+              eventRepository: gh<_i15.EventRepository>(),
+              eventMetadataRepository: gh<_i15.EventMetadataRepository>(),
+            ));
+    gh.factory<_i22.DataExportImportUseCase>(() => _i22.DataExportImportUseCase(
+          dataExportRepository: gh<_i13.DataExportRepository>(),
+          eventRepository: gh<_i15.EventRepository>(),
+        ));
+    gh.factory<_i23.EventFilterService>(() =>
+        _i23.EventFilterService(eventRepository: gh<_i15.EventRepository>()));
   }
 }

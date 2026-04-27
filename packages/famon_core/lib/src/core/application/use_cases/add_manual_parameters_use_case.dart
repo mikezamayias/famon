@@ -1,8 +1,10 @@
 import 'package:famon_core/src/core/domain/entities/analytics_event.dart';
 import 'package:famon_core/src/core/domain/entities/event_metadata.dart';
 import 'package:famon_core/src/core/domain/repositories/event_repository.dart';
+import 'package:injectable/injectable.dart';
 
 /// Use case for adding manual parameters to events for more precise monitoring
+@injectable
 class AddManualParametersUseCase {
   /// Creates a new [AddManualParametersUseCase].
   const AddManualParametersUseCase({

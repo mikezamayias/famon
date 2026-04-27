@@ -7,12 +7,12 @@ labels: feature
 
 **Description**
 
-Clearly describe what you are looking to add. The more context the better.
+What do you want to add and why?
 
 **Requirements**
 
-- [ ] Checklist of requirements to be fulfilled
+- [ ] 
 
 **Additional Context**
 
-Add any other context or screenshots about the feature request go here.
+Any other context or screenshots.

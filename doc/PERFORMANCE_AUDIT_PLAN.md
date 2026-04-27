@@ -155,14 +155,14 @@ Multiple `replaceAll()` calls create intermediate strings. Minor — consider si
 4. Static final validation pattern in `FilteredMonitorCommand`
 
 ### Phase 2: Resource Management
-5. Signal handlers (SIGINT/SIGTERM) in both monitor commands
-6. Drain stderr for adb process
-7. Database dispose method and cleanup on exit
+1. Signal handlers (SIGINT/SIGTERM) in both monitor commands
+2. Drain stderr for adb process
+3. Database dispose method and cleanup on exit
 
 ### Phase 3: Memory Bounds (long sessions)
-8. Max size limits in `EventCacheService`
-9. LRU eviction or periodic cleanup
-10. Result caching in `EventCacheService` with dirty flags
+1. Max size limits in `EventCacheService`
+2. LRU eviction or periodic cleanup
+3. Result caching in `EventCacheService` with dirty flags
 
 ---
 

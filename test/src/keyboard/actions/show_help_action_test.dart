@@ -65,7 +65,10 @@ void main() {
       registry: registry,
       getBinding: (id) {
         // Return the binding from the action itself
-        final action = registry.allActions.firstWhere((a) => a.id == id);
+        final action = registry.allActions.firstWhere(
+          (a) => a.id == id,
+          orElse: () => throw ArgumentError('Unknown action: $id'),
+        );
         return action.defaultBinding;
       },
     );

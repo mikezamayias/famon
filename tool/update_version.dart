@@ -6,7 +6,7 @@ import 'dart:io';
 
 /// Updates the version in both pubspec.yaml and lib/src/version.dart.
 ///
-/// Usage: `dart run tool/update_version.dart VERSION`
+/// Usage: `dart run tool/update_version.dart <version>`
 void main(List<String> args) {
   if (args.isEmpty) {
     print('Usage: dart run tool/update_version.dart <version>');

@@ -87,7 +87,7 @@ void main() {
 
       final infoCalls = verify(() => logger.info(captureAny())).captured;
       // Should have 3 info calls: monitoring message, help text, empty line
-      expect(infoCalls.length, greaterThanOrEqualTo(2));
+      expect(infoCalls.length, equals(3));
     });
 
     test('executes without errors with events in context', () async {

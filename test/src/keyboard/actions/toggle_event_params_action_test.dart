@@ -1,6 +1,6 @@
 import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/toggle_event_params_action.dart';
-import 'package:famon/src/services/interfaces/event_cache_interface.dart';
+import 'package:famon_core/famon_core.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';

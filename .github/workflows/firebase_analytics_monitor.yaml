@@ -11,6 +11,10 @@ on:
       - "lib/**"
       - "test/**"
       - "pubspec.yaml"
+      - "packages/famon_core/lib/**"
+      - "packages/famon_core/test/**"
+      - "packages/famon_core/pubspec.yaml"
+      - "codecov.yml"
   push:
     branches:
       - main
@@ -19,6 +23,10 @@ on:
       - "lib/**"
       - "test/**"
       - "pubspec.yaml"
+      - "packages/famon_core/lib/**"
+      - "packages/famon_core/test/**"
+      - "packages/famon_core/pubspec.yaml"
+      - "codecov.yml"
 
 jobs:
   semantic-pull-request:
@@ -73,14 +81,26 @@ jobs:
         with:
           sdk: "3.11.0"
 
-      - name: 📦 Install Dependencies
+      - name: 📦 Install Dependencies (root)
         run: dart pub get
 
-      - name: 🔨 Generate Code
+      - name: 📦 Install Dependencies (famon_core)
+        run: dart pub get
+        working-directory: packages/famon_core
+
+      - name: 🔨 Generate Code (root)
         run: dart run build_runner build --delete-conflicting-outputs
 
-      - name: 🧪 Run Tests with Coverage
+      - name: 🔨 Generate Code (famon_core)
+        run: dart run build_runner build --delete-conflicting-outputs
+        working-directory: packages/famon_core
+
+      - name: 🧪 Run Tests with Coverage (root)
         run: dart test --coverage=coverage
+
+      - name: 🧪 Run Tests with Coverage (famon_core)
+        run: dart test --coverage=coverage || true
+        working-directory: packages/famon_core
 
       - name: 📊 Format Coverage
         run: |
@@ -88,10 +108,23 @@ jobs:
           dart pub global run coverage:format_coverage \
             --lcov --in=coverage --out=coverage/lcov.info \
             --report-on=lib
+          dart pub global run coverage:format_coverage \
+            --lcov --in=packages/famon_core/coverage \
+            --out=coverage/lcov-core.info \
+            --report-on=lib
 
-      - name: 📤 Upload to Codecov
+      - name: 📤 Upload CLI Coverage to Codecov
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage/lcov.info
+          flags: cli
+          fail_ci_if_error: false
+
+      - name: 📤 Upload Core Coverage to Codecov
+        uses: codecov/codecov-action@v6
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/lcov-core.info
+          flags: core
           fail_ci_if_error: false

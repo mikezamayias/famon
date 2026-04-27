@@ -1,5 +1,4 @@
-import 'package:famon/src/services/interfaces/log_parser_interface.dart';
-import 'package:famon/src/services/log_parser_service.dart';
+import 'package:famon_core/famon_core.dart';
 import 'package:test/test.dart';
 
 void main() {

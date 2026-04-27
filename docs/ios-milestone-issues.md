@@ -103,7 +103,7 @@ Create `lib/src/shared/ios_log_timestamp_parser.dart` to parse iOS log timestamp
 **Acceptance Criteria:**
 - [ ] Parses Xcode console timestamp format correctly
 - [ ] Returns `DateTime` objects
-- [ ] Handles timezone offsets
+- [ ] Handles time zone offsets
 - [ ] Unit tests cover standard and edge-case timestamps
 
 ---

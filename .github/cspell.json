@@ -37,6 +37,13 @@
     "unvalidated",
     "sublist",
     "finalizer",
-    "usbmuxd"
+    "usbmuxd",
+    "softprops",
+    "stty",
+    "cgen",
+    "Lakos",
+    "Zamayias",
+    "dartlang",
+    "replug"
   ]
 }

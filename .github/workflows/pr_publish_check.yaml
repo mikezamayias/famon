@@ -91,3 +91,30 @@ jobs:
       - name: Run example
         working-directory: packages/famon_core
         run: dart run example/famon_core_example.dart
+
+  verify-release-please-markers:
+    name: Verify release-please markers present
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check x-release-please-version markers
+        run: |
+          set -euo pipefail
+
+          MISSING=0
+
+          if ! grep -qF "// x-release-please-version" lib/src/version.dart; then
+            echo "::error file=lib/src/version.dart::missing 'x-release-please-version' marker. release-please relies on this comment to bump packageVersion."
+            MISSING=1
+          fi
+
+          if ! grep -qF "# x-release-please-version" pubspec.yaml; then
+            echo "::error file=pubspec.yaml::missing 'x-release-please-version' marker on the famon_core constraint line. release-please relies on it to keep the dependency in lockstep with the library version."
+            MISSING=1
+          fi
+
+          if [ "$MISSING" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "All release-please markers present."

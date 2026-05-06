@@ -10,8 +10,7 @@
     {
       "type": "linked-versions",
       "groupName": "famon",
-      "components": ["famon", "famon_core"],
-      "merge": true
+      "components": ["famon", "famon_core"]
     }
   ],
   "packages": {

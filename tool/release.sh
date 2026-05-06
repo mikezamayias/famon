@@ -30,6 +30,12 @@ if ! grep -qF "version: $VERSION" pubspec.yaml; then
   exit 1
 fi
 
+if ! grep -qF "famon_core: ^$VERSION" pubspec.yaml; then
+  echo "pubspec.yaml famon_core constraint is not ^$VERSION" >&2
+  echo "Run: dart run tool/update_version.dart $VERSION" >&2
+  exit 1
+fi
+
 if ! grep -qF "version: $VERSION" packages/famon_core/pubspec.yaml; then
   echo "packages/famon_core/pubspec.yaml version is not set to $VERSION" >&2
   echo "Run: dart run tool/update_version.dart $VERSION" >&2

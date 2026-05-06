@@ -18,7 +18,7 @@ All feature and fix branches branch from `dev` (e.g. `feature/<name>`, `fix/<nam
 
 ## Step-by-step
 
-Run from the `dev` branch (or a `chore/release-X.Y.Z` branch off `dev` that you PR back to `dev` first).
+Per the branching protocol, the bump goes through a `chore/release-X.Y.Z` branch off `dev` and lands via a PR back to `dev`. Steps 1–4 happen on that branch; step 5 runs from `dev` after the PR merges.
 
 ### 1. Bump every version source atomically
 
@@ -56,42 +56,49 @@ dart pub publish --dry-run
 
 The dry-runs should report zero warnings. A `dependency_overrides` hint is expected on the root `famon` package — it carries the local `path: packages/famon_core` override, which pub strips from the published pubspec but warns about during dry-run.
 
-### 4. Commit and push `dev`
+### 4. Commit, push the release branch, open the PR
 
-Stage explicitly (no `git add -A`) and push:
+Stage explicitly (no `git add -A`):
 
 ```bash
 git add pubspec.yaml packages/famon_core/pubspec.yaml lib/src/version.dart \
         CHANGELOG.md packages/famon_core/CHANGELOG.md
 git commit -m "chore(release): 1.4.1"
-git push origin dev
+git push -u origin chore/release-1.4.1
+gh pr create --base dev --title "chore(release): 1.4.1" --fill
 ```
 
-`pr_publish_check.yaml` runs on the resulting CI build and re-runs both dry-runs and the version cross-check — wait for it to go green before tagging.
+`pr_publish_check.yaml` runs on the PR and re-runs the version cross-check, both `dart pub publish --dry-run`s, and the `famon_core` example smoke run. Wait for it to go green, then merge the PR via the GitHub UI (or `gh pr merge`).
 
 ### 5. Merge to `main` and tag
 
-Use the helper:
+After the PR merges into `dev`, switch to `dev`, pull, then run the helper from a clean working tree:
 
 ```bash
+git checkout dev
+git pull origin dev --ff-only
 ./tool/release.sh 1.4.1
 ```
 
-It guards against:
+`tool/release.sh` itself does:
 
-- Dirty working tree
-- Missing `dev` or `main` branch locally
-- Any of the five version sources (two pubspec `version:` fields, both `## [X.Y.Z]` changelog headings, and `packageVersion`) not matching the requested version
+1. Guards: working tree must be clean, both `dev` and `main` must exist locally, all six version sources match `1.4.1`:
+   - root `pubspec.yaml` `version:`
+   - root `pubspec.yaml` `famon_core: ^1.4.1` constraint
+   - `packages/famon_core/pubspec.yaml` `version:`
+   - root `CHANGELOG.md` has a `## [1.4.1]` heading
+   - `packages/famon_core/CHANGELOG.md` has a `## [1.4.1]` heading
+   - `lib/src/version.dart` has `const packageVersion = '1.4.1';`
+2. Checks out `dev` to validate, then `main` to merge.
+3. Runs the merge + tag + push:
 
-…then runs the merge + tag + push:
-
-```bash
-git checkout main
-git merge --no-ff dev
-git tag -a v1.4.1 -m "Release 1.4.1"
-git push origin main
-git push origin v1.4.1
-```
+   ```bash
+   git checkout main
+   git merge --no-ff dev
+   git tag -a v1.4.1 -m "Release 1.4.1"
+   git push origin main
+   git push origin v1.4.1
+   ```
 
 The tag push triggers the GitHub Actions workflow `.github/workflows/publish.yaml`.
 

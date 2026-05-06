@@ -1,7 +1,14 @@
 name: famon_core
-description: Core library for Firebase Analytics event parsing, formatting, and persistence.
-version: 1.3.0
+description: Core library for Firebase Analytics event parsing, formatting, and persistence. Powers the famon CLI.
+version: 1.4.0
 repository: https://github.com/mikezamayias/famon
+homepage: https://github.com/mikezamayias/famon
+issue_tracker: https://github.com/mikezamayias/famon/issues
+topics:
+  - firebase
+  - analytics
+  - cli
+  - monitoring
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

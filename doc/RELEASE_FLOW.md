@@ -16,21 +16,24 @@ Both packages share a single version. They are released together.
 
 All feature and fix branches branch from `dev` (e.g. `feature/<name>`, `fix/<name>`) and merge back via pull requests targeting `dev`.
 
-## Bump version
+## Step-by-step
 
-Use the helper script — it updates all three sources of truth atomically:
+Run from the `dev` branch (or a `chore/release-X.Y.Z` branch off `dev` that you PR back to `dev` first).
+
+### 1. Bump every version source atomically
 
 ```bash
 dart run tool/update_version.dart 1.4.1
 ```
 
-This rewrites:
+`tool/update_version.dart` rewrites four sources in a preflight + apply pipeline so a partial failure leaves the repo untouched:
 
-- `pubspec.yaml`
-- `packages/famon_core/pubspec.yaml`
-- `lib/src/version.dart` (`packageVersion` constant)
+- `pubspec.yaml` — `version:`
+- `pubspec.yaml` — `famon_core: ^X.Y.Z` constraint (kept in lockstep with the library so major bumps stay coherent)
+- `packages/famon_core/pubspec.yaml` — `version:`
+- `lib/src/version.dart` — `packageVersion` constant
 
-## Update changelogs
+### 2. Update both changelogs
 
 Both packages keep their own changelog (Keep a Changelog format):
 
@@ -39,19 +42,9 @@ Both packages keep their own changelog (Keep a Changelog format):
 
 Add a new `## [X.Y.Z] - YYYY-MM-DD` section to each. If a release only touches the CLI, the `famon_core` entry can simply note "no functional changes — version bumped to track CLI release."
 
-## Commit
+### 3. Run pre-push checks
 
-Stage explicitly and commit:
-
-```bash
-git add pubspec.yaml packages/famon_core/pubspec.yaml lib/src/version.dart \
-        CHANGELOG.md packages/famon_core/CHANGELOG.md
-git commit -m "chore(release): 1.4.1"
-```
-
-## Pre-tag verification
-
-Before tagging, both packages must dry-run cleanly. Uncommitted-file warnings disappear once the release commit is in place.
+Per the project's branching protocol, every push runs format, analyzer (with `--fatal-warnings`), and the full test suite locally first. For a release commit, also dry-run both packages:
 
 ```bash
 dart format --set-exit-if-changed .
@@ -61,31 +54,44 @@ dart test
 dart pub publish --dry-run
 ```
 
-A `dependency_overrides` hint is expected on the root `famon` package — it carries the local `path: packages/famon_core` override, which pub strips from the published pubspec but warns about during dry-run.
+The dry-runs should report zero warnings. A `dependency_overrides` hint is expected on the root `famon` package — it carries the local `path: packages/famon_core` override, which pub strips from the published pubspec but warns about during dry-run.
 
-## Tag and push
+### 4. Commit and push `dev`
 
-After preparing the release on `dev`:
+Stage explicitly (no `git add -A`) and push:
 
-1. Merge `dev` into `main`:
+```bash
+git add pubspec.yaml packages/famon_core/pubspec.yaml lib/src/version.dart \
+        CHANGELOG.md packages/famon_core/CHANGELOG.md
+git commit -m "chore(release): 1.4.1"
+git push origin dev
+```
 
-   ```bash
-   git checkout main
-   git merge --no-ff dev
-   ```
+`pr_publish_check.yaml` runs on the resulting CI build and re-runs both dry-runs and the version cross-check — wait for it to go green before tagging.
 
-2. Create an annotated tag matching the version in `pubspec.yaml`:
+### 5. Merge to `main` and tag
 
-   ```bash
-   git tag -a v1.4.1 -m "Release 1.4.1"
-   ```
+Use the helper:
 
-3. Push when ready to publish:
+```bash
+./tool/release.sh 1.4.1
+```
 
-   ```bash
-   git push origin main
-   git push origin v1.4.1
-   ```
+It guards against:
+
+- Dirty working tree
+- Missing `dev` or `main` branch locally
+- Any of the five version sources (two pubspec `version:` fields, both `## [X.Y.Z]` changelog headings, and `packageVersion`) not matching the requested version
+
+…then runs the merge + tag + push:
+
+```bash
+git checkout main
+git merge --no-ff dev
+git tag -a v1.4.1 -m "Release 1.4.1"
+git push origin main
+git push origin v1.4.1
+```
 
 The tag push triggers the GitHub Actions workflow `.github/workflows/publish.yaml`.
 
@@ -113,7 +119,15 @@ Pub.dev does not allow re-publishing the same version. If `publish-core` succeed
 
 ### Authentication
 
-Both publish jobs use OIDC trusted publishing (`permissions: id-token: write` plus `dart-lang/setup-dart@v1`). For this to work, each package must be configured for "Automated publishing from GitHub Actions" in its pub.dev admin page, with the repository, workflow, and tag pattern matching this workflow. **`famon_core` cannot be configured for trusted publishing until after its first manual publish** (pub.dev requires the package to exist).
+Both publish jobs use OIDC trusted publishing (`permissions: id-token: write` plus `dart-lang/setup-dart@v1`, no `PUB_TOKEN` env var). Both packages have GitHub Actions trusted publishing enabled on their pub.dev admin page with:
+
+- Repository: `mikezamayias/famon`
+- Tag pattern: `v{{version}}`
+- Enabled events: `push` only
+- Require GitHub Actions environment: off
+- GCP service account: off
+
+**Trusted publishing cannot be configured for a package that does not yet exist on pub.dev.** The very first publish of a new package must be done manually (see [Manual publish](#manual-publish) below); after the package appears on pub.dev, return to its admin page and enable Automated publishing.
 
 ## Continuous integration on PRs
 

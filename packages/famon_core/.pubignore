@@ -1,0 +1,6 @@
+.dart_tool/
+test/
+coverage/
+*.dylib
+*.so
+*.dll

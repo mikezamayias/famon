@@ -1,0 +1,103 @@
+name: Publish to pub.dev
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-versions:
+    name: Verify version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check tag matches all version sources
+        env:
+          GIT_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+
+          TAG="${GIT_REF#refs/tags/v}"
+          ROOT=$(grep "^version:" pubspec.yaml | sed 's/version: //' | tr -d ' ')
+          CORE=$(grep "^version:" packages/famon_core/pubspec.yaml | sed 's/version: //' | tr -d ' ')
+          DART=$(grep "packageVersion" lib/src/version.dart | sed "s/.*= '\([^']*\)'.*/\1/")
+
+          echo "Tag:                         $TAG"
+          echo "pubspec.yaml:                $ROOT"
+          echo "famon_core/pubspec.yaml:     $CORE"
+          echo "lib/src/version.dart:        $DART"
+
+          if [ -z "$ROOT" ] || [ -z "$CORE" ] || [ -z "$DART" ]; then
+            echo "::error::One or more version sources is empty. Check source files for malformed YAML or missing constants."
+            exit 1
+          fi
+
+          if [ "$TAG" != "$ROOT" ] || [ "$TAG" != "$CORE" ] || [ "$TAG" != "$DART" ]; then
+            echo "::error::Version mismatch. Run 'dart run tool/update_version.dart $TAG' and retag."
+            exit 1
+          fi
+
+          echo "All version sources match."
+
+  publish-core:
+    name: Publish famon_core to pub.dev
+    needs: verify-versions
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Install dependencies
+        working-directory: packages/famon_core
+        run: dart pub get
+      - name: Validate package
+        working-directory: packages/famon_core
+        run: dart pub publish --dry-run
+      - name: Publish
+        working-directory: packages/famon_core
+        run: dart pub publish --force
+
+  publish-cli:
+    name: Publish famon to pub.dev
+    needs: publish-core
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Wait for pub.dev to index famon_core
+        env:
+          GIT_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+
+          TAG="${GIT_REF#refs/tags/v}"
+          MAX_ATTEMPTS=30
+          SLEEP=10
+
+          echo "Polling pub.dev for famon_core@$TAG (max ${MAX_ATTEMPTS} attempts, ${SLEEP}s apart)..."
+          for i in $(seq 1 "$MAX_ATTEMPTS"); do
+            if curl --fail --silent --show-error \
+                "https://pub.dev/api/packages/famon_core" \
+                | grep -q "\"version\":\"$TAG\""; then
+              echo "famon_core@$TAG is live on pub.dev (attempt $i)."
+              exit 0
+            fi
+            echo "Attempt $i: famon_core@$TAG not yet indexed. Sleeping ${SLEEP}s."
+            sleep "$SLEEP"
+          done
+
+          echo "::error::famon_core@$TAG was not indexed on pub.dev within $((MAX_ATTEMPTS * SLEEP))s. famon CLI publish aborted to avoid resolving the wrong famon_core version."
+          exit 1
+      - name: Install dependencies
+        run: dart pub get
+      - name: Validate package
+        run: dart pub publish --dry-run
+      - name: Publish
+        run: dart pub publish --force

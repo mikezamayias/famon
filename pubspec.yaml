@@ -2,7 +2,13 @@ name: famon
 description: A command-line tool to monitor Firebase Analytics events from logcat.
 version: 1.4.0
 repository: https://github.com/mikezamayias/famon
-publish_to: none
+homepage: https://github.com/mikezamayias/famon
+issue_tracker: https://github.com/mikezamayias/famon/issues
+topics:
+  - firebase
+  - analytics
+  - cli
+  - monitoring
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -11,8 +17,7 @@ dependencies:
   args: ^2.5.0
   cli_completion: ">=0.4.0 <0.6.0"
   equatable: ^2.0.5
-  famon_core:
-    path: packages/famon_core
+  famon_core: ^1.4.0
   get_it: ">=7.6.7 <10.0.0"
   injectable: ^2.3.5
   mason_logger: ">=0.2.11 <0.4.0"
@@ -29,6 +34,12 @@ dev_dependencies:
   mocktail: ^1.0.3
   test: ^1.25.2
   very_good_analysis: ">=5.1.0 <11.0.0"
+
+# Local-only override so the monorepo builds against the in-tree famon_core
+# during development. pub.dev ignores dependency_overrides from consumers.
+dependency_overrides:
+  famon_core:
+    path: packages/famon_core
 
 executables:
   famon:

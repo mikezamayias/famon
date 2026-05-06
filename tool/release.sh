@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+#
+# Manual release helper — kept as the bypass path for when release-please
+# (.github/workflows/release-please.yaml) cannot be used: an emergency
+# patch, a release-please outage, or a hand-curated release whose CHANGELOG
+# you want to author yourself. For routine releases, prefer release-please.
+#
+# Running both flows for the same version creates duplicate tags and
+# fights over CHANGELOG content — only use one path per release.
+
 set -euo pipefail
 
 VERSION="${1:-}"

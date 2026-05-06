@@ -1,0 +1,74 @@
+name: Publish to pub.dev
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-versions:
+    name: Verify version consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check tag matches all version sources
+        env:
+          GIT_REF: ${{ github.ref }}
+        run: |
+          TAG="${GIT_REF#refs/tags/v}"
+          ROOT=$(grep "^version:" pubspec.yaml | sed 's/version: //' | tr -d ' ')
+          CORE=$(grep "^version:" packages/famon_core/pubspec.yaml | sed 's/version: //' | tr -d ' ')
+          DART=$(grep "packageVersion" lib/src/version.dart | sed "s/.*= '\([^']*\)'.*/\1/")
+
+          echo "Tag:                         $TAG"
+          echo "pubspec.yaml:                $ROOT"
+          echo "famon_core/pubspec.yaml:     $CORE"
+          echo "lib/src/version.dart:        $DART"
+
+          if [ "$TAG" != "$ROOT" ] || [ "$TAG" != "$CORE" ] || [ "$TAG" != "$DART" ]; then
+            echo "::error::Version mismatch. Run 'dart run tool/update_version.dart $TAG' and retag."
+            exit 1
+          fi
+
+          echo "All version sources match."
+
+  publish-core:
+    name: Publish famon_core to pub.dev
+    needs: verify-versions
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Install dependencies
+        working-directory: packages/famon_core
+        run: dart pub get
+      - name: Validate package
+        working-directory: packages/famon_core
+        run: dart pub publish --dry-run
+      - name: Publish
+        working-directory: packages/famon_core
+        run: dart pub publish --force
+
+  publish-cli:
+    name: Publish famon to pub.dev
+    needs: publish-core
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+      - name: Wait for pub.dev to index famon_core
+        run: sleep 60
+      - name: Install dependencies
+        run: dart pub get
+      - name: Validate package
+        run: dart pub publish --dry-run
+      - name: Publish
+        run: dart pub publish --force

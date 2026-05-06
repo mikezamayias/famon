@@ -4,10 +4,24 @@
 
 import 'dart:io';
 
+const _pubspecVersionPattern = r'^version:\s*.+$';
+const _dartVersionPattern = "const packageVersion = '[^']+';";
+// Matches the hosted-dependency declaration (with caret constraint) only —
+// the path-based `dependency_overrides` entry does not start with `^` and is
+// safely ignored.
+const _famonCoreDepPattern = r'famon_core:\s*\^[^\s]+';
+
 /// Updates the version across all monorepo sources of truth:
 ///   - pubspec.yaml                          (root famon CLI)
-///   - packages/famon_core/pubspec.yaml      (famon_core library)
-///   - lib/src/version.dart                  (runtime version constant)
+///       * `version:` field
+///       * `famon_core: ^X.Y.Z` constraint, kept in lockstep so major bumps
+///         (e.g. 2.0.0) do not leave the CLI resolving an old core version.
+///   - packages/famon_core/pubspec.yaml      (famon_core library `version:`)
+///   - lib/src/version.dart                  (runtime `packageVersion`)
+///
+/// All updates are validated up front and applied atomically: if any source
+/// cannot be located or rewritten, no file is mutated. This avoids the
+/// half-bumped state that previously caused git/pub.dev version drift.
 ///
 /// Usage: `dart run tool/update_version.dart <version>`
 void main(List<String> args) {
@@ -26,54 +40,124 @@ void main(List<String> args) {
     exit(1);
   }
 
-  _updatePubspecVersion('pubspec.yaml', version);
-  _updatePubspecVersion('packages/famon_core/pubspec.yaml', version);
-  _updateDartVersionConst('lib/src/version.dart', version);
+  final updates = <_FileUpdate>[
+    _FileUpdate('pubspec.yaml', [
+      (
+        pattern: RegExp(_pubspecVersionPattern, multiLine: true),
+        replacement: 'version: $version',
+        description: 'version: field',
+      ),
+      (
+        pattern: RegExp(_famonCoreDepPattern),
+        replacement: 'famon_core: ^$version',
+        description: 'famon_core dependency constraint',
+      ),
+    ]),
+    _FileUpdate('packages/famon_core/pubspec.yaml', [
+      (
+        pattern: RegExp(_pubspecVersionPattern, multiLine: true),
+        replacement: 'version: $version',
+        description: 'version: field',
+      ),
+    ]),
+    _FileUpdate('lib/src/version.dart', [
+      (
+        pattern: RegExp(_dartVersionPattern),
+        replacement: "const packageVersion = '$version';",
+        description: 'packageVersion constant',
+      ),
+    ]),
+  ];
+
+  // Phase 1 — preflight every update. Any failure aborts before any write.
+  for (final update in updates) {
+    final error = update.preflight();
+    if (error != null) {
+      print('Error: $error');
+      exit(1);
+    }
+  }
+
+  // Phase 2 — apply writes. If write N throws after writes 1..N-1 succeeded,
+  // restore those files from the snapshot captured during preflight.
+  final completed = <_FileUpdate>[];
+  try {
+    for (final update in updates) {
+      update.apply();
+      completed.add(update);
+      print('Updated ${update.path} → version $version');
+    }
+  } on FileSystemException catch (e) {
+    stderr.writeln(
+      'Error: write failed for ${e.path ?? '<unknown>'}: ${e.message}',
+    );
+    for (final done in completed) {
+      done.restore();
+      stderr.writeln('Reverted ${done.path}');
+    }
+    exit(1);
+  }
 
   print('\nVersion updated to $version across all sources.');
   print('Remember to update both CHANGELOG.md files with changes.');
 }
 
-void _updatePubspecVersion(String path, String version) {
-  final file = File(path);
-  if (!file.existsSync()) {
-    print('Error: $path not found');
-    exit(1);
+typedef _Rewrite = ({
+  RegExp pattern,
+  String replacement,
+  String description,
+});
+
+class _FileUpdate {
+  _FileUpdate(this.path, this.rewrites);
+
+  final String path;
+  final List<_Rewrite> rewrites;
+
+  String? _originalContent;
+  String? _newContent;
+
+  /// Returns null on success, or an error message describing why the update
+  /// cannot be applied. Captures the file's current contents so [restore]
+  /// can revert if a later update in the batch fails.
+  String? preflight() {
+    final file = File(path);
+    if (!file.existsSync()) {
+      return '$path not found';
+    }
+
+    final original = file.readAsStringSync();
+    var next = original;
+    for (final rewrite in rewrites) {
+      if (!rewrite.pattern.hasMatch(next)) {
+        return 'Could not locate ${rewrite.description} in $path';
+      }
+      next = next.replaceFirst(rewrite.pattern, rewrite.replacement);
+    }
+
+    _originalContent = original;
+    _newContent = next;
+    return null;
   }
 
-  var content = file.readAsStringSync();
-  final regex = RegExp(r'^version:\s*.+$', multiLine: true);
-  if (!regex.hasMatch(content)) {
-    print('Error: Could not find version field in $path');
-    exit(1);
+  void apply() {
+    final newContent = _newContent;
+    if (newContent == null) {
+      throw StateError('apply() called before preflight() for $path');
+    }
+    File(path).writeAsStringSync(newContent);
   }
 
-  content = content.replaceFirst(regex, 'version: $version');
-  file.writeAsStringSync(content);
-  print('Updated $path to version $version');
-}
-
-void _updateDartVersionConst(String path, String version) {
-  final file = File(path);
-  if (!file.existsSync()) {
-    print('Error: $path not found');
-    exit(1);
+  void restore() {
+    final original = _originalContent;
+    if (original == null) return;
+    try {
+      File(path).writeAsStringSync(original);
+    } on FileSystemException catch (e) {
+      stderr.writeln(
+        'WARNING: failed to restore $path: ${e.message}. '
+        'Inspect manually with `git diff $path`.',
+      );
+    }
   }
-
-  var content = file.readAsStringSync();
-  final regex = RegExp(
-    "const packageVersion = '[^']+';",
-    multiLine: true,
-  );
-  if (!regex.hasMatch(content)) {
-    print('Error: Could not find packageVersion in $path');
-    exit(1);
-  }
-
-  content = content.replaceFirst(
-    regex,
-    "const packageVersion = '$version';",
-  );
-  file.writeAsStringSync(content);
-  print('Updated $path to version $version');
 }

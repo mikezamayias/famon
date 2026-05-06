@@ -44,6 +44,12 @@
     "Lakos",
     "Zamayias",
     "dartlang",
-    "replug"
+    "replug",
+    "pubignore",
+    "pubspec",
+    "pubspecs",
+    "OIDC",
+    "preflight",
+    "monorepo"
   ]
 }

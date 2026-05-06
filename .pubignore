@@ -1,0 +1,16 @@
+.claude/
+.dart_tool/
+.github/
+.idea/
+.todos/
+.vscode/
+.worktrees/
+docs/
+test/
+tool/
+coverage/
+*.dylib
+*.so
+*.dll
+libisar.dylib
+PLAN.md

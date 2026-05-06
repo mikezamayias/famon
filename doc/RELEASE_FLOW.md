@@ -136,6 +136,22 @@ Both publish jobs use OIDC trusted publishing (`permissions: id-token: write` pl
 
 **Trusted publishing cannot be configured for a package that does not yet exist on pub.dev.** The very first publish of a new package must be done manually (see [Manual publish](#manual-publish) below); after the package appears on pub.dev, return to its admin page and enable Automated publishing.
 
+## release-please configuration maintenance
+
+`release-please-config.json` carries a `last-release-sha` field that bounds the commit walk. Per the [release-please docs](https://github.com/googleapis/release-please/blob/main/docs/manifest-releaser.md), this field is **persistent** — it is not auto-cleared after a release PR merges, unlike `bootstrap-sha`. If left pointing at an old release commit forever, future runs will re-walk every commit since that pin and risk re-issuing changelog entries that have already shipped.
+
+After each release PR merges, update the field to the new release commit (or remove it once release-please tracks the prior release through the manifest reliably):
+
+```bash
+# After v1.4.1 ships, find the chore(release): 1.4.1 commit on dev
+RELEASE_SHA=$(git log --grep='chore(release): 1.4.1' --format='%H' -n 1 dev)
+
+# Edit release-please-config.json to set "last-release-sha": "$RELEASE_SHA"
+# Commit and PR back to dev as part of the post-release cleanup.
+```
+
+This is the only manual step required by release-please. Everything else is automated.
+
 ## Continuous integration on PRs
 
 `.github/workflows/pr_publish_check.yaml` runs on every PR that touches publish-relevant files (`pubspec.yaml`, `lib/src/version.dart`, `packages/famon_core/**`, `.pubignore`, `tool/update_version.dart`, `tool/release.sh`, the publish workflows). It runs four jobs:

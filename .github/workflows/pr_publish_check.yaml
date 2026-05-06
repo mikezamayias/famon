@@ -1,0 +1,93 @@
+name: PR Publish Check
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+    paths:
+      - "pubspec.yaml"
+      - "lib/src/version.dart"
+      - "packages/famon_core/**"
+      - ".pubignore"
+      - "tool/update_version.dart"
+      - "tool/release.sh"
+      - ".github/workflows/publish.yaml"
+      - ".github/workflows/pr_publish_check.yaml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-versions-consistent:
+    name: Verify version sources agree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cross-check three version sources
+        run: |
+          set -euo pipefail
+
+          ROOT=$(grep "^version:" pubspec.yaml | sed 's/version: //' | tr -d ' ')
+          CORE=$(grep "^version:" packages/famon_core/pubspec.yaml | sed 's/version: //' | tr -d ' ')
+          DART=$(grep "packageVersion" lib/src/version.dart | sed "s/.*= '\([^']*\)'.*/\1/")
+
+          echo "pubspec.yaml:                $ROOT"
+          echo "famon_core/pubspec.yaml:     $CORE"
+          echo "lib/src/version.dart:        $DART"
+
+          if [ -z "$ROOT" ] || [ -z "$CORE" ] || [ -z "$DART" ]; then
+            echo "::error::One or more version sources is empty. Check source files for malformed YAML or missing constants."
+            exit 1
+          fi
+
+          if [ "$ROOT" != "$CORE" ] || [ "$ROOT" != "$DART" ]; then
+            echo "::error::Version sources disagree. Run 'dart run tool/update_version.dart $ROOT' to align."
+            exit 1
+          fi
+
+          echo "All version sources agree on $ROOT."
+
+  dry-run-famon-core:
+    name: dart pub publish --dry-run (famon_core)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.11.0"
+      - name: Install dependencies
+        working-directory: packages/famon_core
+        run: dart pub get
+      - name: Dry-run publish
+        working-directory: packages/famon_core
+        run: dart pub publish --dry-run
+
+  dry-run-famon:
+    name: dart pub publish --dry-run (famon)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.11.0"
+      - name: Install dependencies
+        run: dart pub get
+      - name: Dry-run publish
+        run: dart pub publish --dry-run
+
+  example-smoke-run:
+    name: Run famon_core example
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.11.0"
+      - name: Install dependencies
+        working-directory: packages/famon_core
+        run: dart pub get
+      - name: Run example
+        working-directory: packages/famon_core
+        run: dart run example/famon_core_example.dart

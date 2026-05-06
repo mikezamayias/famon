@@ -4,7 +4,10 @@
 
 import 'dart:io';
 
-/// Updates the version in both pubspec.yaml and lib/src/version.dart.
+/// Updates the version across all monorepo sources of truth:
+///   - pubspec.yaml                          (root famon CLI)
+///   - packages/famon_core/pubspec.yaml      (famon_core library)
+///   - lib/src/version.dart                  (runtime version constant)
 ///
 /// Usage: `dart run tool/update_version.dart <version>`
 void main(List<String> args) {
@@ -16,7 +19,6 @@ void main(List<String> args) {
 
   final version = args[0];
 
-  // Validate version format
   final versionRegex = RegExp(r'^\d+\.\d+\.\d+(-[\w.]+)?(\+[\w.]+)?$');
   if (!versionRegex.hasMatch(version)) {
     print('Error: Invalid version format: $version');
@@ -24,51 +26,54 @@ void main(List<String> args) {
     exit(1);
   }
 
-  // Update pubspec.yaml
-  final pubspecFile = File('pubspec.yaml');
-  if (!pubspecFile.existsSync()) {
-    print('Error: pubspec.yaml not found');
+  _updatePubspecVersion('pubspec.yaml', version);
+  _updatePubspecVersion('packages/famon_core/pubspec.yaml', version);
+  _updateDartVersionConst('lib/src/version.dart', version);
+
+  print('\nVersion updated to $version across all sources.');
+  print('Remember to update both CHANGELOG.md files with changes.');
+}
+
+void _updatePubspecVersion(String path, String version) {
+  final file = File(path);
+  if (!file.existsSync()) {
+    print('Error: $path not found');
     exit(1);
   }
 
-  var pubspecContent = pubspecFile.readAsStringSync();
-  final pubspecVersionRegex = RegExp(r'^version:\s*.+$', multiLine: true);
-  if (!pubspecVersionRegex.hasMatch(pubspecContent)) {
-    print('Error: Could not find version field in pubspec.yaml');
+  var content = file.readAsStringSync();
+  final regex = RegExp(r'^version:\s*.+$', multiLine: true);
+  if (!regex.hasMatch(content)) {
+    print('Error: Could not find version field in $path');
     exit(1);
   }
 
-  pubspecContent = pubspecContent.replaceFirst(
-    pubspecVersionRegex,
-    'version: $version',
-  );
-  pubspecFile.writeAsStringSync(pubspecContent);
-  print('Updated pubspec.yaml to version $version');
+  content = content.replaceFirst(regex, 'version: $version');
+  file.writeAsStringSync(content);
+  print('Updated $path to version $version');
+}
 
-  // Update lib/src/version.dart
-  final versionFile = File('lib/src/version.dart');
-  if (!versionFile.existsSync()) {
-    print('Error: lib/src/version.dart not found');
+void _updateDartVersionConst(String path, String version) {
+  final file = File(path);
+  if (!file.existsSync()) {
+    print('Error: $path not found');
     exit(1);
   }
 
-  var versionContent = versionFile.readAsStringSync();
-  final versionConstRegex = RegExp(
+  var content = file.readAsStringSync();
+  final regex = RegExp(
     "const packageVersion = '[^']+';",
     multiLine: true,
   );
-  if (!versionConstRegex.hasMatch(versionContent)) {
-    print('Error: Could not find packageVersion in lib/src/version.dart');
+  if (!regex.hasMatch(content)) {
+    print('Error: Could not find packageVersion in $path');
     exit(1);
   }
 
-  versionContent = versionContent.replaceFirst(
-    versionConstRegex,
+  content = content.replaceFirst(
+    regex,
     "const packageVersion = '$version';",
   );
-  versionFile.writeAsStringSync(versionContent);
-  print('Updated lib/src/version.dart to version $version');
-
-  print('\nVersion updated to $version');
-  print('Remember to update CHANGELOG.md with changes for this version.');
+  file.writeAsStringSync(content);
+  print('Updated $path to version $version');
 }

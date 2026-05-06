@@ -25,28 +25,28 @@ fi
 
 git checkout dev
 
-if ! grep -q "version: $VERSION" pubspec.yaml; then
+if ! grep -qF "version: $VERSION" pubspec.yaml; then
   echo "pubspec.yaml version is not set to $VERSION" >&2
   exit 1
 fi
 
-if ! grep -q "version: $VERSION" packages/famon_core/pubspec.yaml; then
+if ! grep -qF "version: $VERSION" packages/famon_core/pubspec.yaml; then
   echo "packages/famon_core/pubspec.yaml version is not set to $VERSION" >&2
   echo "Run: dart run tool/update_version.dart $VERSION" >&2
   exit 1
 fi
 
-if ! grep -q "## \\[$VERSION\\]" CHANGELOG.md; then
+if ! grep -qF "## [$VERSION]" CHANGELOG.md; then
   echo "CHANGELOG.md does not contain a section for $VERSION" >&2
   exit 1
 fi
 
-if ! grep -q "## \\[$VERSION\\]" packages/famon_core/CHANGELOG.md; then
+if ! grep -qF "## [$VERSION]" packages/famon_core/CHANGELOG.md; then
   echo "packages/famon_core/CHANGELOG.md does not contain a section for $VERSION" >&2
   exit 1
 fi
 
-if ! grep -q "const packageVersion = '$VERSION';" lib/src/version.dart; then
+if ! grep -qF "const packageVersion = '$VERSION';" lib/src/version.dart; then
   echo "lib/src/version.dart does not contain version $VERSION" >&2
   echo "Expected: const packageVersion = '$VERSION';" >&2
   echo "Run: dart run tool/update_version.dart $VERSION" >&2

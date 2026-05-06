@@ -61,7 +61,7 @@ dart test
 dart pub publish --dry-run
 ```
 
-A `dependency_overrides` hint is expected on the root `famon` package — it carries the local `path: packages/famon_core` override, which pub ignores at publish time but mentions in the dry-run.
+A `dependency_overrides` hint is expected on the root `famon` package — it carries the local `path: packages/famon_core` override, which pub strips from the published pubspec but warns about during dry-run.
 
 ## Tag and push
 
@@ -87,23 +87,45 @@ After preparing the release on `dev`:
    git push origin v1.4.1
    ```
 
-The tag push triggers `.github/workflows/publish.yaml`.
+The tag push triggers the GitHub Actions workflow `.github/workflows/publish.yaml`.
 
 ## Automated publish workflow
 
-`.github/workflows/publish.yaml` runs three jobs in sequence on tag push:
+Tag pushes trigger two independent workflows in parallel:
 
-1. **`verify-versions`** — fails fast if the tag, root `pubspec.yaml`, `packages/famon_core/pubspec.yaml`, and `lib/src/version.dart` disagree.
+- `.github/workflows/publish.yaml` — publishes both packages to pub.dev (this section).
+- `.github/workflows/github-release.yaml` — creates a GitHub Release with the changelog body.
+
+`publish.yaml` runs three jobs in sequence:
+
+1. **`verify-versions`** — fails fast if the tag, root `pubspec.yaml`, `packages/famon_core/pubspec.yaml`, and `lib/src/version.dart` disagree, or if any source is empty.
 2. **`publish-core`** — `dart pub publish --dry-run` then `--force` for `famon_core`.
-3. **`publish-cli`** — waits 60 seconds for pub.dev to index `famon_core`, then publishes the root `famon` package.
+3. **`publish-cli`** — polls `https://pub.dev/api/packages/famon_core` until the new version appears (up to 5 minutes), then publishes the root `famon` package.
 
 The CLI cannot publish before the library because the published `famon` pubspec resolves `famon_core: ^X.Y.Z` from pub.dev (the local `dependency_overrides` is stripped on publish).
 
-If a job fails, fix the issue, bump to the next patch (e.g. `1.4.2`), retag, and push. Pub.dev does not allow re-publishing the same version.
+### Recovery from a partial publish
 
-## Manual publish (one-time recovery)
+Pub.dev does not allow re-publishing the same version. If `publish-core` succeeds but `publish-cli` fails, `famon_core@X.Y.Z` is on pub.dev permanently and the CLI half is still missing. Recover by:
 
-If a tag was pushed without a publish workflow (as happened pre-1.4.0) or the workflow is broken:
+1. Investigating the `publish-cli` failure (typically transient pub.dev 5xx or indexing latency).
+2. Bumping to the next patch (e.g. `1.4.2`) so both packages can be re-cut. Both packages always release together — `famon_core` will be re-published at the new patch even if its source is unchanged. Note this in the `famon_core` CHANGELOG as "version bumped to track CLI release."
+
+### Authentication
+
+Both publish jobs use OIDC trusted publishing (`permissions: id-token: write` plus `dart-lang/setup-dart@v1`). For this to work, each package must be configured for "Automated publishing from GitHub Actions" in its pub.dev admin page, with the repository, workflow, and tag pattern matching this workflow. **`famon_core` cannot be configured for trusted publishing until after its first manual publish** (pub.dev requires the package to exist).
+
+## Continuous integration on PRs
+
+`.github/workflows/pr_publish_check.yaml` runs on every PR that touches publish-relevant files (`pubspec.yaml`, `lib/src/version.dart`, `packages/famon_core/**`, `.pubignore`, `tool/update_version.dart`, `tool/release.sh`, the publish workflows). It runs four jobs:
+
+- `verify-versions-consistent` — same cross-check as the tag-time job, minus the tag comparison.
+- `dry-run-famon-core` and `dry-run-famon` — `dart pub publish --dry-run` for both packages, catching publish-blocking issues before tagging.
+- `example-smoke-run` — executes `packages/famon_core/example/famon_core_example.dart` to keep the published example honest.
+
+## Manual publish
+
+Required for the very first publish of either package (pub.dev cannot configure trusted publishing for a package that does not yet exist), and useful as a recovery path if the workflow is unavailable:
 
 ```bash
 dart pub login

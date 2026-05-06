@@ -52,18 +52,21 @@ For full CLI usage, see [`famon`](https://pub.dev/packages/famon).
 
 ## Architecture
 
-`famon_core` follows a layered domain-driven design:
+`famon_core` follows a layered domain-driven design. The main top-level groupings under `lib/src/`:
 
-```
+```text
 lib/src/
+├── constants.dart      # Shared constants
 ├── core/
 │   ├── domain/         # Entities, value objects, repository interfaces
 │   ├── application/    # Use cases, application services
 │   └── infrastructure/ # Isar implementations
-├── services/           # Parsers, formatters, caches
+├── core_injection.dart # injectable module entry point
+├── exceptions/         # Domain-specific exceptions
 ├── models/             # Plain data classes
+├── services/           # Parsers, formatters, caches
 ├── shared/             # Cross-cutting utilities
-└── exceptions/         # Domain-specific exceptions
+└── utils/              # Pure helpers (filtering, etc.)
 ```
 
 The CLI in [`famon`](https://pub.dev/packages/famon) is a thin frontend; all business logic lives here.

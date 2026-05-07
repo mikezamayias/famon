@@ -16,6 +16,8 @@ Both packages share a single version. They are released together.
 
 All feature and fix branches branch from `dev` (e.g. `feature/<name>`, `fix/<name>`) and merge back via pull requests targeting `dev`.
 
+> **Next release must be ≥ 1.4.2.** Both packages are at 1.4.1 on pub.dev. The 1.4.2 attempt was rolled back without ever shipping, so the next bump must skip 1.4.1 and pick the next patch / minor / major.
+
 ### Merge strategy: rebase or squash, never "Create a merge commit"
 
 Repo settings disable "Allow merge commits" — only **Rebase and merge** and **Squash and merge** are available in the GitHub UI. This keeps `dev`'s commit graph linear and avoids duplicate Conventional-Commit subjects in the changelog.
@@ -27,7 +29,7 @@ Per the branching protocol, the bump goes through a `chore/release-X.Y.Z` branch
 ### 1. Bump every version source atomically
 
 ```bash
-dart run tool/update_version.dart 1.4.2
+dart run tool/update_version.dart X.Y.Z
 ```
 
 `tool/update_version.dart` rewrites four sources in a preflight + apply pipeline so a partial failure leaves the repo untouched:
@@ -67,9 +69,9 @@ Stage explicitly (no `git add -A`):
 ```bash
 git add pubspec.yaml packages/famon_core/pubspec.yaml lib/src/version.dart \
         CHANGELOG.md packages/famon_core/CHANGELOG.md
-git commit -m "chore(release): 1.4.2"
-git push -u origin chore/release-1.4.2
-gh pr create --base dev --title "chore(release): 1.4.2" --fill
+git commit -m "chore(release): X.Y.Z"
+git push -u origin chore/release-X.Y.Z
+gh pr create --base dev --title "chore(release): X.Y.Z" --fill
 ```
 
 `pr_publish_check.yaml` runs on the PR and re-runs the version cross-check, both `dart pub publish --dry-run`s, and the `famon_core` example smoke run. Wait for it to go green, then merge the PR via the GitHub UI (or `gh pr merge`).
@@ -81,27 +83,27 @@ After the PR merges into `dev`, switch to `dev`, pull, then run the helper from 
 ```bash
 git checkout dev
 git pull origin dev --ff-only
-./tool/release.sh 1.4.2
+./tool/release.sh X.Y.Z
 ```
 
 `tool/release.sh` itself does:
 
-1. Guards: working tree must be clean, both `dev` and `main` must exist locally, all six version sources match `1.4.2`:
+1. Guards: working tree must be clean, both `dev` and `main` must exist locally, all six version sources match `X.Y.Z`:
    - root `pubspec.yaml` `version:`
-   - root `pubspec.yaml` `famon_core: ^1.4.2` constraint
+   - root `pubspec.yaml` `famon_core: ^X.Y.Z` constraint
    - `packages/famon_core/pubspec.yaml` `version:`
-   - root `CHANGELOG.md` has a `## [1.4.2]` heading
-   - `packages/famon_core/CHANGELOG.md` has a `## [1.4.2]` heading
-   - `lib/src/version.dart` has `const packageVersion = '1.4.2';`
+   - root `CHANGELOG.md` has a `## [X.Y.Z]` heading
+   - `packages/famon_core/CHANGELOG.md` has a `## [X.Y.Z]` heading
+   - `lib/src/version.dart` has `const packageVersion = 'X.Y.Z';`
 2. Checks out `dev` to validate, then `main` to merge.
 3. Runs the merge + tag + push:
 
    ```bash
    git checkout main
    git merge --no-ff dev
-   git tag -a v1.4.2 -m "Release 1.4.2"
+   git tag -a vX.Y.Z -m "Release X.Y.Z"
    git push origin main
-   git push origin v1.4.2
+   git push origin vX.Y.Z
    ```
 
 The tag push triggers the GitHub Actions workflow `.github/workflows/publish.yaml`.

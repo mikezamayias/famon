@@ -8,9 +8,12 @@ on:
   pull_request:
     paths:
       - ".github/workflows/firebase_analytics_monitor.yaml"
+      - "analysis_options.yaml"
+      - "bin/**"
       - "lib/**"
       - "test/**"
       - "pubspec.yaml"
+      - "packages/famon_core/analysis_options.yaml"
       - "packages/famon_core/lib/**"
       - "packages/famon_core/test/**"
       - "packages/famon_core/pubspec.yaml"
@@ -20,9 +23,12 @@ on:
       - main
     paths:
       - ".github/workflows/firebase_analytics_monitor.yaml"
+      - "analysis_options.yaml"
+      - "bin/**"
       - "lib/**"
       - "test/**"
       - "pubspec.yaml"
+      - "packages/famon_core/analysis_options.yaml"
       - "packages/famon_core/lib/**"
       - "packages/famon_core/test/**"
       - "packages/famon_core/pubspec.yaml"
@@ -38,6 +44,15 @@ jobs:
       dart_sdk: "3.11.0"
       setup: "dart run build_runner build --delete-conflicting-outputs"
       min_coverage: 15  # Current baseline, target: 50%+ coverage
+
+  build-core:
+    name: Analyze + format + test (famon_core)
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/dart_package.yml@v1
+    with:
+      dart_sdk: "3.11.0"
+      working_directory: packages/famon_core
+      setup: "dart run build_runner build --delete-conflicting-outputs"
+      min_coverage: 0  # No coverage threshold yet for famon_core
 
   spell-check:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1

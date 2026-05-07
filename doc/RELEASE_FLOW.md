@@ -16,7 +16,7 @@ Both packages share a single version. They are released together.
 
 All feature and fix branches branch from `dev` (e.g. `feature/<name>`, `fix/<name>`) and merge back via pull requests targeting `dev`.
 
-> **Next release must be ≥ 1.4.2.** Both packages are at 1.4.1 on pub.dev. The 1.4.2 attempt was rolled back without ever shipping, so the next bump must skip 1.4.1 and pick the next patch / minor / major.
+> **Next release must be ≥ 1.4.2.** Both packages are at 1.4.1 on pub.dev — that is the live version. A 1.4.2 attempt was rolled back without ever shipping, so the next bump cannot reuse 1.4.1 and must pick 1.4.2 or later.
 
 ### Merge strategy: rebase or squash, never "Create a merge commit"
 

@@ -1,6 +1,6 @@
 name: famon
 description: A command-line tool to monitor Firebase Analytics events from logcat.
-version: 1.4.0
+version: 1.4.1
 repository: https://github.com/mikezamayias/famon
 homepage: https://github.com/mikezamayias/famon
 issue_tracker: https://github.com/mikezamayias/famon/issues
@@ -17,7 +17,7 @@ dependencies:
   args: ^2.5.0
   cli_completion: ">=0.4.0 <0.6.0"
   equatable: ^2.0.5
-  famon_core: ^1.4.0 # x-release-please-version
+  famon_core: ^1.4.1 # x-release-please-version
   get_it: ">=7.6.7 <10.0.0"
   injectable: ^2.3.5
   mason_logger: ">=0.2.11 <0.4.0"

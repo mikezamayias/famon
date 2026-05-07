@@ -1,3 +1,3 @@
 // Generated code. Do not modify.
 /// The current version of the package.
-const packageVersion = '1.4.1'; // x-release-please-version
+const packageVersion = '1.4.2'; // x-release-please-version

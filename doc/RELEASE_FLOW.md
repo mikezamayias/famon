@@ -110,7 +110,9 @@ The tag push triggers the GitHub Actions workflow `.github/workflows/publish.yam
 
 ## Automated publish workflow
 
-Tag pushes trigger two independent workflows in parallel:
+When a `chore: release dev` PR (opened by release-please) merges into `dev`, the next `release-please` workflow run creates the `vX.Y.Z` tag and a GitHub Release. **Tags and releases created by `GITHUB_TOKEN` do not trigger downstream workflows** that listen on `push: tags` or `release` (a GitHub anti-loop safeguard). To keep the chain intact, `release-please.yaml`'s `dispatch-downstream` job manually fires `publish.yaml` and `github-release.yaml` via `workflow_dispatch` (which IS allowed from `GITHUB_TOKEN`).
+
+The two downstream workflows are also still wired to `push: tags` and accept a `workflow_dispatch` `tag` input — so they fire correctly whether the tag was created by release-please, by `tool/release.sh` (manual `git push origin vX.Y.Z`), or by an explicit `gh workflow run`.
 
 - `.github/workflows/publish.yaml` — publishes both packages to pub.dev (this section).
 - `.github/workflows/github-release.yaml` — creates a GitHub Release with the changelog body.

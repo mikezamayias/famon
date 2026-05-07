@@ -28,6 +28,42 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  dispatch-downstream:
+    # release-please creates the v{version} tag and the GitHub Release using
+    # GITHUB_TOKEN. Tags and releases created by GITHUB_TOKEN do NOT trigger
+    # downstream workflows that listen on `push: tags` or `release` (a
+    # well-known GitHub anti-loop safeguard). To keep the chain intact, this
+    # job manually dispatches publish.yaml and github-release.yaml via the
+    # workflow_dispatch event — which IS allowed from GITHUB_TOKEN.
+    name: Dispatch publish and github-release workflows
+    needs: release-please
+    if: ${{ needs.release-please.outputs.releases_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dispatch publish.yaml
+        env:
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh workflow run publish.yaml --ref main -f tag="$TAG"
+          echo "Dispatched publish.yaml for tag $TAG"
+      - name: Dispatch github-release.yaml
+        env:
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # github-release.yaml is also wired to release-please-action's
+          # built-in release creation; this dispatch only fires if the action
+          # did not create one (rare). Safe to run unconditionally — the
+          # workflow uses softprops/action-gh-release which is idempotent.
+          gh workflow run github-release.yaml --ref main -f tag="$TAG" || true
+          echo "Dispatched github-release.yaml for tag $TAG"
+
   sync-main:
     name: Fast-forward main to released dev
     needs: release-please

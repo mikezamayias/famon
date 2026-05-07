@@ -14,7 +14,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), version
 * address review-toolkit findings on release-please tuning PR ([eb97341](https://github.com/mikezamayias/famon/commit/eb97341b58e8d6c8b8011d4a5b5af88dd9ef9957))
 * **ci:** tune release-please config to bound history and link versions ([691ccc8](https://github.com/mikezamayias/famon/commit/691ccc8444540bc618e65a3d24024c15282cfc92))
 * harden update_version.dart for atomicity and major-bump safety ([d4b17fe](https://github.com/mikezamayias/famon/commit/d4b17fe3feb21b0d5296cffe023ee5524e8a1a66))
-* remove orphaned publish workflow and fix spell-check ([50cecfd](https://github.com/mikezamayias/famon/commit/50cecfd3bec4642a5ab122206cb5bd3707dd2ac3))
 * remove orphaned publish workflow and fix spell-check ([d6cf9cd](https://github.com/mikezamayias/famon/commit/d6cf9cd25c593efe207461fca0a23934c068b071))
 * restore pub.dev publish pipeline for monorepo ([39d4a66](https://github.com/mikezamayias/famon/commit/39d4a664fcae2855a71c32cbf14e77385e5c8a7a))
 

@@ -16,6 +16,12 @@ Both packages share a single version. They are released together.
 
 All feature and fix branches branch from `dev` (e.g. `feature/<name>`, `fix/<name>`) and merge back via pull requests targeting `dev`.
 
+### Merge strategy: rebase or squash, never "Create a merge commit"
+
+Repo settings disable "Allow merge commits" — only **Rebase and merge** and **Squash and merge** are available in the GitHub UI. This is intentional. release-please walks the commit graph to build CHANGELOG entries; merge commits that carry the same Conventional-Commit subject as their feature-branch commit cause duplicate entries (e.g. `* fix: foo (abc1234)` and `* fix: foo (def5678)` for the same logical change). Rebase or squash collapses this to a single commit per logical change, so release-please cannot double-count.
+
+If you ever re-enable merge commits, expect duplicate CHANGELOG entries on the next release PR.
+
 ## Step-by-step
 
 Per the branching protocol, the bump goes through a `chore/release-X.Y.Z` branch off `dev` and lands via a PR back to `dev`. Steps 1–4 happen on that branch; step 5 runs from `dev` after the PR merges.

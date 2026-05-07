@@ -12,7 +12,10 @@ on:
         type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.inputs.tag || github.ref }}
+  # Normalize: tag-push provides `refs/tags/vX.Y.Z`, workflow_dispatch
+  # provides bare `vX.Y.Z` — collapse both to `refs/tags/vX.Y.Z` so the
+  # same release fired by either path serializes through one queue.
+  group: ${{ github.workflow }}-${{ github.event.inputs.tag && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
   cancel-in-progress: false
 
 jobs:

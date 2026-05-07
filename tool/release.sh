@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 #
-# Manual release helper — kept as the bypass path for when release-please
-# (.github/workflows/release-please.yaml) cannot be used: an emergency
-# patch, a release-please outage, or a hand-curated release whose CHANGELOG
-# you want to author yourself. For routine releases, prefer release-please.
-#
-# Running both flows for the same version creates duplicate tags and
-# fights over CHANGELOG content — only use one path per release.
+# Release helper. Validates that the working tree is clean, that both
+# `dev` and `main` exist locally, and that all six version sources match
+# the requested version. Then merges `dev` into `main` with --no-ff,
+# creates an annotated tag, and pushes both. The push: tags trigger on
+# .github/workflows/publish.yaml takes over from there.
 
 set -euo pipefail
 

@@ -4,12 +4,6 @@ All notable changes to this package will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.2](https://github.com/mikezamayias/famon/compare/v1.4.1...v1.4.2) (2026-05-07)
-
-### Notes
-
-No functional changes — version bumped to track CLI release.
-
 ## [1.4.1](https://github.com/mikezamayias/famon/compare/v1.4.0...v1.4.1) (2026-05-07)
 
 

@@ -185,6 +185,9 @@ dart run build_runner build --delete-conflicting-outputs
 - Main branch: `dev`
 - Feature branches: `feature/<name>`
 - Release branches: merge `dev` to `main`, tag with version
+- PR review bot: use Codacy. Ignore CodeRabbit comments/checks unless the user
+  explicitly asks to revisit them; CodeRabbit is no longer part of this repo's
+  review workflow.
 
 ## Security Guidelines
 

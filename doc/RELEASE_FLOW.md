@@ -48,6 +48,15 @@ Both packages keep their own changelog (Keep a Changelog format):
 
 Add a new `## [X.Y.Z] - YYYY-MM-DD` section to each. If a release only touches the CLI, the `famon_core` entry can simply note "no functional changes — version bumped to track CLI release."
 
+You can draft and validate both sections with the maintainer-only helper:
+
+```bash
+dart run tool/changelog.dart draft X.Y.Z --llm codex
+dart run tool/changelog.dart validate X.Y.Z
+```
+
+The helper only drafts text and validates formatting. Review the generated entries before committing the release-prep PR.
+
 ### 3. Run pre-push checks
 
 Per the project's branching protocol, every push runs format, analyzer (with `--fatal-warnings`), and the full test suite locally first. For a release commit, also dry-run both packages:

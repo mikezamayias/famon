@@ -3,19 +3,11 @@ name: Publish to pub.dev
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+*"
+      - "v*.*.*"
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Existing tag to publish (e.g. v1.4.1).'
-        required: true
-        type: string
 
 concurrency:
-  # Normalize: tag-push provides `refs/tags/vX.Y.Z`, workflow_dispatch
-  # provides bare `vX.Y.Z` — collapse both to `refs/tags/vX.Y.Z` so the
-  # same release fired by either path serializes through one queue.
-  group: ${{ github.workflow }}-${{ github.event.inputs.tag && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -24,21 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
       - name: Check tag matches all version sources
         env:
-          TAG_INPUT: ${{ github.event.inputs.tag }}
           GIT_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
 
-          if [ -n "$TAG_INPUT" ]; then
-            TAG="${TAG_INPUT#v}"
-          else
-            TAG="${GIT_REF#refs/tags/v}"
-          fi
-
+          TAG="${GIT_REF#refs/tags/v}"
           ROOT=$(grep "^version:" pubspec.yaml | sed 's/version: //' | tr -d ' ')
           CORE=$(grep "^version:" packages/famon_core/pubspec.yaml | sed 's/version: //' | tr -d ' ')
           DART=$(grep "packageVersion" lib/src/version.dart | sed "s/.*= '\([^']*\)'.*/\1/")
@@ -68,8 +52,6 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: dart-lang/setup-dart@v1
       - name: Install dependencies
         working-directory: packages/famon_core
@@ -89,22 +71,14 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: dart-lang/setup-dart@v1
       - name: Wait for pub.dev to index famon_core
         env:
-          TAG_INPUT: ${{ github.event.inputs.tag }}
           GIT_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
 
-          if [ -n "$TAG_INPUT" ]; then
-            TAG="${TAG_INPUT#v}"
-          else
-            TAG="${GIT_REF#refs/tags/v}"
-          fi
-
+          TAG="${GIT_REF#refs/tags/v}"
           MAX_ATTEMPTS=30
           SLEEP=10
 

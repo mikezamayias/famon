@@ -3,19 +3,11 @@ name: Create GitHub Release
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+*"
+      - "v*.*.*"
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Existing tag to release (e.g. v1.4.1).'
-        required: true
-        type: string
 
 concurrency:
-  # Normalize: tag-push provides 'refs/tags/vX.Y.Z', workflow_dispatch
-  # provides bare 'vX.Y.Z' — collapse both to 'refs/tags/vX.Y.Z' so the
-  # same release fired by either path serializes through one queue.
-  group: ${{ github.workflow }}-${{ github.event.inputs.tag && format('refs/tags/{0}', github.event.inputs.tag) || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,24 +21,16 @@ jobs:
       - name: 📚 Git Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
           fetch-depth: 0
 
       - name: 📋 Extract version from tag
         id: version
         env:
-          TAG_INPUT: ${{ github.event.inputs.tag }}
           GIT_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
-
-          if [ -n "$TAG_INPUT" ]; then
-            TAG_NAME="$TAG_INPUT"
-          else
-            TAG_NAME="${GIT_REF#refs/tags/}"
-          fi
+          TAG_NAME="${GIT_REF#refs/tags/}"
           VERSION="${TAG_NAME#v}"
-
           echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
@@ -56,10 +40,6 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-
-          # Extract changelog section for this version (handle both
-          # "## [X.Y.Z] - YYYY-MM-DD" and release-please's
-          # "## [X.Y.Z](https://...) (YYYY-MM-DD)" patterns).
           CHANGELOG=$(awk -v ver="$VERSION" '
             /^## \[/ {
               if (active) exit
@@ -67,7 +47,6 @@ jobs:
             }
             active { print }
           ' CHANGELOG.md)
-
           {
             echo "body<<EOF"
             echo "$CHANGELOG"

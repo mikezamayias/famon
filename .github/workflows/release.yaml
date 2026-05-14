@@ -16,6 +16,9 @@ jobs:
   release:
     name: 🚀 Create release tag
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
 
     steps:
       - name: 📚 Git Checkout
@@ -41,3 +44,16 @@ jobs:
         run: |
           bash tool/release.sh "$VERSION"
 
+      - name: 📦 Dispatch pub.dev publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          gh workflow run publish.yaml --ref "v$VERSION"
+
+      - name: 🏷️ Dispatch GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          gh workflow run github-release.yaml --ref "v$VERSION"

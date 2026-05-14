@@ -16,11 +16,11 @@ Both packages share a single version. They are released together.
 
 All feature and fix branches branch from `dev` (e.g. `feature/<name>`, `fix/<name>`) and merge back via pull requests targeting `dev`.
 
+> **Next release must be ≥ 1.4.2.** Both packages are at 1.4.1 on pub.dev — that is the live version. A 1.4.2 attempt was rolled back without ever shipping, so the next bump cannot reuse 1.4.1 and must pick 1.4.2 or later.
+
 ### Merge strategy: rebase or squash, never "Create a merge commit"
 
-Repo settings disable "Allow merge commits" — only **Rebase and merge** and **Squash and merge** are available in the GitHub UI. This is intentional. release-please walks the commit graph to build CHANGELOG entries; merge commits that carry the same Conventional-Commit subject as their feature-branch commit cause duplicate entries (e.g. `* fix: foo (abc1234)` and `* fix: foo (def5678)` for the same logical change). Rebase or squash collapses this to a single commit per logical change, so release-please cannot double-count.
-
-If you ever re-enable merge commits, expect duplicate CHANGELOG entries on the next release PR.
+Repo settings disable "Allow merge commits" — only **Rebase and merge** and **Squash and merge** are available in the GitHub UI. This keeps `dev`'s commit graph linear, easier to review, and easier to bisect.
 
 ## Step-by-step
 
@@ -29,7 +29,7 @@ Per the branching protocol, the bump goes through a `chore/release-X.Y.Z` branch
 ### 1. Bump every version source atomically
 
 ```bash
-dart run tool/update_version.dart 1.4.1
+dart run tool/update_version.dart X.Y.Z
 ```
 
 `tool/update_version.dart` rewrites four sources in a preflight + apply pipeline so a partial failure leaves the repo untouched:
@@ -69,9 +69,9 @@ Stage explicitly (no `git add -A`):
 ```bash
 git add pubspec.yaml packages/famon_core/pubspec.yaml lib/src/version.dart \
         CHANGELOG.md packages/famon_core/CHANGELOG.md
-git commit -m "chore(release): 1.4.1"
-git push -u origin chore/release-1.4.1
-gh pr create --base dev --title "chore(release): 1.4.1" --fill
+git commit -m "chore(release): X.Y.Z"
+git push -u origin chore/release-X.Y.Z
+gh pr create --base dev --title "chore(release): X.Y.Z" --fill
 ```
 
 `pr_publish_check.yaml` runs on the PR and re-runs the version cross-check, both `dart pub publish --dry-run`s, and the `famon_core` example smoke run. Wait for it to go green, then merge the PR via the GitHub UI (or `gh pr merge`).
@@ -83,36 +83,36 @@ After the PR merges into `dev`, switch to `dev`, pull, then run the helper from 
 ```bash
 git checkout dev
 git pull origin dev --ff-only
-./tool/release.sh 1.4.1
+./tool/release.sh X.Y.Z
 ```
 
 `tool/release.sh` itself does:
 
-1. Guards: working tree must be clean, both `dev` and `main` must exist locally, all six version sources match `1.4.1`:
+1. Guards: working tree must be clean, both `dev` and `main` must exist locally, local `dev` and `main` must match `origin/dev` and `origin/main`, all six version sources match `X.Y.Z`:
    - root `pubspec.yaml` `version:`
-   - root `pubspec.yaml` `famon_core: ^1.4.1` constraint
+   - root `pubspec.yaml` `famon_core: ^X.Y.Z` constraint
    - `packages/famon_core/pubspec.yaml` `version:`
-   - root `CHANGELOG.md` has a `## [1.4.1]` heading
-   - `packages/famon_core/CHANGELOG.md` has a `## [1.4.1]` heading
-   - `lib/src/version.dart` has `const packageVersion = '1.4.1';`
-2. Checks out `dev` to validate, then `main` to merge.
+   - root `CHANGELOG.md` has a `## [X.Y.Z]` heading
+   - `packages/famon_core/CHANGELOG.md` has a `## [X.Y.Z]` heading
+   - `lib/src/version.dart` has `const packageVersion = 'X.Y.Z';`
+2. Fetches `origin/dev`, `origin/main`, and tags, then checks out `dev` to validate and `main` to merge.
 3. Runs the merge + tag + push:
 
    ```bash
    git checkout main
    git merge --no-ff dev
-   git tag -a v1.4.1 -m "Release 1.4.1"
+   git tag -a vX.Y.Z -m "Release X.Y.Z"
    git push origin main
-   git push origin v1.4.1
+   git push origin vX.Y.Z
    ```
 
 The tag push triggers the GitHub Actions workflow `.github/workflows/publish.yaml`.
 
+If you use the **Manual Release** GitHub Actions workflow instead of running `tool/release.sh` locally, the workflow dispatches `publish.yaml` and `github-release.yaml` explicitly after creating the tag. This is required because tags pushed by `GITHUB_TOKEN` do not trigger follow-up `push` workflows.
+
 ## Automated publish workflow
 
-When a `chore: release dev` PR (opened by release-please) merges into `dev`, the next `release-please` workflow run creates the `vX.Y.Z` tag and a GitHub Release. **Tags and releases created by `GITHUB_TOKEN` do not trigger downstream workflows** that listen on `push: tags` or `release` (a GitHub anti-loop safeguard). To keep the chain intact, `release-please.yaml`'s `dispatch-downstream` job manually fires `publish.yaml` and `github-release.yaml` via `workflow_dispatch` (which IS allowed from `GITHUB_TOKEN`).
-
-The two downstream workflows are also still wired to `push: tags` and accept a `workflow_dispatch` `tag` input — so they fire correctly whether the tag was created by release-please, by `tool/release.sh` (manual `git push origin vX.Y.Z`), or by an explicit `gh workflow run`.
+Tag pushes trigger two independent workflows in parallel:
 
 - `.github/workflows/publish.yaml` — publishes both packages to pub.dev (this section).
 - `.github/workflows/github-release.yaml` — creates a GitHub Release with the changelog body.
@@ -130,7 +130,7 @@ The CLI cannot publish before the library because the published `famon` pubspec 
 Pub.dev does not allow re-publishing the same version. If `publish-core` succeeds but `publish-cli` fails, `famon_core@X.Y.Z` is on pub.dev permanently and the CLI half is still missing. Recover by:
 
 1. Investigating the `publish-cli` failure (typically transient pub.dev 5xx or indexing latency).
-2. Bumping to the next patch (e.g. `1.4.2`) so both packages can be re-cut. Both packages always release together — `famon_core` will be re-published at the new patch even if its source is unchanged. Note this in the `famon_core` CHANGELOG as "version bumped to track CLI release."
+2. Bumping to the next patch (e.g. `1.4.3`) so both packages can be re-cut. Both packages always release together — `famon_core` will be re-published at the new patch even if its source is unchanged. Note this in the `famon_core` CHANGELOG as "version bumped to track CLI release."
 
 ### Authentication
 
@@ -144,25 +144,9 @@ Both publish jobs use OIDC trusted publishing (`permissions: id-token: write` pl
 
 **Trusted publishing cannot be configured for a package that does not yet exist on pub.dev.** The very first publish of a new package must be done manually (see [Manual publish](#manual-publish) below); after the package appears on pub.dev, return to its admin page and enable Automated publishing.
 
-## release-please configuration maintenance
-
-`release-please-config.json` carries a `last-release-sha` field that bounds the commit walk. Per the [release-please docs](https://github.com/googleapis/release-please/blob/main/docs/manifest-releaser.md), this field is **persistent** — it is not auto-cleared after a release PR merges, unlike `bootstrap-sha`. If left pointing at an old release commit forever, future runs will re-walk every commit since that pin and risk re-issuing changelog entries that have already shipped.
-
-After each release PR merges, update the field to the new release commit (or remove it once release-please tracks the prior release through the manifest reliably):
-
-```bash
-# After v1.4.1 ships, find the chore(release): 1.4.1 commit on dev
-RELEASE_SHA=$(git log --grep='chore(release): 1.4.1' --format='%H' -n 1 dev)
-
-# Edit release-please-config.json to set "last-release-sha": "$RELEASE_SHA"
-# Commit and PR back to dev as part of the post-release cleanup.
-```
-
-This is the only manual step required by release-please. Everything else is automated.
-
 ## Continuous integration on PRs
 
-`.github/workflows/pr_publish_check.yaml` runs on every PR that touches publish-relevant files (`pubspec.yaml`, `lib/src/version.dart`, `packages/famon_core/**`, `.pubignore`, `tool/update_version.dart`, `tool/release.sh`, the publish workflows). It runs four jobs:
+`.github/workflows/pr_publish_check.yaml` runs on every PR (and push to `dev`/`main`) that touches publish-relevant files (`pubspec.yaml`, `lib/src/version.dart`, `packages/famon_core/**`, `.pubignore`, `tool/update_version.dart`, `tool/release.sh`, the publish workflows). It runs four jobs:
 
 - `verify-versions-consistent` — same cross-check as the tag-time job, minus the tag comparison.
 - `dry-run-famon-core` and `dry-run-famon` — `dart pub publish --dry-run` for both packages, catching publish-blocking issues before tagging.

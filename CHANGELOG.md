@@ -4,13 +4,6 @@ All notable changes to this project will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.2](https://github.com/mikezamayias/famon/compare/v1.4.1...v1.4.2) (2026-05-07)
-
-
-### Bug Fixes
-
-* address review-toolkit findings on trigger-chain PR ([517584a](https://github.com/mikezamayias/famon/commit/517584a863b40b963ca7c84d26e7fb55136c292d))
-
 ## [1.4.1](https://github.com/mikezamayias/famon/compare/v1.4.0...v1.4.1) (2026-05-07)
 
 

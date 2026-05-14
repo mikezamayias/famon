@@ -20,6 +20,10 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 
+git fetch origin dev main --tags
+git branch --track dev origin/dev 2>/dev/null || true
+git branch --track main origin/main 2>/dev/null || true
+
 if ! git show-ref --verify --quiet refs/heads/dev; then
   echo "Branch 'dev' not found. Ensure it exists locally." >&2
   exit 1
@@ -67,10 +71,10 @@ if ! grep -qF "const packageVersion = '$VERSION';" lib/src/version.dart; then
 fi
 
 git checkout main
+git pull --ff-only origin main
 git merge --no-ff dev
 
 git tag -a "v$VERSION" -m "Release $VERSION"
 
 git push origin main
 git push origin "v$VERSION"
-

@@ -35,6 +35,7 @@ if ! git show-ref --verify --quiet refs/heads/main; then
 fi
 
 git checkout dev
+git pull --ff-only origin dev
 
 if ! grep -qF "version: $VERSION" pubspec.yaml; then
   echo "pubspec.yaml version is not set to $VERSION" >&2

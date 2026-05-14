@@ -20,7 +20,7 @@ All feature and fix branches branch from `dev` (e.g. `feature/<name>`, `fix/<nam
 
 ### Merge strategy: rebase or squash, never "Create a merge commit"
 
-Repo settings disable "Allow merge commits" — only **Rebase and merge** and **Squash and merge** are available in the GitHub UI. This keeps `dev`'s commit graph linear and avoids duplicate Conventional-Commit subjects in the changelog.
+Repo settings disable "Allow merge commits" — only **Rebase and merge** and **Squash and merge** are available in the GitHub UI. This keeps `dev`'s commit graph linear, easier to review, and easier to bisect.
 
 ## Step-by-step
 
@@ -88,14 +88,14 @@ git pull origin dev --ff-only
 
 `tool/release.sh` itself does:
 
-1. Guards: working tree must be clean, both `dev` and `main` must exist locally, all six version sources match `X.Y.Z`:
+1. Guards: working tree must be clean, both `dev` and `main` must exist locally, local `dev` and `main` must match `origin/dev` and `origin/main`, all six version sources match `X.Y.Z`:
    - root `pubspec.yaml` `version:`
    - root `pubspec.yaml` `famon_core: ^X.Y.Z` constraint
    - `packages/famon_core/pubspec.yaml` `version:`
    - root `CHANGELOG.md` has a `## [X.Y.Z]` heading
    - `packages/famon_core/CHANGELOG.md` has a `## [X.Y.Z]` heading
    - `lib/src/version.dart` has `const packageVersion = 'X.Y.Z';`
-2. Checks out `dev` to validate, then `main` to merge.
+2. Fetches `origin/dev`, `origin/main`, and tags, then checks out `dev` to validate and `main` to merge.
 3. Runs the merge + tag + push:
 
    ```bash
@@ -107,6 +107,8 @@ git pull origin dev --ff-only
    ```
 
 The tag push triggers the GitHub Actions workflow `.github/workflows/publish.yaml`.
+
+If you use the **Manual Release** GitHub Actions workflow instead of running `tool/release.sh` locally, the workflow dispatches `publish.yaml` and `github-release.yaml` explicitly after creating the tag. This is required because tags pushed by `GITHUB_TOKEN` do not trigger follow-up `push` workflows.
 
 ## Automated publish workflow
 

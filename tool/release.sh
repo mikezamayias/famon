@@ -20,7 +20,10 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 
-git fetch origin dev main --tags
+git fetch origin \
+  +refs/heads/dev:refs/remotes/origin/dev \
+  +refs/heads/main:refs/remotes/origin/main \
+  --tags
 git branch --track dev origin/dev 2>/dev/null || true
 git branch --track main origin/main 2>/dev/null || true
 
@@ -36,6 +39,10 @@ fi
 
 git checkout dev
 git pull --ff-only origin dev
+if [[ "$(git rev-parse dev)" != "$(git rev-parse origin/dev)" ]]; then
+  echo "Local 'dev' is not exactly at origin/dev. Reconcile/push dev before releasing." >&2
+  exit 1
+fi
 
 if ! grep -qF "version: $VERSION" pubspec.yaml; then
   echo "pubspec.yaml version is not set to $VERSION" >&2
@@ -73,6 +80,10 @@ fi
 
 git checkout main
 git pull --ff-only origin main
+if [[ "$(git rev-parse main)" != "$(git rev-parse origin/main)" ]]; then
+  echo "Local 'main' is not exactly at origin/main. Reconcile main before releasing." >&2
+  exit 1
+fi
 git merge --no-ff dev
 
 git tag -a "v$VERSION" -m "Release $VERSION"

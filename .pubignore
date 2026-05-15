@@ -6,9 +6,12 @@
 .vscode/
 .worktrees/
 docs/
+packages/
+tasks/
 test/
 tool/
 coverage/
+*.log
 *.dylib
 *.so
 *.dll

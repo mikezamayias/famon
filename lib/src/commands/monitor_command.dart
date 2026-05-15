@@ -128,7 +128,8 @@ class MonitorCommand extends Command<int> {
 
   @override
   final description =
-      'Monitors Firebase Analytics events from logcat in real-time.';
+      'Monitors Firebase Analytics events from Android and iOS logs '
+      'in real-time.';
 
   final Logger _logger;
   final LogSourceFactory _logSourceFactory;
@@ -150,11 +151,17 @@ class MonitorCommand extends Command<int> {
   ///
   /// Used in verbose mode to filter relevant log lines.
   /// Supports both Android (FA, FA-SVC) and iOS (FirebaseAnalytics,
-  /// FIRAnalytics) patterns.
+  /// Firebase/Analytics, FIRAnalytics) patterns.
   static final RegExp _firebaseRelatedPattern = RegExp(
     r'\bFA-SVC\b|\bFA\b|I/FA|D/FA|V/FA|W/FA|E/FA|'
-    'FirebaseCrashlytics|Crashlytics|FirebaseAnalytics|FIRAnalytics',
+    'FirebaseCrashlytics|Crashlytics|FirebaseAnalytics|'
+    'Firebase/Analytics|FIRAnalytics',
   );
+
+  /// Returns whether [line] is relevant to Firebase verbose output.
+  static bool isFirebaseRelatedLogLine(String line) {
+    return _firebaseRelatedPattern.hasMatch(line);
+  }
 
   @override
   Future<int> run() async {
@@ -253,9 +260,7 @@ class MonitorCommand extends Command<int> {
     }
 
     if (showOnlyParamNames.isNotEmpty) {
-      _logger.info(
-        '🔎 Showing only params: ${showOnlyParamNames.join(', ')}',
-      );
+      _logger.info('🔎 Showing only params: ${showOnlyParamNames.join(', ')}');
     }
 
     // Initialize keyboard shortcuts if enabled
@@ -385,7 +390,7 @@ class MonitorCommand extends Command<int> {
           if (verbose && !_isPaused) {
             // Filter to only FA/Crashlytics noise to keep it relevant
             // Use pre-compiled static pattern for better performance
-            if (_firebaseRelatedPattern.hasMatch(line)) {
+            if (isFirebaseRelatedLogLine(line)) {
               sawRelevantLine = true;
               _logger.detail(line);
             }

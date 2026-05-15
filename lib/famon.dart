@@ -1,5 +1,5 @@
 /// Firebase Analytics Monitor - Real-time monitoring of Firebase Analytics
-/// events from Android logcat.
+/// events from Android and iOS logs.
 ///
 /// This library re-exports core types from `famon_core` for backward
 /// compatibility. The business logic lives in the `famon_core` package;
@@ -10,7 +10,7 @@
 /// ```dart
 /// import 'package:famon/famon.dart';
 ///
-/// // Parse a logcat line
+/// // Parse an Android logcat line
 /// final parser = LogParserService();
 /// final event = parser.parse(logcatLine);
 ///

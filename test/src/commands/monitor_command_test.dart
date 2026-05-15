@@ -100,5 +100,14 @@ void main() {
         isFalse,
       );
     });
+
+    test('verbose log filter includes iOS Firebase/Analytics lines', () {
+      expect(
+        MonitorCommand.isFirebaseRelatedLogLine(
+          '[Firebase/Analytics][I-ACS023073] Debug mode is enabled.',
+        ),
+        isTrue,
+      );
+    });
   });
 }

@@ -1,0 +1,4 @@
+---
+exclude_paths:
+  - "test/**"
+  - "packages/famon_core/test/**"

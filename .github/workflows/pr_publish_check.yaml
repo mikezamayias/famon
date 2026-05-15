@@ -5,15 +5,6 @@ on:
     branches:
       - dev
       - main
-    paths:
-      - "pubspec.yaml"
-      - "lib/src/version.dart"
-      - "packages/famon_core/**"
-      - ".pubignore"
-      - "tool/update_version.dart"
-      - "tool/release.sh"
-      - ".github/workflows/publish.yaml"
-      - ".github/workflows/pr_publish_check.yaml"
   push:
     branches:
       - dev

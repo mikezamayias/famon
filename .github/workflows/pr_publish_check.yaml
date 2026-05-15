@@ -61,11 +61,13 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: "3.11.0"
+      - name: Prepare package copy
+        run: cp -R packages/famon_core "${{ runner.temp }}/famon_core"
       - name: Install dependencies
-        working-directory: packages/famon_core
+        working-directory: ${{ runner.temp }}/famon_core
         run: dart pub get
       - name: Dry-run publish
-        working-directory: packages/famon_core
+        working-directory: ${{ runner.temp }}/famon_core
         run: dart pub publish --dry-run
 
   dry-run-famon:

@@ -6,11 +6,16 @@
 .vscode/
 .worktrees/
 docs/
+docs/superpowers/
+packages/
+tasks/
 test/
 tool/
 coverage/
+*.log
 *.dylib
 *.so
 *.dll
+firebase-debug.log
 libisar.dylib
 PLAN.md

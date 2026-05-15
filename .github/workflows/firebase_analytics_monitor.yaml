@@ -6,18 +6,6 @@ concurrency:
 
 on:
   pull_request:
-    paths:
-      - ".github/workflows/firebase_analytics_monitor.yaml"
-      - "analysis_options.yaml"
-      - "bin/**"
-      - "lib/**"
-      - "test/**"
-      - "pubspec.yaml"
-      - "packages/famon_core/analysis_options.yaml"
-      - "packages/famon_core/lib/**"
-      - "packages/famon_core/test/**"
-      - "packages/famon_core/pubspec.yaml"
-      - "codecov.yml"
   push:
     branches:
       - main

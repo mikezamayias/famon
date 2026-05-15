@@ -1,12 +1,17 @@
 # LLM Changelog Tool Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+<!-- markdownlint-disable MD013 -->
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Implement `tool/changelog.dart` as a repo-local maintainer tool with `prompt`, `draft`, and `validate` subcommands for release changelogs.
 
 **Architecture:** Keep the tool self-contained in one Dart script under `tool/`. The script gathers release context from git/gh, builds a strict prompt, optionally calls a local LLM CLI, inserts generated markdown into the two changelogs, and validates the result deterministically. Tests live under `test/tool/` and cover pure parsing/validation behavior through small fixtures.
 
-**Tech Stack:** Dart CLI script, `dart:io` processes/files, existing `test` package, repository `CHANGELOG.md` files, local `codex`/`claude`/`gemini` CLIs as optional runtime dependencies.
+**Tech Stack:** Dart CLI script, `dart:io` processes/files, existing `test` package, repository `CHANGELOG.md` files, and local `codex`/`claude` CLIs as optional runtime dependencies. Broad-permission providers are intentionally unsupported.
 
 ---
 
@@ -20,6 +25,7 @@
 ## Task 1: Add testable changelog primitives
 
 **Files:**
+
 - Create: `test/tool/changelog_tool_test.dart`
 - Create: `tool/changelog.dart`
 
@@ -218,6 +224,7 @@ Note: if the `RegExpMatchAdapter` feels too awkward during implementation, repla
 ## Task 2: Add validation rules
 
 **Files:**
+
 - Modify: `test/tool/changelog_tool_test.dart`
 - Modify: `tool/changelog.dart`
 
@@ -351,6 +358,7 @@ Expected: PASS.
 ## Task 3: Implement context collection and prompt command
 
 **Files:**
+
 - Modify: `test/tool/changelog_tool_test.dart`
 - Modify: `tool/changelog.dart`
 - Modify: `.gitignore`
@@ -474,6 +482,7 @@ Expected: PASS.
 ## Task 4: Implement draft command
 
 **Files:**
+
 - Modify: `test/tool/changelog_tool_test.dart`
 - Modify: `tool/changelog.dart`
 
@@ -532,10 +541,12 @@ class DraftOutput {
 }
 ```
 
-Implement `draft X.Y.Z --llm codex|claude|gemini`:
+Implement `draft X.Y.Z --llm codex|claude --yes`:
 
 - Build the same prompt as `prompt`.
-- Call the selected executable with a simple non-interactive argument shape.
+- Call the selected executable only when `--yes` is present.
+- Fence commit and pull request text as untrusted data in the prompt.
+- Enforce the prompt-size budget before invoking an LLM.
 - If the executable is unavailable or returns non-zero, write the prompt file and exit with a clear error.
 - Parse the output with `parseDraftOutput`.
 - Insert sections into both changelogs with `insertReleaseSection`.
@@ -547,18 +558,26 @@ Keep CLI adapters minimal:
 List<String> _llmArgs(String llm, String prompt) {
   switch (llm) {
     case 'codex':
-      return ['exec', prompt];
+      return [
+        'exec',
+        '--sandbox',
+        'read-only',
+        '--ignore-user-config',
+        '--ignore-rules',
+        '--ephemeral',
+        prompt,
+      ];
     case 'claude':
-      return ['-p', prompt];
-    case 'gemini':
-      return ['--yolo', prompt];
+      return ['-p', '--allowedTools', '', prompt];
     default:
-      throw ArgumentError('Unsupported --llm value: $llm');
+      throw ChangelogToolException('Unsupported --llm value: $llm');
   }
 }
 ```
 
-If a CLI's real argument shape differs during verification, adjust only that adapter.
+If a CLI's real argument shape differs during verification, adjust only that
+adapter. Do not add providers that require broad tool permissions for this
+prose-only changelog task.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -569,6 +588,7 @@ Expected: PASS.
 ## Task 5: Implement validate command and release docs update
 
 **Files:**
+
 - Modify: `tool/changelog.dart`
 - Modify: `doc/RELEASE_FLOW.md`
 
@@ -585,17 +605,30 @@ Behavior:
 
 - [ ] **Step 2: Update release docs briefly**
 
-Modify `doc/RELEASE_FLOW.md` section `### 2. Update both changelogs` to include:
+Modify `doc/RELEASE_FLOW.md` section `### 2. Update both changelogs` to
+include:
 
 ```markdown
-You can draft and validate both sections with the maintainer-only helper:
+You can draft and validate both sections with the maintainer-only helper. The
+safe default is to write and review the prompt first:
 
-```bash
-dart run tool/changelog.dart draft X.Y.Z --llm codex
+~~~bash
+dart run tool/changelog.dart prompt X.Y.Z
+~~~
+
+If the prompt looks reasonable, explicitly opt in to the LLM call:
+
+~~~bash
+dart run tool/changelog.dart draft X.Y.Z --llm codex --yes
 dart run tool/changelog.dart validate X.Y.Z
-```
+~~~
 
-The helper only drafts text and validates formatting. Review the generated entries before committing the release-prep PR.
+The helper only drafts text and validates formatting. Review the generated
+entries before committing the release-prep PR. The LLM path is guarded by
+`--yes`, a prompt-size budget, a short timeout, and fenced untrusted release
+data so commit messages and pull request titles are treated as data rather than
+instructions. Codex runs read-only with user config/rules ignored, and Claude
+runs with no tools allowed.
 ```
 
 - [ ] **Step 3: Run command-level smoke checks**
@@ -629,6 +662,7 @@ Expected: all pass.
 ## Task 6: Final verification and commit
 
 **Files:**
+
 - Modify: all files changed in previous tasks
 
 - [ ] **Step 1: Run release-adjacent checks**
@@ -657,4 +691,5 @@ git add tool/changelog.dart test/tool/changelog_tool_test.dart .gitignore doc/RE
 git commit -m "chore: add llm changelog helper"
 ```
 
-Do not stage unrelated untracked files such as `PLAN.md` or `tasks/` unless explicitly requested.
+Do not stage unrelated untracked files such as `PLAN.md` or `tasks/` unless
+explicitly requested.

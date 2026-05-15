@@ -158,6 +158,11 @@ class MonitorCommand extends Command<int> {
     'Firebase/Analytics|FIRAnalytics',
   );
 
+  /// Returns whether [line] is relevant to Firebase verbose output.
+  static bool isFirebaseRelatedLogLine(String line) {
+    return _firebaseRelatedPattern.hasMatch(line);
+  }
+
   @override
   Future<int> run() async {
     final platformArg = argResults?['platform'] as String? ?? 'auto';
@@ -385,7 +390,7 @@ class MonitorCommand extends Command<int> {
           if (verbose && !_isPaused) {
             // Filter to only FA/Crashlytics noise to keep it relevant
             // Use pre-compiled static pattern for better performance
-            if (_firebaseRelatedPattern.hasMatch(line)) {
+            if (isFirebaseRelatedLogLine(line)) {
               sawRelevantLine = true;
               _logger.detail(line);
             }

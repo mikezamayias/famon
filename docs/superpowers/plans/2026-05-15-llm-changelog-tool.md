@@ -1,6 +1,11 @@
 # LLM Changelog Tool Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+<!-- markdownlint-disable MD013 -->
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Implement `tool/changelog.dart` as a repo-local maintainer tool with `prompt`, `draft`, and `validate` subcommands for release changelogs.
 
@@ -20,6 +25,7 @@
 ## Task 1: Add testable changelog primitives
 
 **Files:**
+
 - Create: `test/tool/changelog_tool_test.dart`
 - Create: `tool/changelog.dart`
 
@@ -218,6 +224,7 @@ Note: if the `RegExpMatchAdapter` feels too awkward during implementation, repla
 ## Task 2: Add validation rules
 
 **Files:**
+
 - Modify: `test/tool/changelog_tool_test.dart`
 - Modify: `tool/changelog.dart`
 
@@ -351,6 +358,7 @@ Expected: PASS.
 ## Task 3: Implement context collection and prompt command
 
 **Files:**
+
 - Modify: `test/tool/changelog_tool_test.dart`
 - Modify: `tool/changelog.dart`
 - Modify: `.gitignore`
@@ -474,6 +482,7 @@ Expected: PASS.
 ## Task 4: Implement draft command
 
 **Files:**
+
 - Modify: `test/tool/changelog_tool_test.dart`
 - Modify: `tool/changelog.dart`
 
@@ -569,6 +578,7 @@ Expected: PASS.
 ## Task 5: Implement validate command and release docs update
 
 **Files:**
+
 - Modify: `tool/changelog.dart`
 - Modify: `doc/RELEASE_FLOW.md`
 
@@ -585,17 +595,19 @@ Behavior:
 
 - [ ] **Step 2: Update release docs briefly**
 
-Modify `doc/RELEASE_FLOW.md` section `### 2. Update both changelogs` to include:
+Modify `doc/RELEASE_FLOW.md` section `### 2. Update both changelogs` to
+include:
 
 ```markdown
 You can draft and validate both sections with the maintainer-only helper:
 
-```bash
+~~~bash
 dart run tool/changelog.dart draft X.Y.Z --llm codex
 dart run tool/changelog.dart validate X.Y.Z
-```
+~~~
 
-The helper only drafts text and validates formatting. Review the generated entries before committing the release-prep PR.
+The helper only drafts text and validates formatting. Review the generated
+entries before committing the release-prep PR.
 ```
 
 - [ ] **Step 3: Run command-level smoke checks**
@@ -629,6 +641,7 @@ Expected: all pass.
 ## Task 6: Final verification and commit
 
 **Files:**
+
 - Modify: all files changed in previous tasks
 
 - [ ] **Step 1: Run release-adjacent checks**
@@ -657,4 +670,5 @@ git add tool/changelog.dart test/tool/changelog_tool_test.dart .gitignore doc/RE
 git commit -m "chore: add llm changelog helper"
 ```
 
-Do not stage unrelated untracked files such as `PLAN.md` or `tasks/` unless explicitly requested.
+Do not stage unrelated untracked files such as `PLAN.md` or `tasks/` unless
+explicitly requested.

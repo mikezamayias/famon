@@ -151,10 +151,11 @@ class MonitorCommand extends Command<int> {
   ///
   /// Used in verbose mode to filter relevant log lines.
   /// Supports both Android (FA, FA-SVC) and iOS (FirebaseAnalytics,
-  /// FIRAnalytics) patterns.
+  /// Firebase/Analytics, FIRAnalytics) patterns.
   static final RegExp _firebaseRelatedPattern = RegExp(
     r'\bFA-SVC\b|\bFA\b|I/FA|D/FA|V/FA|W/FA|E/FA|'
-    'FirebaseCrashlytics|Crashlytics|FirebaseAnalytics|FIRAnalytics',
+    'FirebaseCrashlytics|Crashlytics|FirebaseAnalytics|'
+    'Firebase/Analytics|FIRAnalytics',
   );
 
   @override

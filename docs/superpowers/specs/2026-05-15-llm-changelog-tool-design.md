@@ -27,9 +27,9 @@ The new tool should use an LLM only for prose. File edits, validation, version c
 Create one repo-local Dart tool:
 
 ```bash
-dart run tool/changelog.dart draft X.Y.Z --llm codex
-dart run tool/changelog.dart validate X.Y.Z
 dart run tool/changelog.dart prompt X.Y.Z
+dart run tool/changelog.dart draft X.Y.Z --llm codex --yes
+dart run tool/changelog.dart validate X.Y.Z
 ```
 
 The file lives under `tool/`, like `tool/update_version.dart`. It is for maintainers working from a clone of the repository, not for users who install `famon` from pub.dev.
@@ -47,10 +47,9 @@ Responsibilities:
 - Use `gh` PR metadata when available, but do not require it.
 - Detect whether changes touched `packages/famon_core/`.
 - Build a strict prompt for public release notes.
-- Call a local LLM CLI selected by `--llm`:
+- Call a local LLM CLI only when `--yes` is present. Supported `--llm` values:
   - `codex`
   - `claude`
-  - `gemini`
 - Insert the generated sections near the top of:
   - `CHANGELOG.md`
   - `packages/famon_core/CHANGELOG.md`
@@ -68,6 +67,9 @@ Example output path:
 ```
 
 This is the fallback when local LLM CLIs are unavailable or when the maintainer wants to inspect the prompt first.
+
+Maintainers and LLM agents should use `prompt` before `draft`. The prompt file is
+the reviewable boundary for cost and prompt-injection safety.
 
 ### `validate`
 
@@ -91,7 +93,8 @@ The release-prep flow becomes:
 
 ```bash
 dart run tool/update_version.dart X.Y.Z
-dart run tool/changelog.dart draft X.Y.Z --llm codex
+dart run tool/changelog.dart prompt X.Y.Z
+dart run tool/changelog.dart draft X.Y.Z --llm codex --yes
 dart run tool/changelog.dart validate X.Y.Z
 ```
 
@@ -100,8 +103,7 @@ Then open the normal release-prep PR into `dev`. Review the generated changelog 
 After the release-prep PR merges, release continues separately:
 
 ```bash
-tool/prepare_release_pr.sh X.Y.Z
-tool/tag_release.sh X.Y.Z
+./tool/release.sh X.Y.Z
 ```
 
 The changelog tool does not create release PRs or tags.
@@ -117,6 +119,19 @@ Keep documentation small:
 ## Safety model
 
 - LLM output is a draft.
+- LLM execution requires the explicit `--yes` flag; the safe default is to write
+  and review the prompt without calling an LLM.
+- The prompt has a fixed character budget to limit accidental usage and runaway
+  release context.
+- Commit subjects and PR titles are fenced as untrusted data. They must never be
+  concatenated into the instruction section or treated as prompt instructions.
+- Providers that require broad tool permissions for this prose-only task are not
+  supported by the helper.
+- Codex must run with `--sandbox read-only`, `--ignore-user-config`,
+  `--ignore-rules`, and `--ephemeral` so local agent configuration cannot
+  widen the changelog helper's permissions.
+- Claude must run with an empty `--allowedTools` list so the helper is a
+  prose-only generation call.
 - Deterministic validation is required before release.
 - The release-prep PR remains the human review gate.
 - The generated changelog is committed before tagging.

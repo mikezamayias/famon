@@ -11,7 +11,7 @@
 
 **Architecture:** Keep the tool self-contained in one Dart script under `tool/`. The script gathers release context from git/gh, builds a strict prompt, optionally calls a local LLM CLI, inserts generated markdown into the two changelogs, and validates the result deterministically. Tests live under `test/tool/` and cover pure parsing/validation behavior through small fixtures.
 
-**Tech Stack:** Dart CLI script, `dart:io` processes/files, existing `test` package, repository `CHANGELOG.md` files, local `codex`/`claude`/`gemini` CLIs as optional runtime dependencies.
+**Tech Stack:** Dart CLI script, `dart:io` processes/files, existing `test` package, repository `CHANGELOG.md` files, and local `codex`/`claude` CLIs as optional runtime dependencies. Broad-permission providers are intentionally unsupported.
 
 ---
 
@@ -541,10 +541,12 @@ class DraftOutput {
 }
 ```
 
-Implement `draft X.Y.Z --llm codex|claude|gemini`:
+Implement `draft X.Y.Z --llm codex|claude --yes`:
 
 - Build the same prompt as `prompt`.
-- Call the selected executable with a simple non-interactive argument shape.
+- Call the selected executable only when `--yes` is present.
+- Fence commit and pull request text as untrusted data in the prompt.
+- Enforce the prompt-size budget before invoking an LLM.
 - If the executable is unavailable or returns non-zero, write the prompt file and exit with a clear error.
 - Parse the output with `parseDraftOutput`.
 - Insert sections into both changelogs with `insertReleaseSection`.
@@ -556,18 +558,26 @@ Keep CLI adapters minimal:
 List<String> _llmArgs(String llm, String prompt) {
   switch (llm) {
     case 'codex':
-      return ['exec', prompt];
+      return [
+        'exec',
+        '--sandbox',
+        'read-only',
+        '--ignore-user-config',
+        '--ignore-rules',
+        '--ephemeral',
+        prompt,
+      ];
     case 'claude':
-      return ['-p', prompt];
-    case 'gemini':
-      return ['--yolo', prompt];
+      return ['-p', '--allowedTools', '', prompt];
     default:
-      throw ArgumentError('Unsupported --llm value: $llm');
+      throw ChangelogToolException('Unsupported --llm value: $llm');
   }
 }
 ```
 
-If a CLI's real argument shape differs during verification, adjust only that adapter.
+If a CLI's real argument shape differs during verification, adjust only that
+adapter. Do not add providers that require broad tool permissions for this
+prose-only changelog task.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -599,15 +609,26 @@ Modify `doc/RELEASE_FLOW.md` section `### 2. Update both changelogs` to
 include:
 
 ```markdown
-You can draft and validate both sections with the maintainer-only helper:
+You can draft and validate both sections with the maintainer-only helper. The
+safe default is to write and review the prompt first:
 
 ~~~bash
-dart run tool/changelog.dart draft X.Y.Z --llm codex
+dart run tool/changelog.dart prompt X.Y.Z
+~~~
+
+If the prompt looks reasonable, explicitly opt in to the LLM call:
+
+~~~bash
+dart run tool/changelog.dart draft X.Y.Z --llm codex --yes
 dart run tool/changelog.dart validate X.Y.Z
 ~~~
 
 The helper only drafts text and validates formatting. Review the generated
-entries before committing the release-prep PR.
+entries before committing the release-prep PR. The LLM path is guarded by
+`--yes`, a prompt-size budget, a short timeout, and fenced untrusted release
+data so commit messages and pull request titles are treated as data rather than
+instructions. Codex runs read-only with user config/rules ignored, and Claude
+runs with no tools allowed.
 ```
 
 - [ ] **Step 3: Run command-level smoke checks**

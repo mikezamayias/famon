@@ -46,16 +46,32 @@ Both packages keep their own changelog (Keep a Changelog format):
 - `CHANGELOG.md` — root, end-user-facing CLI changes.
 - `packages/famon_core/CHANGELOG.md` — library API changes.
 
-Add a new `## [X.Y.Z] - YYYY-MM-DD` section to each. If a release only touches the CLI, the `famon_core` entry can simply note "no functional changes — version bumped to track CLI release."
+Add a new `## [X.Y.Z](COMPARE_LINK) (YYYY-MM-DD)` section to each, where
+`COMPARE_LINK` is `https://github.com/mikezamayias/famon/compare/vPREVIOUS...vX.Y.Z`.
+If a release only touches the CLI, the `famon_core` entry can simply note
+"no functional changes — version bumped to track CLI release."
 
-You can draft and validate both sections with the maintainer-only helper:
+You can draft and validate both sections with the maintainer-only helper.
+The safe default is to generate and review the prompt first:
 
 ```bash
-dart run tool/changelog.dart draft X.Y.Z --llm codex
+dart run tool/changelog.dart prompt X.Y.Z
+```
+
+If the prompt looks reasonable, explicitly opt in to the LLM call:
+
+```bash
+dart run tool/changelog.dart draft X.Y.Z --llm codex --yes
 dart run tool/changelog.dart validate X.Y.Z
 ```
 
-The helper only drafts text and validates formatting. Review the generated entries before committing the release-prep PR.
+The helper only drafts text and validates formatting. Review the generated
+entries before committing the release-prep PR. The LLM path is guarded by
+`--yes`, a prompt-size budget, a short timeout, and fenced untrusted release
+data so commit messages and pull request titles are treated as data rather than
+instructions. Codex runs read-only with user config/rules ignored; Claude runs
+with no tools allowed. Do not bypass these safeguards or paste raw release
+history into an LLM prompt manually.
 
 ### 3. Run pre-push checks
 

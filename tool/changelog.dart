@@ -4,6 +4,11 @@
 
 import 'dart:io';
 
+typedef StartProcess = Future<Process> Function(
+  String executable,
+  List<String> arguments,
+);
+
 const _repoUrl = 'https://github.com/mikezamayias/famon';
 const _corePath = 'packages/famon_core/';
 const _marker = '---FAMON_CORE---';
@@ -171,6 +176,35 @@ DraftOutput parseDraftOutput(String output) {
   return DraftOutput(parts[0].trim(), parts[1].trim());
 }
 
+Future<ProcessResult> runLlmCommand(
+  String executable,
+  List<String> arguments, {
+  Duration timeout = _llmTimeout,
+  StartProcess startProcess = Process.start,
+}) async {
+  final process = await startProcess(executable, arguments);
+  await process.stdin.close();
+  final stdout = process.stdout.transform(systemEncoding.decoder).join();
+  final stderr = process.stderr.transform(systemEncoding.decoder).join();
+
+  final exitCode = await process.exitCode.timeout(
+    timeout,
+    onTimeout: () {
+      process.kill();
+      throw ChangelogToolException(
+        'LLM command timed out after ${_formatDuration(timeout)}.',
+      );
+    },
+  );
+
+  return ProcessResult(process.pid, exitCode, await stdout, await stderr);
+}
+
+String _formatDuration(Duration duration) {
+  if (duration.inMinutes >= 1) return '${duration.inMinutes} minutes';
+  return '${duration.inSeconds} seconds';
+}
+
 Future<void> main(List<String> args) async {
   if (args.isEmpty || args.first == '--help' || args.first == '-h') {
     _printUsage();
@@ -295,14 +329,7 @@ Future<_ChangelogContext> _loadContext(String version) async {
 Future<void> _draft(String version, {required String llm}) async {
   final context = await _loadContext(version);
   final argv = _llmArgs(llm, context.prompt);
-  final result = await Process.run(llm, argv).timeout(
-    _llmTimeout,
-    onTimeout: () {
-      throw const ChangelogToolException(
-        'LLM command timed out after 2 minutes.',
-      );
-    },
-  );
+  final result = await runLlmCommand(llm, argv);
   if (result.exitCode != 0) {
     final path = await _writePromptFile(context.prompt, version: version);
     throw ChangelogToolException(

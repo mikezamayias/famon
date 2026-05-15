@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:test/test.dart';
 
 import '../../tool/changelog.dart' as changelog;
@@ -199,4 +202,95 @@ All notable changes to this project will be documented in this file.
       expect(draft.coreSection, contains('No functional changes'));
     });
   });
+
+  group('runLlmCommand', () {
+    test('closes stdin after starting the child process', () async {
+      late _FakeProcess process;
+
+      await changelog.runLlmCommand(
+        'codex',
+        ['exec', 'prompt'],
+        startProcess: (executable, arguments) async {
+          return process = _FakeProcess(exitCode: 0);
+        },
+      );
+
+      expect(process.stdinClosed, isTrue);
+    });
+
+    test('kills the child process when the command times out', () async {
+      _FakeProcess? process;
+
+      final command = changelog.runLlmCommand(
+        'codex',
+        ['exec', 'prompt'],
+        timeout: Duration.zero,
+        startProcess: (executable, arguments) async {
+          final fakeProcess = _FakeProcess();
+          process = fakeProcess;
+          return fakeProcess;
+        },
+      );
+
+      await expectLater(
+        command,
+        throwsA(
+          isA<changelog.ChangelogToolException>().having(
+            (exception) => exception.message,
+            'message',
+            contains('0 seconds'),
+          ),
+        ),
+      );
+      expect(process?.killed, isTrue);
+    });
+  });
+}
+
+class _FakeProcess implements Process {
+  _FakeProcess({int? exitCode}) {
+    if (exitCode != null) {
+      _exitCode.complete(exitCode);
+    }
+  }
+
+  final _exitCode = Completer<int>();
+  final _stdinConsumer = _CloseTrackingConsumer();
+
+  bool killed = false;
+  bool get stdinClosed => _stdinConsumer.closed;
+
+  @override
+  Future<int> get exitCode => _exitCode.future;
+
+  @override
+  int get pid => 123;
+
+  @override
+  IOSink get stdin => IOSink(_stdinConsumer);
+
+  @override
+  Stream<List<int>> get stderr => const Stream<List<int>>.empty();
+
+  @override
+  Stream<List<int>> get stdout => const Stream<List<int>>.empty();
+
+  @override
+  bool kill([ProcessSignal signal = ProcessSignal.sigterm]) {
+    killed = true;
+    _exitCode.complete(-1);
+    return true;
+  }
+}
+
+class _CloseTrackingConsumer implements StreamConsumer<List<int>> {
+  bool closed = false;
+
+  @override
+  Future<void> addStream(Stream<List<int>> stream) async {}
+
+  @override
+  Future<void> close() async {
+    closed = true;
+  }
 }

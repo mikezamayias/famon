@@ -2,7 +2,7 @@
 /// and persistence.
 ///
 /// This package provides the business logic, domain models, and services
-/// used by the famon CLI and future Flutter GUI app.
+/// used by the famon CLI and other Dart or Flutter applications.
 library;
 
 export 'src/constants.dart';

@@ -19,6 +19,22 @@ CLI tool for real-time monitoring of Firebase Analytics events from Android and 
 
 ---
 
+## Package split
+
+`famon` is the terminal interface. It owns command-line arguments, terminal output, keyboard shortcuts, clipboard/file integrations, logging, and process lifecycle wiring.
+
+`famon_core` owns reusable analytics behavior: log parsing, event models, filtering, persistence, import/export, and monitoring primitives. Shared behavior should move into `famon_core` when it is useful outside terminal rendering.
+
+## Roadmap
+
+Short-term priorities:
+
+- Keep `famon` focused on terminal monitoring, filtering, and developer workflow.
+- Keep `famon_core` focused on reusable parsing, filtering, persistence, and import/export behavior.
+- Improve cross-platform parser parity for Android, iOS Simulator, and iOS device logs.
+- Tighten release automation and package archive hygiene.
+- Clarify public API stability for `famon_core`.
+
 ## Installation
 
 ```bash
@@ -165,7 +181,7 @@ Session Stats:
 
 - Confirm Firebase Analytics is integrated and debug mode is active
 - iOS events may have delays
-- Run `adb logcat -s FA-SVC | head -10` to check raw log output
+- Run `famon monitor --platform <platform> --verbose` to check raw Firebase log output
 
 ### Missing parameters
 
@@ -175,6 +191,9 @@ Check that your log format matches one of the supported patterns:
 Logging event: origin=app,name=EVENT_NAME,params=Bundle[{param1=value1, param2=value2}]
 Event logged: EVENT_NAME params:Bundle[{...}]
 FA-SVC event_name:EVENT_NAME
+[Firebase/Analytics][I-ACS023073] Debug mode is enabled. Marking event as debug and real-time. Event name, parameters: EVENT_NAME, {
+    param1 = value1;
+}
 ```
 
 If your logs look different, open an issue with a sample line.

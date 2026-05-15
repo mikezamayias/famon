@@ -128,7 +128,8 @@ class MonitorCommand extends Command<int> {
 
   @override
   final description =
-      'Monitors Firebase Analytics events from logcat in real-time.';
+      'Monitors Firebase Analytics events from Android and iOS logs '
+      'in real-time.';
 
   final Logger _logger;
   final LogSourceFactory _logSourceFactory;
@@ -253,9 +254,7 @@ class MonitorCommand extends Command<int> {
     }
 
     if (showOnlyParamNames.isNotEmpty) {
-      _logger.info(
-        '🔎 Showing only params: ${showOnlyParamNames.join(', ')}',
-      );
+      _logger.info('🔎 Showing only params: ${showOnlyParamNames.join(', ')}');
     }
 
     // Initialize keyboard shortcuts if enabled

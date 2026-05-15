@@ -15,7 +15,8 @@ const packageName = 'famon';
 
 /// The description of the CLI tool.
 const description =
-    'A command-line tool to monitor Firebase Analytics events from logcat.';
+    'A command-line tool to monitor Firebase Analytics events from '
+    'Android and iOS logs.';
 
 /// {@template famon_command_runner}
 /// A [CommandRunner] for the CLI.

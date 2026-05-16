@@ -42,5 +42,6 @@ export 'src/services/log_event_processor.dart';
 export 'src/services/log_parser_factory.dart';
 export 'src/services/log_parser_service.dart';
 export 'src/services/log_source_factory.dart';
+export 'src/services/shared/item_array_parser.dart';
 export 'src/shared/log_timestamp_parser.dart';
 export 'src/utils/event_filter_utils.dart';

@@ -57,6 +57,7 @@ These APIs have a stable contract within `1.x`. Behavior may evolve but signatur
 | `ImportDataUseCase`, `ExportDataUseCase`, `DataExportImportUseCase` | Import / export orchestration |
 | `EventFilterService`, `EventFilterUtils`, `FilterCriteria` | Filter pipeline |
 | `LogEventProcessor` + `LogEventProcessResult` (sealed: `LogEventResult`, `LogVerboseResult`, `LogDiscardedResult`) | Host-agnostic parse + filter primitive |
+| `ItemArrayParser` | Shared `items=[...]` depth-tracking + strip / extract helpers for both platforms' parsers |
 | `EventCacheService` / `EventCacheInterface` | In-memory event cache |
 | `EventStatistics`, `SessionStats`, `PlatformType` | Value objects |
 | `LogSourceFactory` / `LogSourceInterface` / `LogParserInterface` | Log source abstractions |

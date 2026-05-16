@@ -249,8 +249,6 @@ class FilteredMonitorCommand extends Command<int> {
         stdout: process.stdout,
         stderr: process.stderr,
         verbose: false,
-        hideEvents: hideEvents,
-        showOnlyEvents: showOnlyEvents,
         onResult: (result) async {
           if (result is! LogEventResult) {
             return true;
@@ -262,11 +260,21 @@ class FilteredMonitorCommand extends Command<int> {
             customParamMap,
           );
 
-          // Apply frequency-based filtering using database.
+          // Apply frequency-based filtering using the database first to
+          // match the historical ordering of `FilteredMonitorCommand`.
           if (await _shouldSkipByFrequency(
             enhancedEvent.eventName,
             minFrequency,
             maxFrequency,
+          )) {
+            return true;
+          }
+
+          // Apply basic hide / show-only filtering.
+          if (EventFilterUtils.shouldSkipEvent(
+            enhancedEvent.eventName,
+            hideEvents,
+            showOnlyEvents,
           )) {
             return true;
           }

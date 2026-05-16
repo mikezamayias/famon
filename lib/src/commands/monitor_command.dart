@@ -363,8 +363,6 @@ class MonitorCommand extends Command<int> {
         stdout: process.stdout,
         stderr: process.stderr,
         verbose: verbose,
-        hideEvents: hideEvents,
-        showOnlyEvents: showOnlyEvents,
         onResult: (result) {
           switch (result) {
             case LogVerboseResult(:final line):
@@ -373,8 +371,18 @@ class MonitorCommand extends Command<int> {
                 _logger.detail(line);
               }
             case LogEventResult(:final event):
-              // Always cache the full event for export support.
+              // Cache every parsed event for export / stats / suggestions,
+              // even when the basic hide / show-only filter would
+              // suppress it from display. Matches the historical
+              // ordering in `MonitorCommand`'s pre-refactor loop.
               _eventCache.addFullEvent(event);
+              if (EventFilterUtils.shouldSkipEvent(
+                event.eventName,
+                hideEvents,
+                showOnlyEvents,
+              )) {
+                break;
+              }
               if (!_isPaused) {
                 // Flush any buffered grouped output before printing.
                 _formatter.flushPending();
@@ -382,7 +390,7 @@ class MonitorCommand extends Command<int> {
                 _formatter.formatAndPrint(event);
               }
             case LogDiscardedResult():
-              // Line was unparseable or filtered out; nothing to do.
+              // Line was unparseable; nothing to do.
               break;
           }
           return true;
@@ -391,7 +399,7 @@ class MonitorCommand extends Command<int> {
           .catchError((Object e) {
         _logger.err('Error reading log stream: $e');
       }).whenComplete(() {
-        // Stream closed (process exited or pipeline saw an error) \u2014
+        // Stream closed (process exited or pipeline saw an error).
         // surface the same quit signal a SIGINT would raise.
         if (!_quitCompleter!.isCompleted) {
           _quitCompleter!.complete();

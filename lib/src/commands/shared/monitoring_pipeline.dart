@@ -67,14 +67,22 @@ class MonitoringPipeline {
       _firebaseRelatedPattern.hasMatch(line);
 
   /// Consume [stdout] line-by-line and emit a [LogEventProcessResult]
-  /// to [onResult] for every line that yields one.
+  /// to [onResult] for every parsed event and (when [verbose] is on)
+  /// every raw Firebase Analytics / Crashlytics chatter line.
+  ///
+  /// The pipeline intentionally does **not** apply hide / show-only
+  /// filtering: callers do that themselves so they can decide whether
+  /// filtered events still update caches, stats, or persistence
+  /// (`MonitorCommand` caches filtered events for export; the
+  /// frequency-aware `FilteredMonitorCommand` runs its DB query before
+  /// the basic filter).
   ///
   /// [stderr] is drained concurrently to prevent the child process
   /// from stalling on its stderr buffer. When [verbose] is true,
   /// lines matching [isFirebaseRelatedLogLine] are emitted as
-  /// [LogVerboseResult] before parse + filter, so the host can render
-  /// the raw line even when the same line also parses to a displayable
-  /// [AnalyticsEvent].
+  /// [LogVerboseResult] **before** the parsed [LogEventResult] for
+  /// the same line, so the host can render the raw line alongside
+  /// the formatted event.
   ///
   /// Returning `false` from [onResult] breaks the loop and resolves
   /// the returned future. The caller is responsible for killing the
@@ -83,8 +91,6 @@ class MonitoringPipeline {
     required Stream<List<int>> stdout,
     required Stream<List<int>> stderr,
     required bool verbose,
-    required List<String> hideEvents,
-    required List<String> showOnlyEvents,
     required MonitoringPipelineCallback onResult,
   }) async {
     unawaited(stderr.drain<void>());
@@ -109,21 +115,16 @@ class MonitoringPipeline {
         }
       }
 
-      // Verbose: surface the raw line for Firebase chatter even when
-      // the same line also parses to an event below.
+      // Verbose: surface the raw line for Firebase chatter independent
+      // of whether the same line also parses to an event below.
       if (verbose && isFirebaseRelatedLogLine(line)) {
         final keepGoing = await onResult(LogVerboseResult(line));
         if (!keepGoing) return;
       }
 
-      // Parse + filter via the shared core primitive. `verbose: false`
-      // here so the processor does not duplicate the verbose emission
-      // the pipeline just performed.
-      final eventResult = processor.processLine(
-        line,
-        hideEvents: hideEvents,
-        showOnlyEvents: showOnlyEvents,
-      );
+      // Parse only; filtering, caching, and display are caller
+      // concerns (see class-level dartdoc).
+      final eventResult = processor.processLine(line);
 
       if (eventResult is LogEventResult) {
         final keepGoing = await onResult(eventResult);

@@ -38,6 +38,7 @@ export 'src/services/interfaces/event_cache_interface.dart';
 export 'src/services/interfaces/log_parser_interface.dart';
 export 'src/services/interfaces/log_source_interface.dart';
 export 'src/services/ios_log_parser_service.dart';
+export 'src/services/log_event_processor.dart';
 export 'src/services/log_parser_factory.dart';
 export 'src/services/log_parser_service.dart';
 export 'src/services/log_source_factory.dart';

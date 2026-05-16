@@ -23,12 +23,6 @@ import 'package:famon_core/famon_core.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 
-// Relative import: Codacy's analyzer cannot resolve newly-added
-// `package:famon/src/...` self-references in PR diffs even though the
-// local Dart analyzer accepts them.
-// ignore: always_use_package_imports
-import 'shared/monitoring_pipeline.dart';
-
 /// Command for monitoring Firebase Analytics events in real-time
 @injectable
 class MonitorCommand extends Command<int> {
@@ -355,7 +349,7 @@ class MonitorCommand extends Command<int> {
       // CLI-only formatting, caching, and display work.
       final pipeline = MonitoringPipeline(
         processor: LogEventProcessor(parser: _logParser),
-        logger: _logger,
+        onWarning: _logger.warn,
       );
 
       final pipelineFuture = pipeline

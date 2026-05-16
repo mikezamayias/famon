@@ -2,12 +2,3 @@
 exclude_paths:
   - "test/**"
   - "packages/famon_core/test/**"
-  # Codacy's analyzer cannot resolve `package:famon_core/...` imports
-  # in newly-added or heavily-modified Dart files within a PR diff
-  # (the same false-positive pattern that affected log_event_processor.dart
-  # in PR #101 and item_array_parser.dart in PR #102). The local Dart
-  # analyzer + `Analyze + format + test (famon_core)` CI both pass on
-  # these files. Exclude them until Codacy re-indexes on a follow-up
-  # commit; remove from this list after merge.
-  - "lib/src/commands/shared/monitoring_pipeline.dart"
-  - "lib/src/cli/commands/filtered_monitor_command.dart"

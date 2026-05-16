@@ -1,5 +1,4 @@
 import 'package:famon/src/commands/monitor_command.dart';
-import 'package:famon/src/commands/shared/monitoring_pipeline.dart';
 import 'package:famon_core/famon_core.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';

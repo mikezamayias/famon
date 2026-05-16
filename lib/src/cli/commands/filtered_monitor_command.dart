@@ -7,12 +7,6 @@ import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:process/process.dart';
 
-// Relative import: Codacy's analyzer cannot resolve newly-added
-// `package:famon/src/...` self-references in PR diffs even though the
-// local Dart analyzer accepts them.
-// ignore: always_use_package_imports
-import '../../commands/shared/monitoring_pipeline.dart';
-
 /// Bundles dependencies required by FilteredMonitorCommand.
 ///
 /// This container groups related services to reduce constructor parameter count
@@ -241,7 +235,7 @@ class FilteredMonitorCommand extends Command<int> {
       // formatting, and limit-tracking that is unique to this command.
       final pipeline = MonitoringPipeline(
         processor: LogEventProcessor(parser: _logParser),
-        logger: _logger,
+        onWarning: _logger.warn,
       );
 
       var eventCount = 0;

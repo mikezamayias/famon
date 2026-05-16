@@ -1,52 +1,64 @@
+// Relative imports keep this file portable across analyzers that do not
+// resolve `package:famon_core/src/...` self-references inside the package.
+// ignore_for_file: always_use_package_imports
+
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:famon_core/famon_core.dart';
-import 'package:mason_logger/mason_logger.dart';
+import 'log_event_processor.dart';
+
+/// Signature for the warning callback the pipeline uses to report
+/// recoverable issues (currently: malformed UTF-8 byte counts).
+typedef MonitoringPipelineOnWarning = void Function(String message);
 
 /// Result callback signature.
 ///
-/// Return `true` to keep consuming the stream, `false` to stop and exit
-/// [MonitoringPipeline.run] early (e.g. when an `--limit` is hit).
+/// Return `true` to keep consuming the stream, `false` to stop and
+/// exit [MonitoringPipeline.run] early (e.g. when a `--limit` is hit).
 typedef MonitoringPipelineCallback = FutureOr<bool> Function(
   LogEventProcessResult result,
 );
 
-/// CLI-side stream pipeline that consumes a raw log process and emits
-/// structured [LogEventProcessResult] values to a host callback.
+/// Host-agnostic stream pipeline that consumes a raw log process and
+/// emits structured [LogEventProcessResult] values to a host callback.
 ///
 /// The pipeline owns the bits of monitor-loop behavior that were
 /// previously duplicated between `MonitorCommand` and
-/// `FilteredMonitorCommand`:
+/// `FilteredMonitorCommand` in the `famon` CLI package:
 ///
 /// - stderr draining (prevents the child process from blocking on
 ///   stderr buffer overflow);
-/// - UTF-8 line decoding with malformed byte tracking and rate-limited
-///   warnings;
-/// - delegation to [LogEventProcessor] for parse + filter decisions;
+/// - UTF-8 line decoding with malformed byte tracking and
+///   rate-limited warning callbacks;
+/// - delegation to [LogEventProcessor] for parse decisions;
 /// - verbose-mode raw line emission for Firebase Analytics /
 ///   Crashlytics chatter, matching the historical `MonitorCommand`
-///   behavior where verbose surfaces both parsed events and the raw
-///   log line they came from.
+///   behavior where verbose surfaces both the parsed event and the
+///   raw log line it came from.
 ///
-/// CLI-only concerns — process startup, signal handlers, option
-/// parsing, keyboard shortcuts, clipboard/file dialogs, terminal
-/// rendering, and cache updates — stay in the calling command.
+/// The pipeline intentionally does **not** apply hide / show-only
+/// filtering, caching, persistence, or terminal rendering: callers do
+/// that themselves so they can decide whether filtered events still
+/// update caches and stats. The pipeline is also free of
+/// `mason_logger`, terminal, ANSI, clipboard, and process-lifecycle
+/// concerns — those remain in the host CLI / GUI / server.
 class MonitoringPipeline {
-  /// Creates a pipeline backed by [processor] for parse + filter and
-  /// [logger] for malformed-byte warnings.
+  /// Creates a pipeline backed by [processor]. Provide [onWarning] to
+  /// receive a rate-limited message every time the pipeline observes
+  /// malformed UTF-8 in the input stream; omit it to silently swallow
+  /// those warnings.
   const MonitoringPipeline({
     required this.processor,
-    required this.logger,
+    this.onWarning,
   });
 
-  /// Parse + filter primitive supplied by `famon_core`.
+  /// Parse primitive used to decode each log line into a
+  /// [LogEventProcessResult].
   final LogEventProcessor processor;
 
-  /// Logger used for malformed-UTF-8 warnings; **not** used for event
-  /// or verbose-line output — those go through the `onResult` callback
-  /// passed to [run].
-  final Logger logger;
+  /// Optional callback for malformed-UTF-8 warning messages. Defaults
+  /// to `null`, in which case warnings are dropped silently.
+  final MonitoringPipelineOnWarning? onWarning;
 
   /// Pre-compiled regex matching Firebase Analytics + Crashlytics
   /// chatter on both Android (`FA`, `FA-SVC`, level-prefixed tags
@@ -69,13 +81,6 @@ class MonitoringPipeline {
   /// Consume [stdout] line-by-line and emit a [LogEventProcessResult]
   /// to [onResult] for every parsed event and (when [verbose] is on)
   /// every raw Firebase Analytics / Crashlytics chatter line.
-  ///
-  /// The pipeline intentionally does **not** apply hide / show-only
-  /// filtering: callers do that themselves so they can decide whether
-  /// filtered events still update caches, stats, or persistence
-  /// (`MonitorCommand` caches filtered events for export; the
-  /// frequency-aware `FilteredMonitorCommand` runs its DB query before
-  /// the basic filter).
   ///
   /// [stderr] is drained concurrently to prevent the child process
   /// from stalling on its stderr buffer. When [verbose] is true,
@@ -106,7 +111,7 @@ class MonitoringPipeline {
         malformedByteCount += replacementCount;
         final now = DateTime.now();
         if (now.difference(lastMalformedWarning).inSeconds >= 60) {
-          logger.warn(
+          onWarning?.call(
             'Detected $malformedByteCount malformed '
             'UTF-8 byte(s) in log stream. '
             'Some log data may be corrupted.',

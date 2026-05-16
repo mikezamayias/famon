@@ -40,7 +40,7 @@ jobs:
       dart_sdk: "3.11.0"
       working_directory: packages/famon_core
       setup: "dart run build_runner build --delete-conflicting-outputs"
-      min_coverage: 0  # famon_core has no tests yet; raise once coverage exists
+      min_coverage: 0  # famon_core has near-zero coverage today; raise once real tests land
 
   spell-check:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
@@ -114,7 +114,7 @@ jobs:
           dart pub global run coverage:format_coverage \
             --lcov --in=packages/famon_core/coverage \
             --out=coverage/lcov-core.info \
-            --report-on=lib
+            --report-on=packages/famon_core/lib
 
       - name: 📤 Upload CLI Coverage to Codecov
         uses: codecov/codecov-action@v6

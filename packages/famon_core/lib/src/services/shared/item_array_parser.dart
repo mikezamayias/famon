@@ -5,11 +5,11 @@
 /// The two platforms emit different separator characters (`,` on
 /// Android, `;` on iOS) and different field syntaxes (`key=value` vs
 /// `key (_abbrev) = value`), but the `items=[...]` array uses the same
-/// depth-tracked `[`/`]` structure on both. This class centralises the
+/// depth-tracked `[`/`]` structure on both. This class centralizes the
 /// depth-tracking and the cut-off handling so platform-specific parsers
 /// only carry their separator/regex differences, not the bracket math.
 ///
-/// **Truncation behaviour** is identical to the historical per-platform
+/// **Truncation behavior** is identical to the historical per-platform
 /// implementations:
 /// - **Strip**: when the array has no closing `]` in the log line
 ///   (logcat / oslog truncated the line), the helper drops everything
@@ -67,6 +67,14 @@ class ItemArrayParser {
       return paramsString;
     }
 
+    assert(
+      match.end - 1 >= 0 &&
+          match.end - 1 < paramsString.length &&
+          paramsString[match.end - 1] == '[',
+      'itemsKeyPattern must end with a literal `[`; got '
+      '"${paramsString.substring(match.start, match.end)}"',
+    );
+
     return _stripBracketedArray(
       paramsString: paramsString,
       itemsKeyIndex: match.start,
@@ -110,6 +118,14 @@ class ItemArrayParser {
     if (match == null) {
       return null;
     }
+
+    assert(
+      match.end - 1 >= 0 &&
+          match.end - 1 < paramsString.length &&
+          paramsString[match.end - 1] == '[',
+      'itemsKeyPattern must end with a literal `[`; got '
+      '"${paramsString.substring(match.start, match.end)}"',
+    );
 
     return _extractBracketedContent(paramsString, match.end - 1);
   }

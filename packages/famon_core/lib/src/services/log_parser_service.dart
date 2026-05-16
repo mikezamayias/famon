@@ -1,6 +1,7 @@
 import 'package:famon_core/src/core/domain/entities/analytics_event.dart';
 import 'package:famon_core/src/models/platform_type.dart';
 import 'package:famon_core/src/services/interfaces/log_parser_interface.dart';
+import 'package:famon_core/src/services/shared/item_array_parser.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 
@@ -344,56 +345,11 @@ class LogParserService implements LogParserInterface {
 
   /// Removes the items array from a Bundle params string if present.
   ///
-  /// This prevents item-level fields from being parsed as top-level params.
-  /// Handles nested brackets inside Bundle[...] entries by tracking depth.
-  String _stripItemsArray(String paramsString) {
-    final itemsKeyIndex = paramsString.indexOf('items=[');
-    if (itemsKeyIndex == -1) {
-      return paramsString;
-    }
-
-    final startBracketIndex = paramsString.indexOf('[', itemsKeyIndex);
-    if (startBracketIndex == -1) {
-      return paramsString;
-    }
-
-    var depth = 0;
-    var endBracketIndex = -1;
-    for (var i = startBracketIndex; i < paramsString.length; i++) {
-      final ch = paramsString[i];
-      if (ch == '[') {
-        depth++;
-      } else if (ch == ']') {
-        depth--;
-        if (depth == 0) {
-          endBracketIndex = i;
-          break;
-        }
-      }
-    }
-
-    if (endBracketIndex == -1) {
-      // Truncated items array; drop everything from items=[ onward.
-      return paramsString.substring(0, itemsKeyIndex).trimRight();
-    }
-
-    final before = paramsString.substring(0, itemsKeyIndex).trimRight();
-    final after = paramsString.substring(endBracketIndex + 1).trimLeft();
-
-    if (before.isEmpty) {
-      return after.startsWith(',') ? after.substring(1).trimLeft() : after;
-    }
-
-    if (after.isEmpty) {
-      return before.endsWith(',')
-          ? before.substring(0, before.length - 1)
-          : before;
-    }
-
-    final cleanedAfter =
-        after.startsWith(',') ? after.substring(1).trimLeft() : after;
-    return '$before, $cleanedAfter';
-  }
+  /// Delegates to [ItemArrayParser.stripAndroidItemsArray]; see that
+  /// helper for the depth-tracking + truncation semantics shared with
+  /// the iOS parser.
+  String _stripItemsArray(String paramsString) =>
+      ItemArrayParser.stripAndroidItemsArray(paramsString);
 
   /// More aggressive parameter parsing for complex formats
   void _parseParamsAggressive(String paramsString, Map<String, String> params) {
@@ -503,46 +459,11 @@ class LogParserService implements LogParserInterface {
 
   /// Extracts the items array substring, bounded by the matching `]`.
   ///
-  /// Uses `[`/`]` depth tracking to find the closing bracket of the
-  /// `items=[...]` array. Falls back to end-of-string when the array is
-  /// truncated (no matching `]` exists), so complete items before the cut-off
-  /// are still parsed.
-  String? _extractItemsSubstring(String paramsString) {
-    final itemsKeyIndex = paramsString.indexOf('items=[');
-    if (itemsKeyIndex == -1) {
-      return null;
-    }
-
-    final startIndex = paramsString.indexOf('[', itemsKeyIndex);
-    if (startIndex == -1) {
-      return null;
-    }
-
-    // Depth-track '['/']' to find the matching close of the items array.
-    var depth = 0;
-    var endIndex = -1;
-    for (var i = startIndex; i < paramsString.length; i++) {
-      final ch = paramsString[i];
-      if (ch == '[') {
-        depth++;
-      } else if (ch == ']') {
-        depth--;
-        if (depth == 0) {
-          endIndex = i;
-          break;
-        }
-      }
-    }
-
-    if (endIndex != -1) {
-      // Non-truncated: return only the content inside items=[...].
-      return paramsString.substring(startIndex + 1, endIndex);
-    }
-
-    // Truncated array: return everything after 'items=[' so complete items
-    // before the cut-off can still be parsed.
-    return paramsString.substring(startIndex + 1);
-  }
+  /// Delegates to [ItemArrayParser.extractAndroidItemsSubstring]; see
+  /// that helper for the depth-tracking + truncation semantics shared
+  /// with the iOS parser.
+  String? _extractItemsSubstring(String paramsString) =>
+      ItemArrayParser.extractAndroidItemsSubstring(paramsString);
 
   /// Returns true if [name] conforms to Firebase event name conventions.
   bool _isValidEventName(String name) =>

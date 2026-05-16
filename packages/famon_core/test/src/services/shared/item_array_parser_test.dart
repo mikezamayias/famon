@@ -58,8 +58,7 @@ void main() {
         // Documents the contract: drops the first match, leaves any later
         // `items=[...]` block intact. Trailing `,` on the prefix is
         // preserved per the Android delimiter contract.
-        const input =
-            'a=1, items=[Bundle[{x=1}]], b=2, items=[Bundle[{y=2}]]';
+        const input = 'a=1, items=[Bundle[{x=1}]], b=2, items=[Bundle[{y=2}]]';
         expect(
           ItemArrayParser.stripAndroidItemsArray(input),
           'a=1,, b=2, items=[Bundle[{y=2}]]',
@@ -137,7 +136,8 @@ void main() {
         expect(ItemArrayParser.stripIosItemsArray('', pattern), '');
       });
 
-      test('preserves both `;` delimiters when joining (load-bearing for '
+      test(
+          'preserves both `;` delimiters when joining (load-bearing for '
           'iOS _paramPatterns regex)', () {
         // No whitespace around the separators. If the helper accidentally
         // started stripping the suffix's leading `;` (the Android flag),

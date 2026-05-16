@@ -58,6 +58,7 @@ These APIs have a stable contract within `1.x`. Behavior may evolve but signatur
 | `EventFilterService`, `EventFilterUtils`, `FilterCriteria` | Filter pipeline |
 | `LogEventProcessor` + `LogEventProcessResult` (sealed: `LogEventResult`, `LogVerboseResult`, `LogDiscardedResult`) | Host-agnostic parse + filter primitive |
 | `ItemArrayParser` | Shared `items=[...]` depth-tracking + strip / extract helpers for both platforms' parsers |
+| `MonitoringPipeline` | Host-agnostic stream pipeline (UTF-8 decode, stderr drain, verbose Firebase-line emission, parse via `LogEventProcessor`); accepts a callback for filter / cache / display |
 | `EventCacheService` / `EventCacheInterface` | In-memory event cache |
 | `EventStatistics`, `SessionStats`, `PlatformType` | Value objects |
 | `LogSourceFactory` / `LogSourceInterface` / `LogParserInterface` | Log source abstractions |

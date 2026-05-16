@@ -2,3 +2,13 @@
 exclude_paths:
   - "test/**"
   - "packages/famon_core/test/**"
+  # Codacy's analyzer cannot resolve `package:famon_core/...` types in
+  # heavily-modified Dart files within a PR diff, even though the same
+  # `import 'package:famon_core/famon_core.dart';` line has been in
+  # this file for months and is verified by both the local Dart
+  # analyzer and `Analyze + format + test (famon_core)` CI. The
+  # neighboring `monitor_command.dart` was modified by the same PR
+  # and Codacy resolves *its* identical import without complaint.
+  # Remove this exclusion after PR #103 merges and Codacy re-indexes
+  # the file against `dev`.
+  - "lib/src/cli/commands/filtered_monitor_command.dart"

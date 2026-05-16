@@ -102,8 +102,10 @@ void main() {
     });
 
     test('verbose log filter includes iOS Firebase/Analytics lines', () {
+      // The verbose-line heuristic moved from `MonitorCommand` into
+      // `MonitoringPipeline` as part of the monitor-loop extraction.
       expect(
-        MonitorCommand.isFirebaseRelatedLogLine(
+        MonitoringPipeline.isFirebaseRelatedLogLine(
           '[Firebase/Analytics][I-ACS023073] Debug mode is enabled.',
         ),
         isTrue,

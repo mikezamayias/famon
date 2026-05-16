@@ -62,7 +62,7 @@ These APIs have a stable contract within `1.x`. Behavior may evolve but signatur
 | `LogTimestampParser` | Shared timestamp parsing helper |
 | `FaWarningBuffer` | Firebase Analytics warning aggregation |
 | `ParsingException` | Domain exception type |
-| `DatabaseDirectoryResolver`, `IsarDatabase`, isar models | Persistence wiring |
+| `DatabaseDirectoryResolver`, `IsarDatabase`, `IsarAnalyticsEvent`, `IsarEventMetadata`, `IsarSessionData` | Persistence wiring |
 | `FamonCorePackageModule` (via `core_injection.dart`) | `injectable` DI module |
 
 #### Public but needs hardening
@@ -78,7 +78,11 @@ These APIs are exported and consumers may depend on them, but the implementation
 
 #### Internal / legacy candidates
 
-Reserved for a future deliberate public API decision. Nothing is listed here yet; if a type moves into this category it will be announced via a minor-version note before any `2.0` removal.
+These exports are slated for removal in `2.0`. They remain exported in `1.x` for compatibility; new code should not rely on them.
+
+| API | Reason |
+|---|---|
+| `EventSummary` | Orphan Isar `@collection` model — not referenced by any repository, use case, or command. Tracked for removal in PLAN.md Phase 0. |
 
 ### Short-term priorities
 

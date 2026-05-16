@@ -28,9 +28,12 @@ class LogEventProcessor {
   /// When both are set, [showOnlyEvents] takes precedence (see
   /// [EventFilterUtils.shouldSkipEvent]).
   ///
-  /// [verbose] surfaces non-event Firebase Analytics lines (any tag
-  /// matching `FA` or `FA-*`, plus `FirebaseCrashlytics` lines) for
-  /// callers that want to show the underlying log stream.
+  /// [verbose] surfaces non-event Firebase Analytics lines for callers
+  /// that want to show the underlying log stream. The heuristic covers
+  /// Android tags (`FA`, `FA-SVC`, `I/FA`, `D/FA`, `V/FA`, `W/FA`,
+  /// `E/FA`) and iOS / Crashlytics markers (`FirebaseAnalytics`,
+  /// `Firebase/Analytics`, `FIRAnalytics`, `FirebaseCrashlytics`,
+  /// `Crashlytics`).
   LogEventProcessResult processLine(
     String line, {
     List<String> hideEvents = const [],
@@ -47,18 +50,24 @@ class LogEventProcessor {
       return skip ? const LogDiscardedResult() : LogEventResult(event);
     }
 
-    if (verbose && _isVerboseFirebaseLine(line)) {
+    if (verbose && _verboseFirebasePattern.hasMatch(line)) {
       return LogVerboseResult(line);
     }
 
     return const LogDiscardedResult();
   }
 
-  bool _isVerboseFirebaseLine(String line) {
-    return line.contains(' FA ') ||
-        line.contains(' FA-') ||
-        line.contains('FirebaseCrashlytics');
-  }
+  /// Matches Firebase Analytics / Crashlytics chatter for both Android
+  /// log tags (`FA`, `FA-SVC`, `I/FA`, etc.) and iOS markers
+  /// (`FirebaseAnalytics`, `Firebase/Analytics`, `FIRAnalytics`).
+  ///
+  /// Compiled once because [processLine] is called per log line on a hot
+  /// path (CLAUDE.md performance guideline).
+  static final RegExp _verboseFirebasePattern = RegExp(
+    r'\bFA-SVC\b|\bFA\b|I/FA|D/FA|V/FA|W/FA|E/FA|'
+    'FirebaseCrashlytics|Crashlytics|FirebaseAnalytics|'
+    'Firebase/Analytics|FIRAnalytics',
+  );
 }
 
 /// Outcome of processing one log line.

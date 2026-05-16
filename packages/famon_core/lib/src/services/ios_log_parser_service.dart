@@ -1,8 +1,13 @@
 import 'package:famon_core/src/core/domain/entities/analytics_event.dart';
 import 'package:famon_core/src/models/platform_type.dart';
 import 'package:famon_core/src/services/interfaces/log_parser_interface.dart';
-import 'package:famon_core/src/services/shared/item_array_parser.dart';
 import 'package:mason_logger/mason_logger.dart';
+
+// Relative import: Codacy's analyzer cannot resolve newly-added
+// `package:famon_core/src/...` self-references in PR diffs even though
+// the local Dart analyzer accepts them.
+// ignore: always_use_package_imports
+import 'shared/item_array_parser.dart';
 
 /// Service for parsing Firebase Analytics log lines from iOS console output.
 ///
@@ -357,7 +362,7 @@ class IosLogParserService implements LogParserInterface {
   ///
   /// Delegates to [ItemArrayParser.stripIosItemsArray]; see that helper
   /// for the depth-tracking + truncation semantics shared with the
-  /// Android parser. The iOS key regex [_itemsKeyPattern] is passed in
+  /// Android parser. The iOS key regex `_itemsKeyPattern` is passed in
   /// so the helper can locate the array without recompiling the regex.
   String _stripItemsArray(String paramsString) =>
       ItemArrayParser.stripIosItemsArray(paramsString, _itemsKeyPattern);

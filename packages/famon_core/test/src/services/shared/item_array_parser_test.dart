@@ -49,6 +49,22 @@ void main() {
           'extra=v',
         );
       });
+
+      test('empty string passes through unchanged', () {
+        expect(ItemArrayParser.stripAndroidItemsArray(''), '');
+      });
+
+      test('only the first items array is stripped', () {
+        // Documents the contract: drops the first match, leaves any later
+        // `items=[...]` block intact. Trailing `,` on the prefix is
+        // preserved per the Android delimiter contract.
+        const input =
+            'a=1, items=[Bundle[{x=1}]], b=2, items=[Bundle[{y=2}]]';
+        expect(
+          ItemArrayParser.stripAndroidItemsArray(input),
+          'a=1,, b=2, items=[Bundle[{y=2}]]',
+        );
+      });
     });
 
     group('extractAndroidItemsSubstring', () {
@@ -114,6 +130,24 @@ void main() {
         expect(
           ItemArrayParser.stripIosItemsArray(input, pattern),
           'currency (_c) = USD;',
+        );
+      });
+
+      test('empty string passes through unchanged', () {
+        expect(ItemArrayParser.stripIosItemsArray('', pattern), '');
+      });
+
+      test('preserves both `;` delimiters when joining (load-bearing for '
+          'iOS _paramPatterns regex)', () {
+        // No whitespace around the separators. If the helper accidentally
+        // started stripping the suffix's leading `;` (the Android flag),
+        // the result would be `'a = 1; b = 2'` and the iOS top-level
+        // param regex (which requires a trailing `;`) would only match
+        // `a = 1`, dropping `b`.
+        const input = 'a = 1; items = [{x = 1}];b = 2;';
+        expect(
+          ItemArrayParser.stripIosItemsArray(input, pattern),
+          'a = 1; ;b = 2;',
         );
       });
     });

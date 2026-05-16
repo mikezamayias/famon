@@ -22,8 +22,12 @@ class ItemArrayParser {
 
   /// Removes the `items=[...]` Bundle from an Android params string.
   ///
-  /// Top-level parameter pairs are separated by `, ` on Android, so the
-  /// helper trims surrounding commas around the removed segment.
+  /// Android top-level parameter pairs are separated by `, ` and the
+  /// downstream parser's regex uses `[,\]}]|$` to bound each value, so
+  /// the helper only strips a leading `,` from the suffix and joins
+  /// with `, `. The prefix's trailing `,` is preserved — the duplicate
+  /// is harmless because the bounding regex tolerates it, and stripping
+  /// it would require an extra pass.
   static String stripAndroidItemsArray(String paramsString) {
     final itemsKeyIndex = paramsString.indexOf('items=[');
     if (itemsKeyIndex == -1) {
@@ -153,8 +157,9 @@ class ItemArrayParser {
   /// both survive, [stripLeadingSeparatorWhenBothPresent] controls
   /// whether the suffix's leading separator is removed before the
   /// join — Android sets this true (the `,` delimiter is recreated by
-  /// [joiner]), iOS sets this false because the iOS top-level param
-  /// regex relies on the trailing `;` to bound each value.
+  /// [joiner]), iOS sets this false because its top-level parameter
+  /// regex in `IosLogParserService` requires the trailing `;` to bound
+  /// each value.
   static String _stripBracketedArray({
     required String paramsString,
     required int itemsKeyIndex,

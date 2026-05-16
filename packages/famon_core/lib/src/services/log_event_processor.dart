@@ -1,6 +1,10 @@
-import 'package:famon_core/src/core/domain/entities/analytics_event.dart';
-import 'package:famon_core/src/services/interfaces/log_parser_interface.dart';
-import 'package:famon_core/src/utils/event_filter_utils.dart';
+// Relative imports keep this file portable across analyzers that do not
+// resolve `package:famon_core/src/...` self-references inside the package.
+// ignore_for_file: always_use_package_imports
+
+import '../core/domain/entities/analytics_event.dart';
+import '../utils/event_filter_utils.dart';
+import 'interfaces/log_parser_interface.dart';
 
 /// Pure log-line processing primitive that turns a raw log line into a
 /// structured outcome a host can render or persist however it likes.

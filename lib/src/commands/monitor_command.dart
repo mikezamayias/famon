@@ -260,10 +260,6 @@ class MonitorCommand extends Command<int> {
       // Start log stream using platform-specific log source
       final process = await _logSource.startLogStream(verbose: verbose);
 
-      // Drain stderr to prevent buffer overflow
-      // adb may produce error output which could block if not consumed
-      unawaited(process.stderr.drain<void>());
-
       // If nothing shows up for a while, guide the user with
       // platform-specific tips
       var sawRelevantLine = false;
@@ -384,7 +380,8 @@ class MonitorCommand extends Command<int> {
                 _formatter.formatAndPrint(event);
               }
             case LogDiscardedResult():
-              // Line was unparseable; nothing to do.
+              // Unreachable: the pipeline only emits LogEventResult and
+              // LogVerboseResult. Kept here for switch exhaustiveness.
               break;
           }
           return true;

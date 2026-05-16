@@ -291,7 +291,11 @@ class FilteredMonitorCommand extends Command<int> {
         },
       );
 
-      // Cleanup signal subscriptions
+      // Kill the adb process now that the pipeline has finished, so
+      // it does not keep running after a `--limit` early-exit (the
+      // pipeline only stops reading; the child process keeps writing
+      // until killed).
+      cleanup();
       unawaited(sigintSub.cancel());
       unawaited(sigtermSub.cancel());
     } on Object catch (e) {

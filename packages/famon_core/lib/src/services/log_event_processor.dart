@@ -21,9 +21,12 @@ class LogEventProcessor {
   ///
   /// [hideEvents] suppresses matching event names from display.
   /// [showOnlyEvents], when non-empty, restricts display to those names.
-  /// [verbose] surfaces non-event Firebase Analytics lines (`FA`/`FA-SVC`
-  /// chatter, `FirebaseCrashlytics` lines) for callers that want to show
-  /// the underlying log stream.
+  /// When both are set, [showOnlyEvents] takes precedence (see
+  /// [EventFilterUtils.shouldSkipEvent]).
+  ///
+  /// [verbose] surfaces non-event Firebase Analytics lines (any tag
+  /// matching `FA` or `FA-*`, plus `FirebaseCrashlytics` lines) for
+  /// callers that want to show the underlying log stream.
   LogEventProcessResult processLine(
     String line, {
     List<String> hideEvents = const [],
@@ -32,28 +35,23 @@ class LogEventProcessor {
   }) {
     final event = parser.parse(line);
     if (event != null) {
-      final shouldSkip = EventFilterUtils.shouldSkipEvent(
+      final skip = EventFilterUtils.shouldSkipEvent(
         event.eventName,
         hideEvents,
         showOnlyEvents,
       );
-
-      return LogEventProcessResult(
-        event: event,
-        shouldDisplay: !shouldSkip,
-      );
+      return skip ? const LogDiscardedResult() : LogEventResult(event);
     }
 
     if (verbose && _isVerboseFirebaseLine(line)) {
-      return LogEventProcessResult(verboseLine: line, shouldDisplay: true);
+      return LogVerboseResult(line);
     }
 
-    return const LogEventProcessResult(shouldDisplay: false);
+    return const LogDiscardedResult();
   }
 
   bool _isVerboseFirebaseLine(String line) {
     return line.contains(' FA ') ||
-        line.contains(' FA-SVC ') ||
         line.contains(' FA-') ||
         line.contains('FirebaseCrashlytics');
   }
@@ -61,23 +59,40 @@ class LogEventProcessor {
 
 /// Outcome of processing one log line.
 ///
-/// Exactly one of [event] or [verboseLine] is populated when
-/// [shouldDisplay] is `true`; both are `null` when the line was discarded.
-class LogEventProcessResult {
-  /// Creates a process result.
-  const LogEventProcessResult({
-    required this.shouldDisplay,
-    this.event,
-    this.verboseLine,
-  });
+/// Sealed sum type. Exhaustively match on a `switch` to handle every
+/// possible outcome:
+/// - [LogEventResult] — a Firebase Analytics event was parsed and is
+///   allowed by the active filters.
+/// - [LogVerboseResult] — the line is non-event Firebase Analytics
+///   chatter and verbose mode is on.
+/// - [LogDiscardedResult] — the line was either unparseable, an event
+///   filtered out by the active rules, or non-event chatter in
+///   non-verbose mode. Hosts should skip it.
+sealed class LogEventProcessResult {
+  const LogEventProcessResult();
+}
 
-  /// Whether the host should render this result to the user.
-  final bool shouldDisplay;
+/// A parsed [AnalyticsEvent] that should be displayed by the host.
+final class LogEventResult extends LogEventProcessResult {
+  /// Creates an event result wrapping [event].
+  const LogEventResult(this.event);
 
-  /// The parsed analytics event, if the line was an event log.
-  final AnalyticsEvent? event;
+  /// The parsed analytics event.
+  final AnalyticsEvent event;
+}
 
-  /// The raw verbose Firebase log line, when [event] is null but the line
-  /// is still useful to surface in verbose mode.
-  final String? verboseLine;
+/// A non-event Firebase Analytics log line surfaced in verbose mode.
+final class LogVerboseResult extends LogEventProcessResult {
+  /// Creates a verbose result wrapping [line].
+  const LogVerboseResult(this.line);
+
+  /// The raw log line.
+  final String line;
+}
+
+/// A log line the host should skip (unparseable, filtered out, or
+/// non-event chatter in non-verbose mode).
+final class LogDiscardedResult extends LogEventProcessResult {
+  /// Creates a discarded result.
+  const LogDiscardedResult();
 }

@@ -35,6 +35,8 @@ const _baseUrl = 'https://app.codacy.com/api/v3/analysis/organizations/gh/'
     'mikezamayias/repositories/famon/issues/search';
 const _pageSize = 100;
 const _maxPages = 100;
+const _connectionTimeout = Duration(seconds: 15);
+const _requestTimeout = Duration(seconds: 30);
 
 Future<int> main(List<String> args) async {
   final flags = _parseFlags(args);
@@ -45,6 +47,16 @@ Future<int> main(List<String> args) async {
 
   if (snapshotPath != null && diffPath != null) {
     stderr.writeln('Cannot combine --snapshot and --diff.');
+    return 2;
+  }
+
+  if (categoryFilter != null && diffPath != null) {
+    stderr.writeln(
+      '--diff compares full category counts; combining it with --category '
+      'would falsely show every non-filtered category as having dropped to '
+      'zero. Re-run without --category, or pass --snapshot to capture the '
+      'filtered view separately.',
+    );
     return 2;
   }
 
@@ -105,18 +117,25 @@ Map<String, String> _parseFlags(List<String> args) {
 Future<List<Map<String, dynamic>>?> _fetchAllIssues({
   required String branch,
 }) async {
-  final client = HttpClient();
+  final client = HttpClient()..connectionTimeout = _connectionTimeout;
   try {
     final results = <Map<String, dynamic>>[];
     String? cursor;
+    var hitPageCap = false;
 
     for (var page = 0; page < _maxPages; page++) {
-      final uri = Uri.parse('$_baseUrl?branch=$branch&limit=$_pageSize'
-          '${cursor == null ? '' : '&cursor=$cursor'}');
-      final request = await client.postUrl(uri)
-        ..headers.contentType = ContentType.json
-        ..add(utf8.encode('{}'));
-      final response = await request.close();
+      final params = <String, String>{
+        'branch': branch,
+        'limit': '$_pageSize',
+      };
+      if (cursor != null) {
+        params['cursor'] = cursor;
+      }
+      final uri = Uri.parse(_baseUrl).replace(queryParameters: params);
+      final request = await client.postUrl(uri).timeout(_requestTimeout);
+      request.headers.contentType = ContentType.json;
+      request.add(utf8.encode('{}'));
+      final response = await request.close().timeout(_requestTimeout);
 
       if (response.statusCode != HttpStatus.ok) {
         stderr.writeln(
@@ -126,7 +145,10 @@ Future<List<Map<String, dynamic>>?> _fetchAllIssues({
         return null;
       }
 
-      final body = await response.transform(utf8.decoder).join();
+      final body = await response
+          .transform(utf8.decoder)
+          .join()
+          .timeout(_requestTimeout);
       final decoded = jsonDecode(body) as Map<String, dynamic>;
       final data = (decoded['data'] as List?) ?? const <dynamic>[];
 
@@ -148,9 +170,25 @@ Future<List<Map<String, dynamic>>?> _fetchAllIssues({
       final pagination = decoded['pagination'] as Map?;
       cursor = pagination?['cursor'] as String?;
       if (cursor == null || cursor.isEmpty) break;
+
+      if (page == _maxPages - 1) {
+        hitPageCap = true;
+      }
+    }
+
+    if (hitPageCap) {
+      const cap = _maxPages * _pageSize;
+      stderr.writeln(
+        'WARNING: Hit page cap (_maxPages=$_maxPages, $cap issues). '
+        'Codacy reports more issues than the script paginated through. '
+        'Raise _maxPages in tool/codacy_report.dart if you need them all.',
+      );
     }
 
     return results;
+  } on TimeoutException catch (e) {
+    stderr.writeln('Timeout contacting Codacy: $e');
+    return null;
   } on SocketException catch (e) {
     stderr.writeln('Network error contacting Codacy: ${e.message}');
     return null;
@@ -215,7 +253,12 @@ String _renderMarkdown(
         ..writeln('### `$file` (${byFile[file]!.length})')
         ..writeln();
       for (final issue in byFile[file]!) {
-        final message = (issue['message'] as String).replaceAll('\n', ' ');
+        // Collapse newlines and escape backticks so embedded code snippets
+        // in the Codacy message do not break the Markdown bullet.
+        final message = (issue['message'] as String)
+            .replaceAll('\n', ' ')
+            .replaceAll(r'\`', '`')
+            .replaceAll('`', r'\`');
         buf.writeln(
           '- [ ] L${issue['line']} `${issue['rule']}` — $message',
         );

@@ -101,9 +101,9 @@ gh pr create --base dev --title "chore(release): X.Y.Z" --fill
 
 `pr_publish_check.yaml` runs on the PR and re-runs the version cross-check, both `dart pub publish --dry-run`s, and the `famon_core` example smoke run. Wait for it to go green, then merge the PR via the GitHub UI (or `gh pr merge`).
 
-### 5. Merge to `main` and tag
+### 5. Open the release-sync PR and tag
 
-After the PR merges into `dev`, switch to `dev`, pull, then run the helper from a clean working tree:
+After the release-prep PR (`chore/release-X.Y.Z`) merges into `dev`, switch to `dev`, pull, then run the helper from a clean working tree:
 
 ```bash
 git checkout dev
@@ -111,27 +111,22 @@ git pull origin dev --ff-only
 ./tool/release.sh X.Y.Z
 ```
 
-`tool/release.sh` itself does:
+The helper is **PR-based**. It opens (or reuses) a `dev → main` pull request, waits for the required status checks to pass, merges the PR with the "merge" method so dev's commits become ancestors of main, then tags the resulting merge commit and pushes the tag. The "Protect main" repository ruleset rejects direct pushes to `main` for everyone, including admins — the release flow earns its merge the same way every other change does.
 
-1. Guards: working tree must be clean, both `dev` and `main` must exist locally, local `dev` and `main` must match `origin/dev` and `origin/main`, all six version sources match `X.Y.Z`:
+`tool/release.sh X.Y.Z` does:
+
+1. **Guards**: working tree must be clean; both `dev` and `main` must exist locally and match their `origin/...` counterparts; all six version sources match `X.Y.Z`:
    - root `pubspec.yaml` `version:`
    - root `pubspec.yaml` `famon_core: ^X.Y.Z` constraint
    - `packages/famon_core/pubspec.yaml` `version:`
    - root `CHANGELOG.md` has a `## [X.Y.Z]` heading
    - `packages/famon_core/CHANGELOG.md` has a `## [X.Y.Z]` heading
    - `lib/src/version.dart` has `const packageVersion = 'X.Y.Z';`
-2. Fetches `origin/dev`, `origin/main`, and tags, then checks out `dev` to validate and `main` to merge.
-3. Runs the merge + tag + push:
-
-   ```bash
-   git checkout main
-   git merge --no-ff dev
-   git tag -a vX.Y.Z -m "Release X.Y.Z"
-   git push origin main
-   git push origin vX.Y.Z
-   ```
-
-The tag push triggers the GitHub Actions workflow `.github/workflows/publish.yaml`.
+2. **Find or open the PR**: looks for an existing open PR with `base=main, head=dev`. If none, opens one titled `chore(release): X.Y.Z → main`. The body asks the merger to use **Create a merge commit** — `tool/release.sh` requests this explicitly so dev's commits are preserved as main's ancestors. Squash would orphan dev's history relative to main and reintroduce the divergence this flow exists to prevent.
+3. **Wait for CI**: `gh pr checks <N> --watch --required` blocks until every required status check has finished. Required checks are the six configured on the "Protect main" ruleset: `build / build`, `Analyze + format + test (famon_core) / build`, `Verify version sources agree`, `dart pub publish --dry-run (famon)`, `dart pub publish --dry-run (famon_core)`, and `Codacy Static Code Analysis`. A failed check exits the script with status 1 — fix the failure and re-run.
+4. **Merge the PR**: `gh pr merge <N> --merge`. Fails if `mergeStateStatus` is anything but `CLEAN/MERGEABLE` (e.g. unresolved review threads).
+5. **Pull main locally** and verify the merged tree still has `version: X.Y.Z` on every file.
+6. **Tag and push**: creates an annotated `vX.Y.Z` tag on the new `main` HEAD and pushes the tag. The tag push triggers `.github/workflows/publish.yaml`.
 
 If you use the **Manual Release** GitHub Actions workflow instead of running `tool/release.sh` locally, the workflow dispatches `publish.yaml` and `github-release.yaml` explicitly after creating the tag. This is required because tags pushed by `GITHUB_TOKEN` do not trigger follow-up `push` workflows.
 

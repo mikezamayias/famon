@@ -1,10 +1,26 @@
 #!/usr/bin/env bash
 #
-# Release helper. Validates that the working tree is clean, that both
-# `dev` and `main` exist locally, and that all six version sources match
-# the requested version. Then merges `dev` into `main` with --no-ff,
-# creates an annotated tag, and pushes both. The push: tags trigger on
-# .github/workflows/publish.yaml takes over from there.
+# Release helper. PR-based: opens (or reuses) a `dev → main` pull
+# request, waits for the required CI checks to pass, merges the PR
+# with the "merge" method so dev's commits become ancestors of main,
+# then tags the resulting merge commit on main. The tag push triggers
+# .github/workflows/publish.yaml, which publishes both packages to
+# pub.dev.
+#
+# Why a PR and not a direct push?
+#
+# The "Protect main" repository ruleset requires a pull request, with
+# the same six required status checks every regular contribution must
+# pass. Direct pushes are rejected for everyone, including admins —
+# the release flow earns its merge the same way every other change
+# does. Trusted-publishing OIDC still authenticates the publish jobs
+# triggered by the tag push.
+#
+# Prerequisites:
+# - `gh` CLI is installed and authenticated for this repository.
+# - The release-prep PR (`chore(release): X.Y.Z`) has already merged
+#   into `dev` so the version sources and changelogs sit at the tip
+#   of `dev`.
 
 set -euo pipefail
 
@@ -78,15 +94,47 @@ if ! grep -qF "const packageVersion = '$VERSION';" lib/src/version.dart; then
   exit 1
 fi
 
-git checkout main
-git pull --ff-only origin main
-if [[ "$(git rev-parse main)" != "$(git rev-parse origin/main)" ]]; then
-  echo "Local 'main' is not exactly at origin/main. Reconcile main before releasing." >&2
+# Re-use an existing open release PR if one is already there.
+PR_NUMBER="$(gh pr list \
+  --base main --head dev \
+  --state open --json number --jq '.[0].number // empty')"
+
+if [[ -z "$PR_NUMBER" ]]; then
+  PR_URL="$(gh pr create \
+    --base main --head dev \
+    --title "chore(release): $VERSION → main" \
+    --body $'Automated release-sync PR opened by `tool/release.sh '"$VERSION"$'`.\n\nMerges `dev` into `main` so the next `v'"$VERSION"$'` tag points at the resulting merge commit. The tag push triggers `.github/workflows/publish.yaml`, which publishes both packages to pub.dev via OIDC trusted publishing.\n\nUse **Create a merge commit** when merging this PR — `tool/release.sh` requests it explicitly. Squash would lose dev\'s commit ancestry on main and reintroduce the divergence this PR-based flow is designed to fix.')"
+  PR_NUMBER="${PR_URL##*/}"
+fi
+
+echo "Release PR: #$PR_NUMBER"
+echo "Waiting for required CI checks…"
+
+gh pr checks "$PR_NUMBER" --watch --required
+
+STATE="$(gh pr view "$PR_NUMBER" \
+  --json mergeStateStatus,mergeable \
+  --jq '"\(.mergeStateStatus)/\(.mergeable)"')"
+if [[ "$STATE" != "CLEAN/MERGEABLE" ]]; then
+  echo "PR #$PR_NUMBER is not mergeable: $STATE" >&2
+  echo "Resolve threads or conflicts on the PR, then re-run this script." >&2
   exit 1
 fi
-git merge --no-ff dev
+
+gh pr merge "$PR_NUMBER" --merge
+
+git checkout main
+git pull --ff-only origin main
+
+if ! grep -qF "version: $VERSION" pubspec.yaml; then
+  echo "After merge, pubspec.yaml on main does not say version $VERSION." >&2
+  echo "Inspect the merged result and re-run with a fresh tag if needed." >&2
+  exit 1
+fi
 
 git tag -a "v$VERSION" -m "Release $VERSION"
-
-git push origin main
 git push origin "v$VERSION"
+
+echo
+echo "Tagged v$VERSION at $(git rev-parse main)."
+echo "Tag pushed. .github/workflows/publish.yaml will publish both packages."

@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 #
-# Manual release helper — kept as the bypass path for when release-please
-# (.github/workflows/release-please.yaml) cannot be used: an emergency
-# patch, a release-please outage, or a hand-curated release whose CHANGELOG
-# you want to author yourself. For routine releases, prefer release-please.
-#
-# Running both flows for the same version creates duplicate tags and
-# fights over CHANGELOG content — only use one path per release.
+# Release helper. Validates that the working tree is clean, that both
+# `dev` and `main` exist locally, and that all six version sources match
+# the requested version. Then merges `dev` into `main` with --no-ff,
+# creates an annotated tag, and pushes both. The push: tags trigger on
+# .github/workflows/publish.yaml takes over from there.
 
 set -euo pipefail
 
@@ -22,6 +20,13 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   exit 1
 fi
 
+git fetch origin \
+  +refs/heads/dev:refs/remotes/origin/dev \
+  +refs/heads/main:refs/remotes/origin/main \
+  --tags
+git branch --track dev origin/dev 2>/dev/null || true
+git branch --track main origin/main 2>/dev/null || true
+
 if ! git show-ref --verify --quiet refs/heads/dev; then
   echo "Branch 'dev' not found. Ensure it exists locally." >&2
   exit 1
@@ -33,6 +38,11 @@ if ! git show-ref --verify --quiet refs/heads/main; then
 fi
 
 git checkout dev
+git pull --ff-only origin dev
+if [[ "$(git rev-parse dev)" != "$(git rev-parse origin/dev)" ]]; then
+  echo "Local 'dev' is not exactly at origin/dev. Reconcile/push dev before releasing." >&2
+  exit 1
+fi
 
 if ! grep -qF "version: $VERSION" pubspec.yaml; then
   echo "pubspec.yaml version is not set to $VERSION" >&2
@@ -69,10 +79,14 @@ if ! grep -qF "const packageVersion = '$VERSION';" lib/src/version.dart; then
 fi
 
 git checkout main
+git pull --ff-only origin main
+if [[ "$(git rev-parse main)" != "$(git rev-parse origin/main)" ]]; then
+  echo "Local 'main' is not exactly at origin/main. Reconcile main before releasing." >&2
+  exit 1
+fi
 git merge --no-ff dev
 
 git tag -a "v$VERSION" -m "Release $VERSION"
 
 git push origin main
 git push origin "v$VERSION"
-

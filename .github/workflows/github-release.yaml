@@ -3,7 +3,8 @@ name: Create GitHub Release
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+*"
+      - "v*.*.*"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,19 +25,28 @@ jobs:
 
       - name: 📋 Extract version from tag
         id: version
+        env:
+          GIT_REF: ${{ github.ref }}
         run: |
-          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          set -euo pipefail
+          TAG_NAME="${GIT_REF#refs/tags/}"
           VERSION="${TAG_NAME#v}"
           echo "tag=$TAG_NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: 📝 Extract changelog for version
         id: changelog
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          # Extract changelog section for this version
-          CHANGELOG=$(awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
-          # Handle multiline output
+          set -euo pipefail
+          CHANGELOG=$(awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (active) exit
+              if ($0 ~ "\\[" ver "\\]") { active = 1; next }
+            }
+            active { print }
+          ' CHANGELOG.md)
           {
             echo "body<<EOF"
             echo "$CHANGELOG"

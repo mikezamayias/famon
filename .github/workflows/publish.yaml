@@ -3,7 +3,8 @@ name: Publish to pub.dev
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+*"
+      - "v*.*.*"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -52,14 +53,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
+      - name: Prepare package copy
+        run: cp -R packages/famon_core "${{ runner.temp }}/famon_core"
       - name: Install dependencies
-        working-directory: packages/famon_core
+        working-directory: ${{ runner.temp }}/famon_core
         run: dart pub get
       - name: Validate package
-        working-directory: packages/famon_core
+        working-directory: ${{ runner.temp }}/famon_core
         run: dart pub publish --dry-run
       - name: Publish
-        working-directory: packages/famon_core
+        working-directory: ${{ runner.temp }}/famon_core
         run: dart pub publish --force
 
   publish-cli:

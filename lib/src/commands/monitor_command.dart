@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
@@ -128,7 +127,8 @@ class MonitorCommand extends Command<int> {
 
   @override
   final description =
-      'Monitors Firebase Analytics events from logcat in real-time.';
+      'Monitors Firebase Analytics events from Android and iOS logs '
+      'in real-time.';
 
   final Logger _logger;
   final LogSourceFactory _logSourceFactory;
@@ -145,16 +145,6 @@ class MonitorCommand extends Command<int> {
   bool _hideGlobalParams = false;
   bool _hideEventParams = false;
   Completer<void>? _quitCompleter;
-
-  /// Pre-compiled regex pattern for detecting Firebase Analytics related logs.
-  ///
-  /// Used in verbose mode to filter relevant log lines.
-  /// Supports both Android (FA, FA-SVC) and iOS (FirebaseAnalytics,
-  /// FIRAnalytics) patterns.
-  static final RegExp _firebaseRelatedPattern = RegExp(
-    r'\bFA-SVC\b|\bFA\b|I/FA|D/FA|V/FA|W/FA|E/FA|'
-    'FirebaseCrashlytics|Crashlytics|FirebaseAnalytics|FIRAnalytics',
-  );
 
   @override
   Future<int> run() async {
@@ -253,9 +243,7 @@ class MonitorCommand extends Command<int> {
     }
 
     if (showOnlyParamNames.isNotEmpty) {
-      _logger.info(
-        '🔎 Showing only params: ${showOnlyParamNames.join(', ')}',
-      );
+      _logger.info('🔎 Showing only params: ${showOnlyParamNames.join(', ')}');
     }
 
     // Initialize keyboard shortcuts if enabled
@@ -271,10 +259,6 @@ class MonitorCommand extends Command<int> {
     try {
       // Start log stream using platform-specific log source
       final process = await _logSource.startLogStream(verbose: verbose);
-
-      // Drain stderr to prevent buffer overflow
-      // adb may produce error output which could block if not consumed
-      unawaited(process.stderr.drain<void>());
 
       // If nothing shows up for a while, guide the user with
       // platform-specific tips
@@ -354,90 +338,73 @@ class MonitorCommand extends Command<int> {
       }
       // Initialize quit completer for immediate exit
       _quitCompleter = Completer<void>();
-      StreamSubscription<String>? stdoutSub;
 
-      var malformedByteCount = 0;
-      var lastMalformedWarning = DateTime.now();
-
-      // Setup stdout listener with cancellation support
-      stdoutSub = process.stdout
-          .transform(const Utf8Decoder(allowMalformed: true))
-          .transform(const LineSplitter())
-          .listen(
-        (line) {
-          // Detect malformed UTF-8 sequences (replacement character U+FFFD)
-          final replacementCount = '\uFFFD'.allMatches(line).length;
-          if (replacementCount > 0) {
-            malformedByteCount += replacementCount;
-            // Warn at most once per minute to avoid spam
-            final now = DateTime.now();
-            if (now.difference(lastMalformedWarning).inSeconds >= 60) {
-              _logger.warn(
-                'Detected $malformedByteCount malformed '
-                'UTF-8 byte(s) in logcat output. '
-                'Some log data may be corrupted.',
-              );
-              lastMalformedWarning = now;
-            }
-          }
-
-          // If verbose, print all Firebase Analytics/Crashlytics related lines
-          if (verbose && !_isPaused) {
-            // Filter to only FA/Crashlytics noise to keep it relevant
-            // Use pre-compiled static pattern for better performance
-            if (_firebaseRelatedPattern.hasMatch(line)) {
-              sawRelevantLine = true;
-              _logger.detail(line);
-            }
-          }
-
-          final event = _logParser.parse(line);
-
-          if (event != null) {
-            // Add full event to cache for export support
-            _eventCache.addFullEvent(event);
-
-            // Apply filtering using shared utility
-            if (EventFilterUtils.shouldSkipEvent(
-              event.eventName,
-              hideEvents,
-              showOnlyEvents,
-            )) {
-              return;
-            }
-
-            // Skip display if paused (events still captured)
-            if (_isPaused) {
-              return;
-            }
-
-            // Format and display the event
-            // Ensure any buffered grouped output is flushed at end
-            _formatter.flushPending();
-            sawRelevantLine = true;
-            _formatter.formatAndPrint(event);
-          }
-        },
-        onDone: () {
-          // Stream closed naturally
-          if (!_quitCompleter!.isCompleted) {
-            _quitCompleter!.complete();
-          }
-        },
-        onError: (Object e) {
-          _logger.err('Error reading log stream: $e');
-          if (!_quitCompleter!.isCompleted) {
-            _quitCompleter!.complete();
-          }
-        },
+      // Wire the shared monitoring pipeline: it owns UTF-8 decoding,
+      // malformed-byte tracking, verbose-line emission, and parse +
+      // filter via `LogEventProcessor`. The callback below performs the
+      // CLI-only formatting, caching, and display work.
+      final pipeline = MonitoringPipeline(
+        processor: LogEventProcessor(parser: _logParser),
+        onWarning: _logger.warn,
       );
+
+      final pipelineFuture = pipeline
+          .run(
+        stdout: process.stdout,
+        stderr: process.stderr,
+        verbose: verbose,
+        onResult: (result) {
+          switch (result) {
+            case LogVerboseResult(:final line):
+              if (!_isPaused) {
+                sawRelevantLine = true;
+                _logger.detail(line);
+              }
+            case LogEventResult(:final event):
+              // Cache every parsed event for export / stats / suggestions,
+              // even when the basic hide / show-only filter would
+              // suppress it from display. Matches the historical
+              // ordering in `MonitorCommand`'s pre-refactor loop.
+              _eventCache.addFullEvent(event);
+              if (EventFilterUtils.shouldSkipEvent(
+                event.eventName,
+                hideEvents,
+                showOnlyEvents,
+              )) {
+                break;
+              }
+              if (!_isPaused) {
+                // Flush any buffered grouped output before printing.
+                _formatter.flushPending();
+                sawRelevantLine = true;
+                _formatter.formatAndPrint(event);
+              }
+            case LogDiscardedResult():
+              // Unreachable: the pipeline only emits LogEventResult and
+              // LogVerboseResult. Kept here for switch exhaustiveness.
+              break;
+          }
+          return true;
+        },
+      )
+          .catchError((Object e) {
+        _logger.err('Error reading log stream: $e');
+      }).whenComplete(() {
+        // Stream closed (process exited or pipeline saw an error).
+        // surface the same quit signal a SIGINT would raise.
+        if (!_quitCompleter!.isCompleted) {
+          _quitCompleter!.complete();
+        }
+      });
+      unawaited(pipelineFuture);
 
       // Wait for quit signal or stream completion
       await _quitCompleter!.future;
 
-      // Cancel signal subscriptions
-      unawaited(stdoutSub.cancel());
+      // Tear down: kill the child process so the pipeline exits its
+      // await loop, then cancel signal subscriptions.
       cleanup();
+      await pipelineFuture;
       unawaited(sigintSub.cancel());
       unawaited(sigtermSub.cancel());
     } on ProcessException catch (e, stackTrace) {

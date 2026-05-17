@@ -1,0 +1,12 @@
+---
+exclude_paths:
+  - "test/**"
+  - "packages/famon_core/test/**"
+  # Same false-positive pattern Codacy hit on PR #103 and PR #104:
+  # the analyzer cannot resolve `package:famon_core/...` types when
+  # `filtered_monitor_command.dart` lands "heavily modified" on a target
+  # branch. Local Dart analyzer + `Analyze + format + test (famon_core)`
+  # CI both pass. Once this PR merges to main, the file is no longer
+  # "in diff" against main and the false positive disappears — drop
+  # this line in a tiny follow-up PR after merge.
+  - "lib/src/cli/commands/filtered_monitor_command.dart"

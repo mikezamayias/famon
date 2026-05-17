@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
@@ -211,10 +210,6 @@ class FilteredMonitorCommand extends Command<int> {
         'FA-SVC',
       ]);
 
-      // Drain stderr to prevent buffer overflow
-      // adb may produce error output which could block if not consumed
-      unawaited(process.stderr.drain<void>());
-
       // Setup signal handlers for graceful shutdown
       StreamSubscription<ProcessSignal>? sigintSub;
       StreamSubscription<ProcessSignal>? sigtermSub;
@@ -233,70 +228,74 @@ class FilteredMonitorCommand extends Command<int> {
         unawaited(sigtermSub?.cancel());
       });
 
+      // Wire the shared monitoring pipeline: it owns stderr draining,
+      // UTF-8 decoding, malformed-byte tracking, and parse + filter
+      // via `LogEventProcessor`. The callback below performs the
+      // database-aware filtering, custom-parameter merging, persist,
+      // formatting, and limit-tracking that is unique to this command.
+      final pipeline = MonitoringPipeline(
+        processor: LogEventProcessor(parser: _logParser),
+        onWarning: _logger.warn,
+      );
+
       var eventCount = 0;
-      var malformedByteCount = 0;
-      var lastMalformedWarning = DateTime.now();
-
-      await for (final line in process.stdout
-          .transform(const Utf8Decoder(allowMalformed: true))
-          .transform(const LineSplitter())) {
-        // Detect malformed UTF-8 sequences (replacement character U+FFFD)
-        final replacementCount = '\uFFFD'.allMatches(line).length;
-        if (replacementCount > 0) {
-          malformedByteCount += replacementCount;
-          // Warn at most once per minute to avoid spam
-          final now = DateTime.now();
-          if (now.difference(lastMalformedWarning).inSeconds >= 60) {
-            _logger.warn(
-              'Detected $malformedByteCount malformed UTF-8 byte(s) in logcat '
-              'output. Some log data may be corrupted.',
-            );
-            lastMalformedWarning = now;
+      await pipeline.run(
+        stdout: process.stdout,
+        stderr: process.stderr,
+        verbose: false,
+        onResult: (result) async {
+          if (result is! LogEventResult) {
+            return true;
           }
-        }
 
-        final event = _logParser.parse(line);
+          // Add custom parameters if specified.
+          final enhancedEvent = _addCustomParameters(
+            result.event,
+            customParamMap,
+          );
 
-        if (event != null) {
-          // Add custom parameters if specified
-          final enhancedEvent = _addCustomParameters(event, customParamMap);
-
-          // Apply frequency-based filtering using database
+          // Apply frequency-based filtering using the database first to
+          // match the historical ordering of `FilteredMonitorCommand`.
           if (await _shouldSkipByFrequency(
             enhancedEvent.eventName,
             minFrequency,
             maxFrequency,
           )) {
-            continue;
+            return true;
           }
 
-          // Apply basic filtering using shared utility
+          // Apply basic hide / show-only filtering.
           if (EventFilterUtils.shouldSkipEvent(
             enhancedEvent.eventName,
             hideEvents,
             showOnlyEvents,
           )) {
-            continue;
+            return true;
           }
 
-          // Save to database if persist is enabled
+          // Save to database if persist is enabled.
           if (persist) {
             await _eventRepository.saveEvent(enhancedEvent);
           }
 
-          // Format and display the event
+          // Format and display the event.
           _formatter.formatAndPrint(enhancedEvent);
           eventCount++;
 
-          // Apply limit
+          // Apply limit.
           if (limit != null && eventCount >= limit) {
-            _logger.info('\n📊 Reached limit of $limit events');
-            break;
+            _logger.info('\n\uD83D\uDCCA Reached limit of $limit events');
+            return false;
           }
-        }
-      }
+          return true;
+        },
+      );
 
-      // Cleanup signal subscriptions
+      // Kill the adb process now that the pipeline has finished, so
+      // it does not keep running after a `--limit` early-exit (the
+      // pipeline only stops reading; the child process keeps writing
+      // until killed).
+      cleanup();
       unawaited(sigintSub.cancel());
       unawaited(sigtermSub.cancel());
     } on Object catch (e) {

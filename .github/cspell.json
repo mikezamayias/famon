@@ -50,6 +50,11 @@
     "pubspecs",
     "OIDC",
     "preflight",
-    "monorepo"
+    "monorepo",
+    "Codacy",
+    "CodeRabbit",
+    "coderabbit",
+    "codacy",
+    "writeln"
   ]
 }

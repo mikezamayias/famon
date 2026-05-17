@@ -26,7 +26,7 @@ Or add to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  famon_core: ^1.4.1
+  famon_core: ^1.5.0
 ```
 
 ## Stability

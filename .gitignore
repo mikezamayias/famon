@@ -30,6 +30,7 @@ coverage/
 libisar.dylib
 
 # AI/agent tool artifacts
+.local/
 .todos/
 TODO.md
 agent_errors.jsonl

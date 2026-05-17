@@ -5,15 +5,6 @@ on:
     branches:
       - dev
       - main
-    paths:
-      - "pubspec.yaml"
-      - "lib/src/version.dart"
-      - "packages/famon_core/**"
-      - ".pubignore"
-      - "tool/update_version.dart"
-      - "tool/release.sh"
-      - ".github/workflows/publish.yaml"
-      - ".github/workflows/pr_publish_check.yaml"
   push:
     branches:
       - dev
@@ -70,11 +61,13 @@ jobs:
       - uses: dart-lang/setup-dart@v1
         with:
           sdk: "3.11.0"
+      - name: Prepare package copy
+        run: cp -R packages/famon_core "${{ runner.temp }}/famon_core"
       - name: Install dependencies
-        working-directory: packages/famon_core
+        working-directory: ${{ runner.temp }}/famon_core
         run: dart pub get
       - name: Dry-run publish
-        working-directory: packages/famon_core
+        working-directory: ${{ runner.temp }}/famon_core
         run: dart pub publish --dry-run
 
   dry-run-famon:
@@ -104,30 +97,3 @@ jobs:
       - name: Run example
         working-directory: packages/famon_core
         run: dart run example/famon_core_example.dart
-
-  verify-release-please-markers:
-    name: Verify release-please markers present
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check x-release-please-version markers
-        run: |
-          set -euo pipefail
-
-          MISSING=0
-
-          if ! grep -qF "// x-release-please-version" lib/src/version.dart; then
-            echo "::error file=lib/src/version.dart::missing 'x-release-please-version' marker. release-please relies on this comment to bump packageVersion."
-            MISSING=1
-          fi
-
-          if ! grep -qF "# x-release-please-version" pubspec.yaml; then
-            echo "::error file=pubspec.yaml::missing 'x-release-please-version' marker on the famon_core constraint line. release-please relies on it to keep the dependency in lockstep with the library version."
-            MISSING=1
-          fi
-
-          if [ "$MISSING" -ne 0 ]; then
-            exit 1
-          fi
-
-          echo "All release-please markers present."

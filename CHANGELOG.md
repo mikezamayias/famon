@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0](https://github.com/mikezamayias/famon/compare/v1.4.1...v1.5.0) (2026-05-17)
+
+### Changed
+
+- Refactored `monitor` and `filter` commands to share a single stream-processing pipeline (`MonitoringPipeline`, now part of `famon_core`). Behavior is preserved; per-line cost stays flat.
+
+### Fixed
+
+- `monitor` no longer crashes with `StateError: Stream has already been listened to` on child-process startup. `process.stderr` was being drained twice (outer command setup plus the new pipeline); the outer drain is gone.
+- `famon filter --limit N` no longer hangs after the limit is reached. The adb child process is now killed when the pipeline exits early.
+
+### Removed
+
+- Internal: unreachable `HelpCommand`. It was exported from `lib/src/commands/commands.dart` but never registered on `FamonCommandRunner`, so the visible CLI surface is unchanged.
+
+### Internal
+
+- Widened the `injectable` constraint to `>=2.3.5 <4.0.0` so consumers on injectable 3.x are no longer blocked. Local solver still resolves to 2.7.x because `isar_generator` pins `source_gen ^1.2.2`; the concrete 3.x bump arrives with the Isar → Drift migration.
+- CI: removed the `|| true` that was swallowing failed `famon_core` test runs, and tightened the Codacy gate so the pipeline file is re-indexed against `dev` without exclusions.
+
 ## [1.4.1](https://github.com/mikezamayias/famon/compare/v1.4.0...v1.4.1) (2026-05-07)
 
 

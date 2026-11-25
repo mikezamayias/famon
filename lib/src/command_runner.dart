@@ -3,9 +3,9 @@ import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
 import 'package:famon/src/commands/commands.dart';
 import 'package:famon/src/injection.dart';
-import 'package:famon/src/platform/terminal.dart';
 import 'package:famon/src/version.dart';
 import 'package:famon/src/version_utils.dart';
+import 'package:famon_core/famon_core.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_updater/pub_updater.dart';
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:mocktail/mocktail.dart';
@@ -8,6 +9,34 @@ class MockStdin extends Mock implements Stdin {}
 
 /// Mock stdout or stderr for use with [IOOverrides].
 class MockStdout extends Mock implements Stdout {}
+
+/// Mock log process, such as `adb logcat`.
+class MockProcess extends Mock implements Process {}
+
+/// A stdout or stderr on a pipe: not a terminal, and its [Stdout.done] is
+/// the future [readerDone] returns, so completing that with [brokenPipe]
+/// closes the reader's end.
+MockStdout pipedStdout(Future<void> Function() readerDone) {
+  final sink = MockStdout();
+  when(() => sink.hasTerminal).thenReturn(false);
+  when(() => sink.supportsAnsiEscapes).thenReturn(false);
+  when(() => sink.done).thenAnswer((_) => readerDone());
+  return sink;
+}
+
+/// A log process whose stdout is `logcat`. Killing it closes `logcat`, as
+/// the output of a real process ends when it is killed.
+({MockProcess process, StreamController<List<int>> logcat}) fakeLogProcess() {
+  final process = MockProcess();
+  final logcat = StreamController<List<int>>();
+  when(() => process.stdout).thenAnswer((_) => logcat.stream);
+  when(() => process.stderr).thenAnswer((_) => const Stream.empty());
+  when(process.kill).thenAnswer((_) {
+    unawaited(logcat.close());
+    return true;
+  });
+  return (process: process, logcat: logcat);
+}
 
 /// The error stdout reports when the reader of its pipe has gone away.
 const brokenPipe = FileSystemException(

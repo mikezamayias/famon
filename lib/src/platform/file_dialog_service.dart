@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:famon/src/platform/file_dialog_interface.dart';
-import 'package:famon/src/platform/terminal.dart';
+import 'package:famon_core/famon_core.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:process/process.dart';

@@ -11,6 +11,7 @@ import 'package:process/process.dart';
 import 'package:test/test.dart';
 
 import '../../../helpers/stdio_fakes.dart';
+import '../../../helpers/test_helpers.dart' show createMockAnalyticsEvent;
 
 class MockLogger extends Mock implements Logger {}
 
@@ -25,8 +26,6 @@ class MockEventRepository extends Mock implements EventRepository {}
 class FakeAnalyticsEvent extends Fake implements AnalyticsEvent {}
 
 class FakeProcessSignal extends Fake implements ProcessSignal {}
-
-class MockProcess extends Mock implements Process {}
 
 void main() {
   group('FilteredMonitorCommand', () {
@@ -491,25 +490,14 @@ void main() {
       late Completer<void> stdoutDone;
 
       setUp(() {
-        process = MockProcess();
-        logcat = StreamController<List<int>>();
-        stdout = MockStdout();
+        (:process, :logcat) = fakeLogProcess();
         stdoutDone = Completer<void>();
-        when(() => stdout.hasTerminal).thenReturn(false);
-        when(() => stdout.supportsAnsiEscapes).thenReturn(false);
-        when(() => stdout.done).thenAnswer((_) => stdoutDone.future);
-        when(() => process.stdout).thenAnswer((_) => logcat.stream);
-        when(() => process.stderr).thenAnswer((_) => const Stream.empty());
-        when(process.kill).thenAnswer((_) {
-          unawaited(logcat.close());
-          return true;
-        });
+        stdout = pipedStdout(() => stdoutDone.future);
         when(
           () => mockProcessManager.start(any()),
         ).thenAnswer((_) async => process);
         when(() => mockLogParser.parse(any())).thenReturn(
-          AnalyticsEvent.fromParsedLog(
-            rawTimestamp: '12-25 10:30:45.123',
+          createMockAnalyticsEvent(
             eventName: 'add_to_cart',
             parameters: const {'currency': 'USD'},
           ),
@@ -517,9 +505,8 @@ void main() {
       });
 
       test(
-          'sends the banner to stderr and events to stdout (F11), '
-          'and stops with status 0 when the stdout reader closes (F10)',
-          () async {
+          'sends the banner to stderr and events to stdout, '
+          'and stops with status 0 when the stdout reader closes', () async {
         final status = await IOOverrides.runZoned(
           () async {
             final result = runner.run(['filter', '--raw']);
@@ -547,9 +534,8 @@ void main() {
       });
 
       test('stops with status 0 when the stderr reader closes', () async {
-        final stderr = MockStdout();
         final stderrDone = Completer<void>();
-        when(() => stderr.done).thenAnswer((_) => stderrDone.future);
+        final stderr = pipedStdout(() => stderrDone.future);
 
         final status = await IOOverrides.runZoned(
           () async {

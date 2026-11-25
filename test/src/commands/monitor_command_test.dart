@@ -11,6 +11,8 @@ import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
 import '../../helpers/stdio_fakes.dart';
+import '../../helpers/test_helpers.dart'
+    show MockLogParser, createMockAnalyticsEvent;
 
 class MockLogger extends Mock implements Logger {}
 
@@ -21,10 +23,6 @@ class MockLogParserFactory extends Mock implements LogParserFactory {}
 class MockEventCache extends Mock implements EventCacheInterface {}
 
 class MockLogSource extends Mock implements LogSourceInterface {}
-
-class MockLogParser extends Mock implements LogParserInterface {}
-
-class MockProcess extends Mock implements Process {}
 
 void main() {
   group('MonitorCommand', () {
@@ -148,25 +146,13 @@ void main() {
       logger = MockLogger();
       when(() => logger.level).thenReturn(Level.info);
       logSource = MockLogSource();
-      process = MockProcess();
-      logcat = StreamController<List<int>>();
-      stdout = MockStdout();
+      (:process, :logcat) = fakeLogProcess();
       stdoutDone = Completer<void>();
+      stdout = pipedStdout(() => stdoutDone.future);
+      stderrDone = Completer<void>();
+      stderr = pipedStdout(() => stderrDone.future);
       eventCache = MockEventCache();
       periodicTimers = {};
-      when(() => stdout.hasTerminal).thenReturn(false);
-      when(() => stdout.supportsAnsiEscapes).thenReturn(false);
-      when(() => stdout.done).thenAnswer((_) => stdoutDone.future);
-      stderr = MockStdout();
-      stderrDone = Completer<void>();
-      when(() => stderr.done).thenAnswer((_) => stderrDone.future);
-
-      when(() => process.stdout).thenAnswer((_) => logcat.stream);
-      when(() => process.stderr).thenAnswer((_) => const Stream.empty());
-      when(process.kill).thenAnswer((_) {
-        unawaited(logcat.close());
-        return true;
-      });
 
       when(() => logSource.platform).thenReturn(PlatformType.android);
       when(() => logSource.platformDisplayName).thenReturn('Android');
@@ -181,8 +167,7 @@ void main() {
       ).thenAnswer((_) async => logSource);
       final parser = MockLogParser();
       when(() => parser.parse(any())).thenReturn(
-        AnalyticsEvent.fromParsedLog(
-          rawTimestamp: '12-25 10:30:45.123',
+        createMockAnalyticsEvent(
           eventName: 'add_to_cart',
           parameters: const {'currency': 'USD'},
         ),
@@ -269,7 +254,7 @@ void main() {
       '   Use: famon monitor --hide add_to_cart',
     ];
 
-    test('starts with shortcuts off when stdin is /dev/null (F9)', () async {
+    test('starts with shortcuts off when stdin is /dev/null', () async {
       final stdin = devNullStdin();
 
       final status = await runMonitor(stdin, logcat.close);
@@ -285,27 +270,22 @@ void main() {
       verifyNever(() => logger.err(any(that: contains('I/O error'))));
     });
 
-    test('stops quietly with status 0 when the stdout reader closes (F10)',
-        () async {
-      final status = await runMonitor(devNullStdin(), () async {
-        stdoutDone.completeError(brokenPipe);
+    for (final (name, readerDone) in [
+      ('stdout', () => stdoutDone),
+      ('stderr', () => stderrDone),
+    ]) {
+      test('stops quietly with status 0 when the $name reader closes',
+          () async {
+        final status = await runMonitor(devNullStdin(), () async {
+          readerDone().completeError(brokenPipe);
+        });
+
+        expect(status, 0);
+        verify(process.kill).called(greaterThan(0));
+        verifyNever(() => logger.err(any(that: startsWith('❌'))));
+        verifyNever(() => logger.err(any(that: contains('Error reading'))));
       });
-
-      expect(status, 0);
-      verify(process.kill).called(greaterThan(0));
-      verifyNever(() => logger.err(any(that: startsWith('❌'))));
-      verifyNever(() => logger.err(any(that: contains('Error reading'))));
-    });
-
-    test('stops quietly with status 0 when the stderr reader closes', () async {
-      final status = await runMonitor(devNullStdin(), () async {
-        stderrDone.completeError(brokenPipe);
-      });
-
-      expect(status, 0);
-      verify(process.kill).called(greaterThan(0));
-      verifyNever(() => logger.err(any(that: startsWith('❌'))));
-    });
+    }
 
     test('stops at once when a pipe closed during startup', () async {
       // The pipe is gone before the command starts its own watch, as with
@@ -364,7 +344,7 @@ void main() {
       verifyNever(() => logger.detail(any()));
     });
 
-    test('sends the banner to stderr and events to stdout (F11)', () async {
+    test('sends the banner to stderr and events to stdout', () async {
       await runMonitor(devNullStdin(), logcat.close);
 
       final infoLines = verify(() => logger.info(captureAny())).captured;
@@ -385,8 +365,7 @@ void main() {
       verify(() => logger.err('', style: any(named: 'style'))).called(1);
     });
 
-    test('keeps the banner on stdout when stdout is a terminal (F11)',
-        () async {
+    test('keeps the banner on stdout when stdout is a terminal', () async {
       when(() => stdout.hasTerminal).thenReturn(true);
 
       await runMonitor(devNullStdin(), logcat.close);

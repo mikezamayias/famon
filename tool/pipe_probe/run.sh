@@ -45,6 +45,31 @@ ended_within() {
   done
   ! kill -0 "$1" 2>/dev/null
 }
+famon=(dart run bin/famon.dart monitor --raw --platform android)
+# Runs `famon monitor --raw </dev/null | head -<lines>` in the background,
+# with famon's stderr in <stderr file>, or in the pipe when that is -, and
+# head's output in $out/<id>.out. Checks that famon exits 0 once head
+# closes, that no stub adb is left, and that head got <lines> lines.
+run_into_head() { # run_into_head <id> <lines> <stderr file|->
+  local id="$1" n="$2" err="$3" status
+  (
+    if [ "$err" = - ]; then
+      "${famon[@]}" </dev/null 2>&1
+    else
+      "${famon[@]}" </dev/null 2>"$err"
+    fi | head -"$n" >"$out/$id.out"
+    echo "${PIPESTATUS[0]}" >"$out/$id.status"
+  ) &
+  job=$!
+  if ended_within "$job" 20; then
+    status="$(cat "$out/$id.status")"
+    check "famon exits with status 0 once head closes (got $status)" [ "$status" = 0 ]
+  else
+    check "pipeline ends within 20s" false
+  fi
+  check "stub adb is not left running" stub_dead
+  check "head got $n lines" [ "$(wc -l <"$out/$id.out" | tr -d ' ')" = "$n" ]
+}
 kill_leftovers() {
   for p in $(famon_pids); do kill -9 "$p" 2>/dev/null; done
   [ -f "$PROBE_PIDFILE" ] && kill -9 "$(cat "$PROBE_PIDFILE")" 2>/dev/null
@@ -57,8 +82,7 @@ printf '%s\n' '🔥 Firebase Analytics Monitor Started' '📱 Connecting to Andr
 echo "== warm-up compile: $(dart run bin/famon.dart --version 2>&1 | tail -1)"
 
 echo "== Case A: famon monitor --raw </dev/null >file, then SIGINT"
-dart run bin/famon.dart monitor --raw --platform android \
-  </dev/null >"$out/a.out" 2>"$out/a.err" &
+"${famon[@]}" </dev/null >"$out/a.out" 2>"$out/a.err" &
 job=$!
 sleep 7
 check "keeps running with stdin from /dev/null" kill -0 "$job"
@@ -73,20 +97,7 @@ check "stderr holds only the banner" cmp -s "$out/banner" "$out/a.err"
 kill_leftovers
 
 echo "== Case B: famon monitor --raw </dev/null | head -5"
-(
-  dart run bin/famon.dart monitor --raw --platform android \
-    </dev/null 2>"$out/b.err" | head -5 >"$out/b.out"
-  echo "${PIPESTATUS[0]}" >"$out/b.status"
-) &
-job=$!
-if ended_within "$job" 20; then
-  status="$(cat "$out/b.status")"
-  check "famon exits with status 0 once head closes (got $status)" [ "$status" = 0 ]
-else
-  check "pipeline ends within 20s" false
-fi
-check "stub adb is not left running" stub_dead
-check "head got 5 lines" [ "$(wc -l <"$out/b.out" | tr -d ' ')" = 5 ]
+run_into_head b 5 "$out/b.err"
 check "all 5 lines are event lines" only_events "$out/b.out"
 check "stderr holds only the banner" cmp -s "$out/banner" "$out/b.err"
 kill_leftovers
@@ -94,28 +105,14 @@ wait "$job" 2>/dev/null
 
 for n in 1 2 6; do
   echo "== Case C$n: famon monitor --raw </dev/null 2>&1 | head -$n"
-  (
-    dart run bin/famon.dart monitor --raw --platform android \
-      </dev/null 2>&1 | head -"$n" >"$out/c$n.out"
-    echo "${PIPESTATUS[0]}" >"$out/c$n.status"
-  ) &
-  job=$!
-  if ended_within "$job" 20; then
-    status="$(cat "$out/c$n.status")"
-    check "famon exits with status 0 once head closes (got $status)" [ "$status" = 0 ]
-  else
-    check "pipeline ends within 20s" false
-  fi
-  check "stub adb is not left running" stub_dead
-  check "head got $n lines" [ "$(wc -l <"$out/c$n.out" | tr -d ' ')" = "$n" ]
+  run_into_head "c$n" "$n" -
   check "no stack trace or unhandled exception" no_crash_text "$out/c$n.out"
   kill_leftovers
   wait "$job" 2>/dev/null
 done
 
 echo "== Case D: adb unusable, famon monitor --raw </dev/null >file"
-PROBE_ADB_FAIL=version dart run bin/famon.dart monitor --raw --platform android \
-  </dev/null >"$out/d.out" 2>"$out/d.err" &
+PROBE_ADB_FAIL=version "${famon[@]}" </dev/null >"$out/d.out" 2>"$out/d.err" &
 job=$!
 if ended_within "$job" 20; then wait "$job"; status=$?; else status=timeout; fi
 check "famon exits with status 1 (got $status)" [ "$status" = 1 ]

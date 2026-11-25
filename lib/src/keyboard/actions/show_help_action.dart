@@ -2,7 +2,7 @@ import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/action_registry.dart';
 import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:famon/src/keyboard/key_binding.dart';
-import 'package:famon/src/platform/terminal.dart';
+import 'package:famon_core/famon_core.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 /// Callback type for getting the current binding for an action.

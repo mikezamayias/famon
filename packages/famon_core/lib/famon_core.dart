@@ -45,4 +45,5 @@ export 'src/services/log_source_factory.dart';
 export 'src/services/monitoring_pipeline.dart';
 export 'src/services/shared/item_array_parser.dart';
 export 'src/shared/log_timestamp_parser.dart';
+export 'src/shared/status_logger.dart';
 export 'src/utils/event_filter_utils.dart';

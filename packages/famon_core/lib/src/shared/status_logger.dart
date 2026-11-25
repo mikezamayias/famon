@@ -5,14 +5,10 @@ import 'package:mason_logger/mason_logger.dart';
 String? _unstyled(String? message) => message;
 
 /// Status output that keeps stdout free for event lines when piped.
-///
-/// Internal to famon_core and not exported. It mirrors `StatusLogger` in the
-/// famon CLI's `lib/src/platform/terminal.dart`, which cannot depend on a
-/// famon_core API newer than the version its pubspec allows. Change both
-/// together.
-extension CoreStatusLogger on Logger {
+extension StatusLogger on Logger {
   /// Writes a status line: to stdout as [Logger.info] when stdout is a
-  /// terminal, and otherwise unstyled to stderr.
+  /// terminal, and otherwise unstyled to stderr, so that a pipe or file on
+  /// stdout receives only event lines.
   void status(String? message) {
     if (stdout.hasTerminal) {
       info(message);
@@ -27,6 +23,15 @@ extension CoreStatusLogger on Logger {
     if (stdout.hasTerminal) {
       detail(message);
     } else if (level.index <= Level.debug.index) {
+      err(message, style: _unstyled);
+    }
+  }
+
+  /// Like [status], for lines that [Logger.success] would print.
+  void statusSuccess(String? message) {
+    if (stdout.hasTerminal) {
+      success(message);
+    } else {
       err(message, style: _unstyled);
     }
   }

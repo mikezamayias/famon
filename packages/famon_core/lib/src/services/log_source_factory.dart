@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:famon_core/src/models/platform_type.dart';
 import 'package:famon_core/src/services/interfaces/log_source_interface.dart';
-import 'package:famon_core/src/shared/status_output.dart';
+import 'package:famon_core/src/shared/status_logger.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:process/process.dart';

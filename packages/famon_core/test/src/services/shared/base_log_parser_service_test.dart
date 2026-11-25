@@ -1,13 +1,9 @@
-import 'dart:io';
-
 import 'package:famon_core/famon_core.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
-class _MockLogger extends Mock implements Logger {}
-
-class _MockStdout extends Mock implements Stdout {}
+import '../../../helpers/test_helpers.dart';
 
 class _FailingAndroidParser extends LogParserService {
   _FailingAndroidParser({super.logger});
@@ -26,13 +22,13 @@ class _FailingIosParser extends IosLogParserService {
 }
 
 void main() {
-  late _MockLogger logger;
-  late _MockStdout stdout;
+  late MockLogger logger;
+  late MockStdout stdout;
 
   setUp(() {
-    logger = _MockLogger();
+    logger = MockLogger();
     when(() => logger.level).thenReturn(Level.verbose);
-    stdout = _MockStdout();
+    stdout = MockStdout();
   });
 
   for (final (platform, create) in [
@@ -40,10 +36,8 @@ void main() {
     ('iOS', (Logger l) => _FailingIosParser(logger: l)),
   ]) {
     group('$platform parse failure details', () {
-      void parseBrokenParams() => IOOverrides.runZoned(
-            () => create(logger).parseParams('key=value'),
-            stdout: () => stdout,
-          );
+      void parseBrokenParams() =>
+          runWithStdout(stdout, () => create(logger).parseParams('key=value'));
 
       test('go to stderr when stdout is piped', () {
         when(() => stdout.hasTerminal).thenReturn(false);

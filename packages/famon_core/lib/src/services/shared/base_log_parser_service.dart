@@ -1,6 +1,6 @@
 import 'package:famon_core/src/core/domain/entities/analytics_event.dart';
 import 'package:famon_core/src/services/interfaces/log_parser_interface.dart';
-import 'package:famon_core/src/shared/status_output.dart';
+import 'package:famon_core/src/shared/status_logger.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 /// Shared parsing skeleton for the Android and iOS log parsers.

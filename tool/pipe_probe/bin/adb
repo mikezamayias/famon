@@ -1,0 +1,26 @@
+#!/bin/bash
+# Stub adb for tool/pipe_probe/run.sh.
+# Answers the adb calls `famon monitor` makes and streams one canned
+# Firebase Analytics logcat line every 0.2 s until its stdout closes.
+case "${1:-}" in
+  version)
+    echo "Android Debug Bridge version 1.0.41 (pipe_probe stub)"
+    ;;
+  devices)
+    printf 'List of devices attached\nemulator-5554\tdevice\n'
+    ;;
+  shell)
+    ;;
+  logcat)
+    [ -n "${PROBE_PIDFILE:-}" ] && echo $$ >"$PROBE_PIDFILE"
+    i=0
+    while :; do
+      i=$((i + 1))
+      echo "12-25 10:30:45.123 I/FA-SVC  : Logging event: origin=app,name=add_to_cart,params=Bundle[{items=[Bundle[{item_id=sku_$i, item_name=String(ProductA), price=Double(19.99)}]], currency=USD}]" || exit 0
+      sleep 0.2
+    done
+    ;;
+  *)
+    exit 1
+    ;;
+esac

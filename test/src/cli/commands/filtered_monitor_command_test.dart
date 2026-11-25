@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
@@ -7,6 +9,8 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:process/process.dart';
 import 'package:test/test.dart';
+
+import '../../../helpers/stdio_fakes.dart';
 
 class MockLogger extends Mock implements Logger {}
 
@@ -21,6 +25,8 @@ class MockEventRepository extends Mock implements EventRepository {}
 class FakeAnalyticsEvent extends Fake implements AnalyticsEvent {}
 
 class FakeProcessSignal extends Fake implements ProcessSignal {}
+
+class MockProcess extends Mock implements Process {}
 
 void main() {
   group('FilteredMonitorCommand', () {
@@ -454,6 +460,69 @@ void main() {
         verify(
           () => mockLogger.err(any(that: contains('Unexpected error'))),
         ).called(1);
+      });
+    });
+
+    group('without a terminal on stdout', () {
+      late MockProcess process;
+      late StreamController<List<int>> logcat;
+      late MockStdout stdout;
+      late Completer<void> stdoutDone;
+
+      setUp(() {
+        process = MockProcess();
+        logcat = StreamController<List<int>>();
+        stdout = MockStdout();
+        stdoutDone = Completer<void>();
+        when(() => stdout.hasTerminal).thenReturn(false);
+        when(() => stdout.supportsAnsiEscapes).thenReturn(false);
+        when(() => stdout.done).thenAnswer((_) => stdoutDone.future);
+        when(() => process.stdout).thenAnswer((_) => logcat.stream);
+        when(() => process.stderr).thenAnswer((_) => const Stream.empty());
+        when(process.kill).thenAnswer((_) {
+          unawaited(logcat.close());
+          return true;
+        });
+        when(
+          () => mockProcessManager.start(any()),
+        ).thenAnswer((_) async => process);
+        when(() => mockLogParser.parse(any())).thenReturn(
+          AnalyticsEvent.fromParsedLog(
+            rawTimestamp: '12-25 10:30:45.123',
+            eventName: 'add_to_cart',
+            parameters: const {'currency': 'USD'},
+          ),
+        );
+      });
+
+      test(
+          'sends the banner to stderr and events to stdout (F11), '
+          'and stops with status 0 when the stdout reader closes (F10)',
+          () async {
+        final status = await IOOverrides.runZoned(
+          () async {
+            final result = runner.run(['filter', '--raw']);
+            await pumpEventQueue();
+            logcat.add(utf8.encode('event-line\n'));
+            await pumpEventQueue();
+            stdoutDone.completeError(brokenPipe);
+            return result;
+          },
+          stdout: () => stdout,
+        );
+
+        expect(status, 0);
+        verify(process.kill).called(greaterThan(0));
+        final infoLines = verify(() => mockLogger.info(captureAny())).captured;
+        expect(infoLines, hasLength(1));
+        expect(infoLines.single, contains(' | add_to_cart | '));
+        verify(
+          () => mockLogger.err(
+            '📱 Connecting to adb logcat...',
+            style: any(named: 'style'),
+          ),
+        ).called(1);
+        verifyNever(() => mockLogger.err(any(that: startsWith('❌'))));
       });
     });
 

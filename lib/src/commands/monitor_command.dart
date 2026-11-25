@@ -19,6 +19,7 @@ import 'package:famon/src/keyboard/keyboard_input_service.dart';
 import 'package:famon/src/keyboard/shortcut_manager.dart';
 import 'package:famon/src/platform/clipboard_service.dart';
 import 'package:famon/src/platform/file_dialog_service.dart';
+import 'package:famon/src/platform/terminal.dart';
 import 'package:famon_core/famon_core.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
@@ -217,10 +218,10 @@ class MonitorCommand extends Command<int> {
     }
 
     _logger
-      ..info('🔥 ${lightCyan.wrap('Firebase Analytics Monitor Started')}')
-      ..info('📱 Connecting to ${_logSource.platformDisplayName}...')
-      ..detail('Platform: ${_logSource.platform.displayName}')
-      ..detail('Verbose mode: ${verbose ? 'ON' : 'OFF'}');
+      ..status('🔥 ${lightCyan.wrap('Firebase Analytics Monitor Started')}')
+      ..status('📱 Connecting to ${_logSource.platformDisplayName}...')
+      ..statusDetail('Platform: ${_logSource.platform.displayName}')
+      ..statusDetail('Verbose mode: ${verbose ? 'ON' : 'OFF'}');
 
     // Optionally enable analytics debug and raise log levels
     if (enableDebugFor != null && enableDebugFor.isNotEmpty) {
@@ -231,30 +232,32 @@ class MonitorCommand extends Command<int> {
     }
 
     if (hideEvents.isNotEmpty) {
-      _logger.info('🙈 Hiding events: ${hideEvents.join(', ')}');
+      _logger.status('🙈 Hiding events: ${hideEvents.join(', ')}');
     }
 
     if (showOnlyEvents.isNotEmpty) {
-      _logger.info('👀 Showing only: ${showOnlyEvents.join(', ')}');
+      _logger.status('👀 Showing only: ${showOnlyEvents.join(', ')}');
     }
 
     if (globalParamNames.isNotEmpty) {
-      _logger.info('🌐 Global parameters: ${globalParamNames.join(', ')}');
+      _logger.status('🌐 Global parameters: ${globalParamNames.join(', ')}');
     }
 
     if (showOnlyParamNames.isNotEmpty) {
-      _logger.info('🔎 Showing only params: ${showOnlyParamNames.join(', ')}');
+      _logger.status(
+        '🔎 Showing only params: ${showOnlyParamNames.join(', ')}',
+      );
     }
 
     // Initialize keyboard shortcuts if enabled
-    final shortcutsEnabled = !noShortcuts && stdin.hasTerminal;
+    final shortcutsEnabled = !noShortcuts && stdinIsInteractive();
     if (shortcutsEnabled) {
       await _initializeKeyboardShortcuts();
-      _logger.info('Press ? for help, Q to quit');
+      _logger.status('Press ? for help, Q to quit');
     } else {
-      _logger.info('Press Ctrl+C to stop monitoring');
+      _logger.status('Press Ctrl+C to stop monitoring');
     }
-    _logger.info('');
+    _logger.status('');
 
     try {
       // Start log stream using platform-specific log source
@@ -267,9 +270,9 @@ class MonitorCommand extends Command<int> {
         if (!sawRelevantLine) {
           _logger
             ..warn('No Firebase Analytics logs detected yet...')
-            ..info('Troubleshooting steps:');
+            ..status('Troubleshooting steps:');
           for (final tip in _logSource.getTroubleshootingTips()) {
-            _logger.info('  $tip');
+            _logger.status('  $tip');
           }
         }
       });
@@ -303,8 +306,8 @@ class MonitorCommand extends Command<int> {
         unawaited(keyboardSub?.cancel());
         _keyboardInput?.dispose();
         process.kill();
-        if (triggerQuit) {
-          _quitCompleter?.complete();
+        if (triggerQuit && !(_quitCompleter?.isCompleted ?? true)) {
+          _quitCompleter!.complete();
         }
       }
 
@@ -338,6 +341,10 @@ class MonitorCommand extends Command<int> {
       }
       // Initialize quit completer for immediate exit
       _quitCompleter = Completer<void>();
+
+      // When the reader of a stdout pipe goes away (`famon monitor | head`),
+      // stop through the same cleanup a SIGINT uses, then exit 0.
+      unawaited(stdoutReaderGone().then((_) => cleanup(triggerQuit: true)));
 
       // Wire the shared monitoring pipeline: it owns UTF-8 decoding,
       // malformed-byte tracking, verbose-line emission, and parse +
@@ -445,17 +452,17 @@ class MonitorCommand extends Command<int> {
   void _showSessionStats() {
     final stats = _eventCache.getSessionStats();
     _logger
-      ..info('\n📊 Session Stats:')
-      ..info('   Unique Events: ${stats.totalUniqueEvents}')
-      ..info('   Total Events: ${stats.totalEventOccurrences}');
+      ..status('\n📊 Session Stats:')
+      ..status('   Unique Events: ${stats.totalUniqueEvents}')
+      ..status('   Total Events: ${stats.totalEventOccurrences}');
     final mostFrequent = stats.mostFrequentEvent;
     if (mostFrequent != null) {
-      _logger.info(
+      _logger.status(
         '   Most Frequent: $mostFrequent '
         '(${_eventCache.getEventCount(mostFrequent)})',
       );
     }
-    _logger.info('');
+    _logger.status('');
   }
 
   /// Display smart suggestions based on session data
@@ -465,18 +472,18 @@ class MonitorCommand extends Command<int> {
 
     if (topEvents.isNotEmpty) {
       _logger
-        ..info('\n💡 Smart Suggestions:')
-        ..info('   Most frequent events: ${topEvents.join(', ')}');
+        ..status('\n💡 Smart Suggestions:')
+        ..status('   Most frequent events: ${topEvents.join(', ')}');
 
       if (suggestedToHide.isNotEmpty) {
         _logger
-          ..info('   Consider hiding: ${suggestedToHide.join(', ')}')
-          ..info(
+          ..status('   Consider hiding: ${suggestedToHide.join(', ')}')
+          ..status(
             '   Use: famon monitor --hide ${suggestedToHide.join(' --hide ')}',
           );
       }
 
-      _logger.info('');
+      _logger.status('');
     }
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:famon/src/platform/terminal.dart';
 import 'package:famon_core/famon_core.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
@@ -177,11 +178,11 @@ class FilteredMonitorCommand extends Command<int> {
     final customParamMap = _parseCustomParameters(customParams);
 
     _logger
-      ..info('🔍 ${lightCyan.wrap('Firebase Analytics Monitor')}')
-      ..info('📊 Using database-based filtering...');
+      ..status('🔍 ${lightCyan.wrap('Firebase Analytics Monitor')}')
+      ..status('📊 Using database-based filtering...');
 
     if (showOnlyParamNames.isNotEmpty) {
-      _logger.info(
+      _logger.status(
         '🔎 Showing only params: ${showOnlyParamNames.join(', ')}',
       );
     }
@@ -197,7 +198,7 @@ class FilteredMonitorCommand extends Command<int> {
       );
     }
 
-    _logger.info('📱 Connecting to adb logcat...');
+    _logger.status('📱 Connecting to adb logcat...');
 
     try {
       // Start adb logcat process
@@ -227,6 +228,10 @@ class FilteredMonitorCommand extends Command<int> {
         unawaited(sigintSub?.cancel());
         unawaited(sigtermSub?.cancel());
       });
+
+      // When the reader of a stdout pipe goes away (`famon filter | head`),
+      // stop the log process so the pipeline ends and the command exits 0.
+      unawaited(stdoutReaderGone().then((_) => cleanup()));
 
       // Wire the shared monitoring pipeline: it owns stderr draining,
       // UTF-8 decoding, malformed-byte tracking, and parse + filter
@@ -284,7 +289,7 @@ class FilteredMonitorCommand extends Command<int> {
 
           // Apply limit.
           if (limit != null && eventCount >= limit) {
-            _logger.info('\n\uD83D\uDCCA Reached limit of $limit events');
+            _logger.status('\n\uD83D\uDCCA Reached limit of $limit events');
             return false;
           }
           return true;

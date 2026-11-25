@@ -3,6 +3,7 @@ import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
 import 'package:famon/src/commands/commands.dart';
 import 'package:famon/src/injection.dart';
+import 'package:famon/src/platform/terminal.dart';
 import 'package:famon/src/version.dart';
 import 'package:famon/src/version_utils.dart';
 import 'package:mason_logger/mason_logger.dart';
@@ -78,16 +79,16 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
       _logger
         ..err(e.message)
         ..err('$stackTrace')
-        ..info('')
-        ..info(usage);
+        ..status('')
+        ..status(usage);
       return ExitCode.usage.code;
     } on UsageException catch (e) {
       // On usage errors, show the commands usage message and
       // exit with an error code
       _logger
         ..err(e.message)
-        ..info('')
-        ..info(e.usage);
+        ..status('')
+        ..status(e.usage);
       return ExitCode.usage.code;
     }
   }
@@ -96,21 +97,21 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
   Future<int?> runCommand(ArgResults topLevelResults) async {
     // Verbose logs
     _logger
-      ..detail('Argument information:')
-      ..detail('  Top level options:');
+      ..statusDetail('Argument information:')
+      ..statusDetail('  Top level options:');
     for (final option in topLevelResults.options) {
       if (topLevelResults.wasParsed(option)) {
-        _logger.detail('  - $option: ${topLevelResults[option]}');
+        _logger.statusDetail('  - $option: ${topLevelResults[option]}');
       }
     }
     if (topLevelResults.command != null) {
       final commandResult = topLevelResults.command!;
       _logger
-        ..detail('  Command: ${commandResult.name}')
-        ..detail('    Command options:');
+        ..statusDetail('  Command: ${commandResult.name}')
+        ..statusDetail('    Command options:');
       for (final option in commandResult.options) {
         if (commandResult.wasParsed(option)) {
-          _logger.detail('    - $option: ${commandResult[option]}');
+          _logger.statusDetail('    - $option: ${commandResult[option]}');
         }
       }
     }
@@ -142,8 +143,8 @@ class FamonCommandRunner extends CompletionCommandRunner<int> {
       final latestVersion = await _pubUpdater.getLatestVersion(packageName);
       if (isNewerVersion(latestVersion, packageVersion)) {
         _logger
-          ..info('')
-          ..info(
+          ..status('')
+          ..status(
             '${lightYellow.wrap('Update available!')} '
             '${lightCyan.wrap(packageVersion)} \u2192 '
             '${lightCyan.wrap(latestVersion)}\n'

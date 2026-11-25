@@ -5,6 +5,8 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
+import '../../../helpers/stdio_fakes.dart';
+
 class MockLogger extends Mock implements Logger {}
 
 class MockEventCache extends Mock implements EventCacheInterface {}
@@ -17,6 +19,8 @@ void main() {
     late ToggleEventParamsAction action;
 
     setUp(() {
+      // These tests pin the output on a terminal.
+      fakeStdio(stdoutIsTerminal: true);
       logger = MockLogger();
       eventCache = MockEventCache();
       capturedHideEventParams = false;

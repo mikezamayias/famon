@@ -4,6 +4,7 @@ import 'package:famon_core/src/constants.dart';
 import 'package:famon_core/src/core/domain/entities/analytics_event.dart';
 import 'package:famon_core/src/models/session_stats.dart';
 import 'package:famon_core/src/services/interfaces/event_cache_interface.dart';
+import 'package:famon_core/src/shared/status_output.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 
@@ -92,7 +93,7 @@ class EventCacheService implements EventCacheInterface {
     if (leastFrequentEvent != null) {
       _uniqueEventNames.remove(leastFrequentEvent);
       _eventCounts.remove(leastFrequentEvent);
-      _logger?.detail(
+      _logger?.statusDetail(
         'Cache full: evicted least frequent event "$leastFrequentEvent" '
         '(count: $lowestCount)',
       );

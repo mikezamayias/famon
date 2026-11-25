@@ -1,5 +1,6 @@
 import 'package:famon_core/src/core/domain/entities/analytics_event.dart';
 import 'package:famon_core/src/services/interfaces/log_parser_interface.dart';
+import 'package:famon_core/src/shared/status_output.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 /// Shared parsing skeleton for the Android and iOS log parsers.
@@ -193,7 +194,7 @@ abstract class BaseLogParserService implements LogParserInterface {
 
   void _warn(String what, Object error, StackTrace stackTrace, String input) {
     logger?.warn('$what: $error. Some event data may be missing.');
-    logger?.detail('Stack trace: $stackTrace');
-    logger?.detail('Input: $input');
+    logger?.statusDetail('Stack trace: $stackTrace');
+    logger?.statusDetail('Input: $input');
   }
 }

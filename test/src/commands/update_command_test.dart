@@ -8,6 +8,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:pub_updater/pub_updater.dart';
 import 'package:test/test.dart';
 
+import '../../helpers/stdio_fakes.dart';
 import '../../helpers/test_helpers.dart';
 
 class _MockProgress extends Mock implements Progress {}
@@ -21,6 +22,8 @@ void main() {
     late FamonCommandRunner commandRunner;
 
     setUp(() async {
+      // These tests pin the output on a terminal.
+      fakeStdio(stdoutIsTerminal: true);
       final progress = _MockProgress();
       final progressLogs = <String>[];
       pubUpdater = MockPubUpdater();

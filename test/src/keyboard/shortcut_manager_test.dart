@@ -10,6 +10,8 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
+import '../../helpers/stdio_fakes.dart';
+
 class MockLogger extends Mock implements Logger {}
 
 class MockShortcutsConfigLoader extends Mock implements ShortcutsConfigLoader {}
@@ -54,6 +56,8 @@ void main() {
 
     setUp(() {
       registry = ActionRegistry();
+      // These tests pin the output on a terminal.
+      fakeStdio(stdoutIsTerminal: true);
       configLoader = MockShortcutsConfigLoader();
       logger = MockLogger();
 
@@ -192,6 +196,24 @@ void main() {
 
         final binding = manager.getBinding('test_action');
         expect(binding.key, equals('y'));
+      });
+
+      test('reports loaded bindings on stderr when stdout is piped', () async {
+        fakeStdio(stdoutIsTerminal: false);
+        when(() => logger.level).thenReturn(Level.verbose);
+        when(
+          () => configLoader.loadCustomBindings(),
+        ).thenAnswer((_) async => {'test_action': const KeyBinding(key: 'y')});
+
+        await manager.loadCustomBindings();
+
+        verify(
+          () => logger.err(
+            'Loaded 1 custom shortcut bindings',
+            style: any(named: 'style'),
+          ),
+        ).called(1);
+        verifyNever(() => logger.detail(any()));
       });
 
       test('only loads once', () async {

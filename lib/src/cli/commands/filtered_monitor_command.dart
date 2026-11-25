@@ -229,9 +229,11 @@ class FilteredMonitorCommand extends Command<int> {
         unawaited(sigtermSub?.cancel());
       });
 
-      // When the reader of a stdout pipe goes away (`famon filter | head`),
-      // stop the log process so the pipeline ends and the command exits 0.
-      unawaited(stdoutReaderGone().then((_) => cleanup()));
+      // When the reader of a stdout or stderr pipe goes away
+      // (`famon filter 2>&1 | head`), stop the log process so the pipeline
+      // ends and the command exits 0. This also fires when the pipe closed
+      // during startup.
+      unawaited(outputReaderGone().then((_) => cleanup()));
 
       // Wire the shared monitoring pipeline: it owns stderr draining,
       // UTF-8 decoding, malformed-byte tracking, and parse + filter
@@ -307,10 +309,10 @@ class FilteredMonitorCommand extends Command<int> {
       if (e.toString().contains('adb')) {
         _logger
           ..err('❌ Failed to start adb. Make sure:')
-          ..info('   1. Android SDK platform-tools are installed')
-          ..info('   2. adb is in your PATH')
-          ..info('   3. An Android device/emulator is connected')
-          ..info('   4. USB debugging is enabled');
+          ..status('   1. Android SDK platform-tools are installed')
+          ..status('   2. adb is in your PATH')
+          ..status('   3. An Android device/emulator is connected')
+          ..status('   4. USB debugging is enabled');
         return 1;
       }
 
@@ -412,7 +414,7 @@ class FilteredMonitorCommand extends Command<int> {
 
       return false;
     } on Object catch (e) {
-      _logger.detail('Failed to get frequency data: $e');
+      _logger.statusDetail('Failed to get frequency data: $e');
       return false;
     }
   }

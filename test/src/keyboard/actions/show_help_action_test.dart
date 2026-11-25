@@ -6,6 +6,7 @@ import 'package:famon/src/keyboard/key_binding.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
+import '../../../helpers/stdio_fakes.dart';
 import '../../../helpers/test_helpers.dart';
 
 // Fake action for testing
@@ -40,6 +41,8 @@ void main() {
   late ShowHelpAction action;
 
   setUp(() {
+    // These tests pin the output on a terminal.
+    fakeStdio(stdoutIsTerminal: true);
     logger = MockLogger();
     eventCache = MockEventCache();
     registry = ActionRegistry()

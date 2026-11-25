@@ -3,6 +3,7 @@ import 'package:famon/src/keyboard/actions/clear_screen_action.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
+import '../../../helpers/stdio_fakes.dart';
 import '../../../helpers/test_helpers.dart';
 
 void main() {
@@ -11,6 +12,8 @@ void main() {
   late ClearScreenAction action;
 
   setUp(() {
+    // These tests pin the output on a terminal.
+    fakeStdio(stdoutIsTerminal: true);
     logger = MockLogger();
     eventCache = MockEventCache();
     action = ClearScreenAction();

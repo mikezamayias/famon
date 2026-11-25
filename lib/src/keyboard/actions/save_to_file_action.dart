@@ -5,6 +5,7 @@ import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:famon/src/keyboard/key_binding.dart';
 import 'package:famon/src/platform/file_dialog_interface.dart';
+import 'package:famon/src/platform/terminal.dart';
 
 /// Action to save events to a file with a save dialog.
 ///
@@ -34,7 +35,7 @@ class SaveToFileAction implements ShortcutAction {
   Future<bool> execute(ActionContext context) async {
     final events = context.recentEvents;
     if (events.isEmpty) {
-      context.logger.info('No events to save');
+      context.logger.status('No events to save');
       return true;
     }
 
@@ -44,7 +45,7 @@ class SaveToFileAction implements ShortcutAction {
     );
 
     if (filePath == null || filePath.isEmpty) {
-      context.logger.info('Save cancelled');
+      context.logger.status('Save cancelled');
       return true;
     }
 
@@ -69,7 +70,8 @@ class SaveToFileAction implements ShortcutAction {
     try {
       final file = File(filePath);
       await file.writeAsString(jsonString);
-      context.logger.success('Saved ${events.length} events to $filePath');
+      context.logger
+          .statusSuccess('Saved ${events.length} events to $filePath');
       return true;
     } on FileSystemException catch (e) {
       context.logger.err('Failed to save file: ${e.message}');

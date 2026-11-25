@@ -1,6 +1,7 @@
 import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:famon/src/keyboard/key_binding.dart';
+import 'package:famon/src/platform/terminal.dart';
 
 /// Callback type for toggling event parameters visibility.
 typedef EventParamsToggleCallback = void Function({
@@ -39,9 +40,9 @@ class ToggleEventParamsAction implements ShortcutAction {
     _onToggle(hideEventParams: newState);
 
     if (newState) {
-      context.logger.info('Event parameters hidden');
+      context.logger.status('Event parameters hidden');
     } else {
-      context.logger.info('Event parameters visible');
+      context.logger.status('Event parameters visible');
     }
 
     return true;

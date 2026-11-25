@@ -3,6 +3,7 @@ import 'package:famon/src/keyboard/actions/copy_to_clipboard_action.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
+import '../../../helpers/stdio_fakes.dart';
 import '../../../helpers/test_helpers.dart';
 
 void main() {
@@ -12,6 +13,8 @@ void main() {
   late CopyToClipboardAction action;
 
   setUp(() {
+    // These tests pin the output on a terminal.
+    fakeStdio(stdoutIsTerminal: true);
     logger = MockLogger();
     clipboard = MockClipboardInterface();
     eventCache = MockEventCache();

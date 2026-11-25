@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:famon/src/platform/file_dialog_interface.dart';
+import 'package:famon/src/platform/terminal.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:process/process.dart';
@@ -43,7 +44,9 @@ class FileDialogService implements FileDialogInterface {
       // Fallback to terminal prompt
       return promptForPath(defaultFileName: defaultFileName);
     } on Exception catch (e) {
-      _logger?.detail('Native file dialog failed; using terminal prompt: $e');
+      _logger?.statusDetail(
+        'Native file dialog failed; using terminal prompt: $e',
+      );
       return promptForPath(defaultFileName: defaultFileName);
     }
   }
@@ -51,7 +54,12 @@ class FileDialogService implements FileDialogInterface {
   @override
   Future<String?> promptForPath({String? defaultFileName}) async {
     final fileName = defaultFileName ?? _generateDefaultFileName();
-    _logger?.prompt('Enter file path [$fileName]: ');
+    if (stdout.hasTerminal) {
+      _logger?.prompt('Enter file path [$fileName]: ');
+    } else {
+      // Keep a piped stdout free for event lines.
+      stderr.write('Enter file path [$fileName]: ');
+    }
 
     final input = stdin.readLineSync();
     if (input == null || input.isEmpty) {

@@ -5,6 +5,7 @@ import 'package:famon/src/keyboard/actions/action_registry.dart';
 import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:famon/src/keyboard/key_binding.dart';
 import 'package:famon/src/keyboard/keyboard_input_interface.dart';
+import 'package:famon/src/platform/terminal.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 
@@ -72,7 +73,8 @@ class ShortcutManager {
       _bindingsLoaded = true;
 
       if (custom.isNotEmpty) {
-        _logger.detail('Loaded ${custom.length} custom shortcut bindings');
+        _logger
+            .statusDetail('Loaded ${custom.length} custom shortcut bindings');
       }
     } on Exception catch (e) {
       _logger.warn('Failed to load custom shortcuts: $e');

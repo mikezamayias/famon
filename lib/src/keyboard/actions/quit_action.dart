@@ -1,6 +1,7 @@
 import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:famon/src/keyboard/key_binding.dart';
+import 'package:famon/src/platform/terminal.dart';
 
 /// Callback type for quit request handling.
 typedef QuitCallback = void Function();
@@ -30,8 +31,8 @@ class QuitAction implements ShortcutAction {
 
   @override
   Future<bool> execute(ActionContext context) async {
-    context.logger.info('');
-    context.logger.info('Stopping monitoring...');
+    context.logger.status('');
+    context.logger.status('Stopping monitoring...');
     _onQuit();
     return true;
   }

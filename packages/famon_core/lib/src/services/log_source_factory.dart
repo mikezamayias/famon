@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:famon_core/src/models/platform_type.dart';
 import 'package:famon_core/src/services/interfaces/log_source_interface.dart';
+import 'package:famon_core/src/shared/status_output.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:process/process.dart';
@@ -54,19 +55,19 @@ class LogSourceFactory {
   Future<PlatformType> _autoDetect() async {
     // Check for Android devices
     if (await _hasAndroidDevices()) {
-      _logger.detail('Auto-detected: Android device connected');
+      _logger.statusDetail('Auto-detected: Android device connected');
       return PlatformType.android;
     }
 
     // Check for booted iOS Simulator
     if (await _hasBootedSimulator()) {
-      _logger.detail('Auto-detected: iOS Simulator running');
+      _logger.statusDetail('Auto-detected: iOS Simulator running');
       return PlatformType.iosSimulator;
     }
 
     // Check for connected iOS device
     if (await _hasIosDevice()) {
-      _logger.detail('Auto-detected: iOS device connected');
+      _logger.statusDetail('Auto-detected: iOS device connected');
       return PlatformType.iosDevice;
     }
 
@@ -89,7 +90,8 @@ class LogSourceFactory {
                 (line.contains('device') || line.contains('emulator')),
           );
     } on ProcessException catch (e) {
-      _logger.detail('adb probe failed (no Android device available): $e');
+      _logger
+          .statusDetail('adb probe failed (no Android device available): $e');
       return false;
     }
   }
@@ -107,7 +109,7 @@ class LogSourceFactory {
       final output = result.stdout as String;
       return output.contains('(Booted)');
     } on ProcessException catch (e) {
-      _logger.detail('xcrun simctl probe failed (no iOS Simulator): $e');
+      _logger.statusDetail('xcrun simctl probe failed (no iOS Simulator): $e');
       return false;
     }
   }
@@ -120,7 +122,8 @@ class LogSourceFactory {
       final output = result.stdout as String;
       return output.trim().isNotEmpty;
     } on ProcessException catch (e) {
-      _logger.detail('idevice_id probe failed (no physical iOS device): $e');
+      _logger
+          .statusDetail('idevice_id probe failed (no physical iOS device): $e');
       return false;
     }
   }
@@ -195,7 +198,8 @@ class _AndroidLogSource implements LogSourceInterface {
     }
 
     try {
-      _logger.detail('Enabling Analytics debug for $bundleIdOrPackage...');
+      _logger
+          .statusDetail('Enabling Analytics debug for $bundleIdOrPackage...');
       final proc = await _processManager.start([
         'adb',
         'shell',
@@ -226,7 +230,7 @@ class _AndroidLogSource implements LogSourceInterface {
       }
     }
 
-    _logger.detail('Raising FA/Crashlytics log levels to VERBOSE...');
+    _logger.statusDetail('Raising FA/Crashlytics log levels to VERBOSE...');
     await setLevel('FA');
     await setLevel('FA-SVC');
     await setLevel('FirebaseCrashlytics');
@@ -305,16 +309,16 @@ class _IosSimulatorLogSource implements LogSourceInterface {
   Future<void> enableAnalyticsDebug(String? bundleIdOrPackage) async {
     // iOS debug mode is enabled via Xcode scheme arguments
     _logger
-      ..info('iOS Analytics debug mode must be enabled in Xcode:')
-      ..info('  1. Edit scheme > Run > Arguments')
-      ..info('  2. Add: -FIRAnalyticsDebugEnabled')
-      ..info('  3. Rebuild and run your app');
+      ..status('iOS Analytics debug mode must be enabled in Xcode:')
+      ..status('  1. Edit scheme > Run > Arguments')
+      ..status('  2. Add: -FIRAnalyticsDebugEnabled')
+      ..status('  3. Rebuild and run your app');
   }
 
   @override
   Future<void> raiseLogLevels() async {
     // iOS doesn't have the same log level mechanism as Android
-    _logger.detail(
+    _logger.statusDetail(
       'iOS log levels are controlled by the log stream predicate.',
     );
   }
@@ -373,15 +377,16 @@ class _IosDeviceLogSource implements LogSourceInterface {
   Future<void> enableAnalyticsDebug(String? bundleIdOrPackage) async {
     // Same as simulator - iOS debug mode is enabled via Xcode
     _logger
-      ..info('iOS Analytics debug mode must be enabled in Xcode:')
-      ..info('  1. Edit scheme > Run > Arguments')
-      ..info('  2. Add: -FIRAnalyticsDebugEnabled')
-      ..info('  3. Rebuild and install on your device');
+      ..status('iOS Analytics debug mode must be enabled in Xcode:')
+      ..status('  1. Edit scheme > Run > Arguments')
+      ..status('  2. Add: -FIRAnalyticsDebugEnabled')
+      ..status('  3. Rebuild and install on your device');
   }
 
   @override
   Future<void> raiseLogLevels() async {
-    _logger.detail('iOS Device log levels are controlled by idevicesyslog.');
+    _logger
+        .statusDetail('iOS Device log levels are controlled by idevicesyslog.');
   }
 
   @override

@@ -434,6 +434,7 @@ void main() {
 
     group('adb error handling', () {
       test('should display helpful message when adb fails', () async {
+        fakeStdio(stdoutIsTerminal: true);
         when(
           () => mockProcessManager.start(any()),
         ).thenThrow(const ProcessException('adb', [], 'adb: not found'));
@@ -447,6 +448,26 @@ void main() {
         verify(
           () => mockLogger.info(any(that: contains('Android SDK'))),
         ).called(greaterThan(0));
+      });
+
+      test('sends the adb hints to stderr when stdout is piped', () async {
+        fakeStdio(stdoutIsTerminal: false);
+        when(() => mockLogger.level).thenReturn(Level.info);
+        when(
+          () => mockProcessManager.start(any()),
+        ).thenThrow(const ProcessException('adb', [], 'adb: not found'));
+
+        final result = await runner.run(['filter']);
+
+        expect(result, equals(1));
+        verify(
+          () => mockLogger.err(
+            '   1. Android SDK platform-tools are installed',
+            style: any(named: 'style'),
+          ),
+        ).called(1);
+        verifyNever(() => mockLogger.info(any()));
+        verifyNever(() => mockLogger.detail(any()));
       });
 
       test('should handle unexpected errors gracefully', () async {
@@ -522,6 +543,27 @@ void main() {
             style: any(named: 'style'),
           ),
         ).called(1);
+        verifyNever(() => mockLogger.err(any(that: startsWith('❌'))));
+      });
+
+      test('stops with status 0 when the stderr reader closes', () async {
+        final stderr = MockStdout();
+        final stderrDone = Completer<void>();
+        when(() => stderr.done).thenAnswer((_) => stderrDone.future);
+
+        final status = await IOOverrides.runZoned(
+          () async {
+            final result = runner.run(['filter', '--raw']);
+            await pumpEventQueue();
+            stderrDone.completeError(brokenPipe);
+            return result;
+          },
+          stdout: () => stdout,
+          stderr: () => stderr,
+        );
+
+        expect(status, 0);
+        verify(process.kill).called(greaterThan(0));
         verifyNever(() => mockLogger.err(any(that: startsWith('❌'))));
       });
     });

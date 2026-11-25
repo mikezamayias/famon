@@ -27,28 +27,38 @@ bool stdinIsInteractive() {
 bool isBrokenPipe(Object error) =>
     error is FileSystemException && error.osError?.errorCode == _ePipe;
 
-/// Completes when the reader of stdout closes its end of the pipe.
+/// One watch per stream, so the first caller arms it and later callers share
+/// it. Keyed by the stream object, so [IOOverrides] fakes get their own.
+final _readerGone = Expando<Future<void>>();
+
+/// Completes when the reader of stdout or of stderr closes its end of the
+/// pipe.
 ///
-/// Without a listener, the `EPIPE` that [stdout] reports through
-/// [IOSink.done] is an unhandled error that crashes the process. This
-/// handles it and lets the caller shut down through its normal cleanup.
-/// Any other stdout error is rethrown, so it stays an uncaught error as
-/// before. After `EPIPE`, [stdout] drops further writes without raising.
-Future<void> stdoutReaderGone() {
-  final gone = Completer<void>();
-  unawaited(
-    stdout.done.then<void>(
-      (_) {},
-      onError: (Object error, StackTrace stackTrace) {
-        if (!isBrokenPipe(error)) {
-          Error.throwWithStackTrace(error, stackTrace);
-        }
-        gone.complete();
-      },
-    ),
-  );
-  return gone.future;
-}
+/// Without a listener, the `EPIPE` that a stream reports through
+/// [IOSink.done] is an unhandled error that crashes the process, whichever
+/// write hit it. `main` calls this before anything is written, so `EPIPE`
+/// is handled from the first byte, and a command calls it again to shut
+/// down through its normal cleanup. Any other error on either stream is
+/// rethrown once, so it stays an uncaught error as before. After `EPIPE`
+/// the stream drops further writes without raising, so nothing tries to
+/// report the closed pipe by writing to it.
+Future<void> outputReaderGone() => Future.any([_watch(stdout), _watch(stderr)]);
+
+Future<void> _watch(Stdout sink) => _readerGone[sink] ??= () {
+      final gone = Completer<void>();
+      unawaited(
+        sink.done.then<void>(
+          (_) {},
+          onError: (Object error, StackTrace stackTrace) {
+            if (!isBrokenPipe(error)) {
+              Error.throwWithStackTrace(error, stackTrace);
+            }
+            gone.complete();
+          },
+        ),
+      );
+      return gone.future;
+    }();
 
 String? _unstyled(String? message) => message;
 
@@ -71,6 +81,15 @@ extension StatusLogger on Logger {
     if (stdout.hasTerminal) {
       detail(message);
     } else if (level.index <= Level.debug.index) {
+      err(message, style: _unstyled);
+    }
+  }
+
+  /// Like [status], for lines that [Logger.success] would print.
+  void statusSuccess(String? message) {
+    if (stdout.hasTerminal) {
+      success(message);
+    } else {
       err(message, style: _unstyled);
     }
   }

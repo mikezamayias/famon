@@ -1,6 +1,7 @@
 import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:famon/src/keyboard/key_binding.dart';
+import 'package:famon/src/platform/terminal.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 /// Action to display session statistics inline.
@@ -34,26 +35,26 @@ class ShowStatsAction implements ShortcutAction {
     final separator = darkGray.wrap('─' * 40);
 
     logger
-      ..info('')
-      ..info(lightCyan.wrap('Session Statistics'))
-      ..info(separator)
-      ..info('Unique Events: ${stats.totalUniqueEvents}')
-      ..info('Total Events:  ${stats.totalEventOccurrences}')
-      ..info('');
+      ..status('')
+      ..status(lightCyan.wrap('Session Statistics'))
+      ..status(separator)
+      ..status('Unique Events: ${stats.totalUniqueEvents}')
+      ..status('Total Events:  ${stats.totalEventOccurrences}')
+      ..status('');
 
     if (topEvents.isNotEmpty) {
-      logger.info('Most Frequent Events:');
+      logger.status('Most Frequent Events:');
       for (final eventName in topEvents) {
         final count = eventCache.getEventCount(eventName);
-        logger.info(
+        logger.status(
           '  ${eventName.padRight(25)} ${count.toString().padLeft(5)}',
         );
       }
     }
 
     logger
-      ..info(separator)
-      ..info('');
+      ..status(separator)
+      ..status('');
 
     return true;
   }

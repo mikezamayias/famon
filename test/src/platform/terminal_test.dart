@@ -55,41 +55,77 @@ void main() {
     });
   });
 
-  group('stdoutReaderGone', () {
-    test('completes when stdout reports EPIPE', () async {
-      final stdout = MockStdout();
-      final done = Completer<void>();
-      when(() => stdout.done).thenAnswer((_) => done.future);
+  group('outputReaderGone', () {
+    late MockStdout stdout;
+    late MockStdout stderr;
+    late Completer<void> stdoutDone;
+    late Completer<void> stderrDone;
 
-      final gone = IOOverrides.runZoned(
-        stdoutReaderGone,
-        stdout: () => stdout,
-      );
-      done.completeError(brokenPipe);
+    setUp(() {
+      stdout = MockStdout();
+      stderr = MockStdout();
+      stdoutDone = Completer<void>();
+      stderrDone = Completer<void>();
+      when(() => stdout.done).thenAnswer((_) => stdoutDone.future);
+      when(() => stderr.done).thenAnswer((_) => stderrDone.future);
+    });
+
+    Future<void> watch() => IOOverrides.runZoned(
+          outputReaderGone,
+          stdout: () => stdout,
+          stderr: () => stderr,
+        );
+
+    test('completes when stdout reports EPIPE', () async {
+      final gone = watch();
+      stdoutDone.completeError(brokenPipe);
 
       await expectLater(gone, completes);
     });
 
-    test('leaves any other stdout error uncaught', () async {
-      final stdout = MockStdout();
-      final uncaught = Completer<Object>();
+    test('completes when stderr reports EPIPE', () async {
+      final gone = watch();
+      stderrDone.completeError(brokenPipe);
 
-      // The stdout future must belong to the guarded zone: errors do not
-      // cross error-zone boundaries.
-      runZonedGuarded(
-        () {
-          final done = Completer<void>();
-          when(() => stdout.done).thenAnswer((_) => done.future);
-          unawaited(
-            IOOverrides.runZoned(stdoutReaderGone, stdout: () => stdout),
-          );
-          done.completeError(const FileSystemException('disk full'));
-        },
-        (error, _) => uncaught.complete(error),
-      );
-
-      expect(await uncaught.future, isA<FileSystemException>());
+      await expectLater(gone, completes);
     });
+
+    test(
+        'handles EPIPE that arrives before a command watches, and a later '
+        'watch still completes', () async {
+      // `main` arms the watch before anything is written. An unhandled
+      // EPIPE here would fail the test as an uncaught error.
+      unawaited(watch());
+      stderrDone.completeError(brokenPipe);
+      await pumpEventQueue();
+
+      // The command watches only once startup is done.
+      await expectLater(watch(), completes);
+      verify(() => stderr.done).called(1);
+    });
+
+    for (final (name, done) in [
+      ('stdout', () => stdoutDone),
+      ('stderr', () => stderrDone),
+    ]) {
+      test('leaves any other $name error uncaught', () async {
+        final uncaught = Completer<Object>();
+
+        // The stream futures must belong to the guarded zone: errors do not
+        // cross error-zone boundaries.
+        runZonedGuarded(
+          () {
+            stdoutDone = Completer<void>();
+            stderrDone = Completer<void>();
+            unawaited(watch());
+            done().completeError(const FileSystemException('disk full'));
+          },
+          (error, _) => uncaught.complete(error),
+        );
+
+        expect(await uncaught.future, isA<FileSystemException>());
+      });
+    }
   });
 
   group('StatusLogger', () {
@@ -132,6 +168,23 @@ void main() {
       ).captured.single as LogStyle;
       expect(style('banner'), 'banner');
       verifyNever(() => logger.info(any()));
+    });
+
+    test('statusSuccess uses success on a terminal and stderr when piped', () {
+      when(() => stdout.hasTerminal).thenReturn(true);
+      IOOverrides.runZoned(
+        () => logger.statusSuccess('saved'),
+        stdout: () => stdout,
+      );
+      when(() => stdout.hasTerminal).thenReturn(false);
+      IOOverrides.runZoned(
+        () => logger.statusSuccess('copied'),
+        stdout: () => stdout,
+      );
+
+      verify(() => logger.success('saved')).called(1);
+      verifyNever(() => logger.success('copied'));
+      verify(() => logger.err('copied', style: any(named: 'style'))).called(1);
     });
 
     test('statusDetail on stderr appears only at verbose level', () {

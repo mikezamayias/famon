@@ -2,8 +2,10 @@
 # Stub adb for tool/pipe_probe/run.sh.
 # Answers the adb calls `famon monitor` makes and streams one canned
 # Firebase Analytics logcat line every 0.2 s until its stdout closes.
+# PROBE_ADB_FAIL=version makes `adb version` fail, as when adb is unusable.
 case "${1:-}" in
   version)
+    [ "${PROBE_ADB_FAIL:-}" = version ] && exit 1
     echo "Android Debug Bridge version 1.0.41 (pipe_probe stub)"
     ;;
   devices)

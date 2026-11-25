@@ -4,6 +4,7 @@ import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:famon/src/keyboard/key_binding.dart';
 import 'package:famon/src/platform/clipboard_interface.dart';
+import 'package:famon/src/platform/terminal.dart';
 
 /// Action to copy recent events to the system clipboard.
 ///
@@ -37,7 +38,7 @@ class CopyToClipboardAction implements ShortcutAction {
 
     final events = context.recentEvents;
     if (events.isEmpty) {
-      context.logger.info('No events to copy');
+      context.logger.status('No events to copy');
       return true;
     }
 
@@ -62,7 +63,7 @@ class CopyToClipboardAction implements ShortcutAction {
 
     final success = await _clipboard.copy(jsonString);
     if (success) {
-      context.logger.success(
+      context.logger.statusSuccess(
         'Copied ${eventsToExport.length} events to clipboard',
       );
     } else {

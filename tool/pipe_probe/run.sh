@@ -7,6 +7,8 @@
 #
 # Case A: stdin </dev/null, no --no-shortcuts, stdout to a file, then SIGINT.
 # Case B: famon monitor --raw </dev/null | head -5
+# Case C: famon monitor --raw </dev/null 2>&1 | head -N, for N = 1, 2 and 6
+# Case D: adb is unusable, stdout to a file: stdout stays empty, hints on stderr
 set -u
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -28,6 +30,7 @@ check() { # check <description> <command...>
 event_re='^[0-9-]+ [0-9:.]+ \| add_to_cart \| \{.*\} \| items=\[.*\]$'
 only_events() { [ -s "$1" ] && ! grep -Evq "$event_re" "$1"; }
 no_escapes() { ! LC_ALL=C grep -q $'\x1b' "$1"; }
+no_crash_text() { ! grep -Eq 'Unhandled exception|^#[0-9]+ +|StackTrace|Stack trace' "$1"; }
 famon_pids() { pgrep -f 'famon.dart monitor' || true; }
 stub_dead() {
   sleep 1
@@ -88,6 +91,39 @@ check "all 5 lines are event lines" only_events "$out/b.out"
 check "stderr holds only the banner" cmp -s "$out/banner" "$out/b.err"
 kill_leftovers
 wait "$job" 2>/dev/null
+
+for n in 1 2 6; do
+  echo "== Case C$n: famon monitor --raw </dev/null 2>&1 | head -$n"
+  (
+    dart run bin/famon.dart monitor --raw --platform android \
+      </dev/null 2>&1 | head -"$n" >"$out/c$n.out"
+    echo "${PIPESTATUS[0]}" >"$out/c$n.status"
+  ) &
+  job=$!
+  if ended_within "$job" 20; then
+    status="$(cat "$out/c$n.status")"
+    check "famon exits with status 0 once head closes (got $status)" [ "$status" = 0 ]
+  else
+    check "pipeline ends within 20s" false
+  fi
+  check "stub adb is not left running" stub_dead
+  check "head got $n lines" [ "$(wc -l <"$out/c$n.out" | tr -d ' ')" = "$n" ]
+  check "no stack trace or unhandled exception" no_crash_text "$out/c$n.out"
+  kill_leftovers
+  wait "$job" 2>/dev/null
+done
+
+echo "== Case D: adb unusable, famon monitor --raw </dev/null >file"
+PROBE_ADB_FAIL=version dart run bin/famon.dart monitor --raw --platform android \
+  </dev/null >"$out/d.out" 2>"$out/d.err" &
+job=$!
+if ended_within "$job" 20; then wait "$job"; status=$?; else status=timeout; fi
+check "famon exits with status 1 (got $status)" [ "$status" = 1 ]
+check "stdout is empty" [ ! -s "$out/d.out" ]
+check "stderr names the missing tools" grep -q 'Required tools not available for Android' "$out/d.err"
+check "stderr holds the install hints" grep -q 'Android SDK platform-tools are required' "$out/d.err"
+check "no stack trace or unhandled exception" no_crash_text "$out/d.err"
+kill_leftovers
 
 rm -rf "$out"
 rmdir "$repo/build" 2>/dev/null

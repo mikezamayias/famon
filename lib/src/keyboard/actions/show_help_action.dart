@@ -2,6 +2,7 @@ import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/action_registry.dart';
 import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:famon/src/keyboard/key_binding.dart';
+import 'package:famon/src/platform/terminal.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 /// Callback type for getting the current binding for an action.
@@ -44,21 +45,21 @@ class ShowHelpAction implements ShortcutAction {
     final separator = darkGray.wrap('═' * 45);
 
     logger
-      ..info('')
-      ..info(lightCyan.wrap('Keyboard Shortcuts'))
-      ..info(separator)
-      ..info('');
+      ..status('')
+      ..status(lightCyan.wrap('Keyboard Shortcuts'))
+      ..status(separator)
+      ..status('');
 
     for (final action in _registry.allActions) {
       final binding = _getBinding(action.id);
       final shortcut = binding.toDisplayString().padRight(15);
-      logger.info('  $shortcut ${action.description}');
+      logger.status('  $shortcut ${action.description}');
     }
 
     logger
-      ..info('')
-      ..info(separator)
-      ..info('');
+      ..status('')
+      ..status(separator)
+      ..status('');
 
     return true;
   }

@@ -213,7 +213,7 @@ class MonitorCommand extends Command<int> {
           '❌ Required tools not available for '
           '${_logSource.platformDisplayName}',
         )
-        ..info(_logSource.getToolsInstallationInstructions());
+        ..status(_logSource.getToolsInstallationInstructions());
       return 1;
     }
 
@@ -342,9 +342,11 @@ class MonitorCommand extends Command<int> {
       // Initialize quit completer for immediate exit
       _quitCompleter = Completer<void>();
 
-      // When the reader of a stdout pipe goes away (`famon monitor | head`),
-      // stop through the same cleanup a SIGINT uses, then exit 0.
-      unawaited(stdoutReaderGone().then((_) => cleanup(triggerQuit: true)));
+      // When the reader of a stdout or stderr pipe goes away
+      // (`famon monitor 2>&1 | head`), stop through the same cleanup a
+      // SIGINT uses, then exit 0. This also fires when the pipe closed
+      // during startup.
+      unawaited(outputReaderGone().then((_) => cleanup(triggerQuit: true)));
 
       // Wire the shared monitoring pipeline: it owns UTF-8 decoding,
       // malformed-byte tracking, verbose-line emission, and parse +
@@ -418,30 +420,30 @@ class MonitorCommand extends Command<int> {
       // Handle adb process failures with specific guidance
       _logger
         ..err('❌ Failed to start adb. Make sure:')
-        ..info('   1. Android SDK platform-tools are installed')
-        ..info('   2. adb is in your PATH')
-        ..info('   3. An Android device/emulator is connected')
-        ..info('   4. USB debugging is enabled')
-        ..detail('Process error: ${e.message}')
-        ..detail('Stack trace: $stackTrace');
+        ..status('   1. Android SDK platform-tools are installed')
+        ..status('   2. adb is in your PATH')
+        ..status('   3. An Android device/emulator is connected')
+        ..status('   4. USB debugging is enabled')
+        ..statusDetail('Process error: ${e.message}')
+        ..statusDetail('Stack trace: $stackTrace');
       return 1;
     } on IOException catch (e, stackTrace) {
       // Handle I/O errors (connection issues, pipe broken, etc.)
       _logger
         ..err('❌ I/O error while communicating with adb: $e')
-        ..detail('Stack trace: $stackTrace');
+        ..statusDetail('Stack trace: $stackTrace');
       return 1;
     } on FormatException catch (e, stackTrace) {
       // Handle malformed data from logcat
       _logger
         ..err('❌ Failed to parse logcat output: $e')
-        ..detail('Stack trace: $stackTrace');
+        ..statusDetail('Stack trace: $stackTrace');
       return 1;
     } on Exception catch (e, stackTrace) {
       // Handle other known exceptions
       _logger
         ..err('❌ Unexpected error: $e')
-        ..detail('Stack trace: $stackTrace');
+        ..statusDetail('Stack trace: $stackTrace');
       return 1;
     }
 

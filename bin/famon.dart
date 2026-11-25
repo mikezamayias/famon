@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:famon/src/command_runner.dart';
@@ -5,6 +6,10 @@ import 'package:famon/src/injection.dart';
 import 'package:famon/src/platform/terminal.dart';
 
 Future<void> main(List<String> args) async {
+  // Handle a closed pipe on stdout or stderr from the first byte written,
+  // before any command starts its own watch.
+  unawaited(outputReaderGone());
+
   // Initialize dependency injection
   await configureDependencies();
 

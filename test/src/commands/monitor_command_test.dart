@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:famon/src/commands/monitor_command.dart';
+import 'package:famon/src/platform/terminal.dart';
 import 'package:famon_core/famon_core.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
@@ -133,6 +134,8 @@ void main() {
     late StreamController<List<int>> logcat;
     late MockStdout stdout;
     late Completer<void> stdoutDone;
+    late MockStdout stderr;
+    late Completer<void> stderrDone;
     late MockEventCache eventCache;
     late Map<Duration, void Function()> periodicTimers;
     late CommandRunner<int> runner;
@@ -154,6 +157,9 @@ void main() {
       when(() => stdout.hasTerminal).thenReturn(false);
       when(() => stdout.supportsAnsiEscapes).thenReturn(false);
       when(() => stdout.done).thenAnswer((_) => stdoutDone.future);
+      stderr = MockStdout();
+      stderrDone = Completer<void>();
+      when(() => stderr.done).thenAnswer((_) => stderrDone.future);
 
       when(() => process.stdout).thenAnswer((_) => logcat.stream);
       when(() => process.stderr).thenAnswer((_) => const Stream.empty());
@@ -209,7 +215,7 @@ void main() {
           () async {
             final result = runner.run(['monitor', '--raw', ...extraArgs]);
             await pumpEventQueue();
-            logcat.add(utf8.encode('$eventLine\n'));
+            if (!logcat.isClosed) logcat.add(utf8.encode('$eventLine\n'));
             await pumpEventQueue();
             await whileRunning();
             return result;
@@ -224,6 +230,7 @@ void main() {
         ),
         stdin: () => stdin,
         stdout: () => stdout,
+        stderr: () => stderr,
       );
     }
 
@@ -288,6 +295,73 @@ void main() {
       verify(process.kill).called(greaterThan(0));
       verifyNever(() => logger.err(any(that: startsWith('❌'))));
       verifyNever(() => logger.err(any(that: contains('Error reading'))));
+    });
+
+    test('stops quietly with status 0 when the stderr reader closes', () async {
+      final status = await runMonitor(devNullStdin(), () async {
+        stderrDone.completeError(brokenPipe);
+      });
+
+      expect(status, 0);
+      verify(process.kill).called(greaterThan(0));
+      verifyNever(() => logger.err(any(that: startsWith('❌'))));
+    });
+
+    test('stops at once when a pipe closed during startup', () async {
+      // The pipe is gone before the command starts its own watch, as with
+      // `famon monitor 2>&1 | head -1`. `main` armed the watch first.
+      unawaited(
+        IOOverrides.runZoned(
+          outputReaderGone,
+          stdout: () => stdout,
+          stderr: () => stderr,
+        ),
+      );
+      stderrDone.completeError(brokenPipe);
+      await pumpEventQueue();
+
+      final status = await runMonitor(devNullStdin(), () async {});
+
+      expect(status, 0);
+      verify(process.kill).called(greaterThan(0));
+    });
+
+    test('sends the tools-missing instructions to stderr when piped', () async {
+      when(logSource.checkToolsAvailable).thenAnswer((_) async => false);
+      when(logSource.getToolsInstallationInstructions)
+          .thenReturn('Install adb');
+
+      final status = await runMonitor(devNullStdin(), () async {});
+
+      expect(status, 1);
+      verify(() => logger.err('Install adb', style: any(named: 'style')))
+          .called(1);
+      verifyNever(() => logger.info(any()));
+    });
+
+    test('sends the adb start-failure hints to stderr when piped', () async {
+      when(() => logger.level).thenReturn(Level.verbose);
+      when(
+        () => logSource.startLogStream(verbose: any(named: 'verbose')),
+      ).thenThrow(const ProcessException('adb', [], 'adb: not found'));
+
+      final status = await runMonitor(devNullStdin(), () async {});
+
+      expect(status, 1);
+      verify(
+        () => logger.err(
+          '   2. adb is in your PATH',
+          style: any(named: 'style'),
+        ),
+      ).called(1);
+      verify(
+        () => logger.err(
+          'Process error: adb: not found',
+          style: any(named: 'style'),
+        ),
+      ).called(1);
+      verifyNever(() => logger.info(any()));
+      verifyNever(() => logger.detail(any()));
     });
 
     test('sends the banner to stderr and events to stdout (F11)', () async {

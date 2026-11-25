@@ -1,6 +1,7 @@
 import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:famon/src/keyboard/key_binding.dart';
+import 'package:famon/src/platform/terminal.dart';
 
 /// Callback type for toggling pause state.
 typedef PauseToggleCallback = void Function({required bool isPaused});
@@ -36,9 +37,9 @@ class TogglePauseAction implements ShortcutAction {
     _onToggle(isPaused: newPausedState);
 
     if (newPausedState) {
-      context.logger.info('Event display paused (events still captured)');
+      context.logger.status('Event display paused (events still captured)');
     } else {
-      context.logger.info('Event display resumed');
+      context.logger.status('Event display resumed');
     }
 
     return true;

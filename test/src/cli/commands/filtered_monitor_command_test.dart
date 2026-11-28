@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
@@ -7,6 +9,9 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:process/process.dart';
 import 'package:test/test.dart';
+
+import '../../../helpers/stdio_fakes.dart';
+import '../../../helpers/test_helpers.dart' show createMockAnalyticsEvent;
 
 class MockLogger extends Mock implements Logger {}
 
@@ -428,6 +433,7 @@ void main() {
 
     group('adb error handling', () {
       test('should display helpful message when adb fails', () async {
+        fakeStdio(stdoutIsTerminal: true);
         when(
           () => mockProcessManager.start(any()),
         ).thenThrow(const ProcessException('adb', [], 'adb: not found'));
@@ -443,6 +449,26 @@ void main() {
         ).called(greaterThan(0));
       });
 
+      test('sends the adb hints to stderr when stdout is piped', () async {
+        fakeStdio(stdoutIsTerminal: false);
+        when(() => mockLogger.level).thenReturn(Level.info);
+        when(
+          () => mockProcessManager.start(any()),
+        ).thenThrow(const ProcessException('adb', [], 'adb: not found'));
+
+        final result = await runner.run(['filter']);
+
+        expect(result, equals(1));
+        verify(
+          () => mockLogger.err(
+            '   1. Android SDK platform-tools are installed',
+            style: any(named: 'style'),
+          ),
+        ).called(1);
+        verifyNever(() => mockLogger.info(any()));
+        verifyNever(() => mockLogger.detail(any()));
+      });
+
       test('should handle unexpected errors gracefully', () async {
         when(
           () => mockProcessManager.start(any()),
@@ -454,6 +480,77 @@ void main() {
         verify(
           () => mockLogger.err(any(that: contains('Unexpected error'))),
         ).called(1);
+      });
+    });
+
+    group('without a terminal on stdout', () {
+      late MockProcess process;
+      late StreamController<List<int>> logcat;
+      late MockStdout stdout;
+      late Completer<void> stdoutDone;
+
+      setUp(() {
+        (:process, :logcat) = fakeLogProcess();
+        stdoutDone = Completer<void>();
+        stdout = pipedStdout(() => stdoutDone.future);
+        when(
+          () => mockProcessManager.start(any()),
+        ).thenAnswer((_) async => process);
+        when(() => mockLogParser.parse(any())).thenReturn(
+          createMockAnalyticsEvent(
+            eventName: 'add_to_cart',
+            parameters: const {'currency': 'USD'},
+          ),
+        );
+      });
+
+      test(
+          'sends the banner to stderr and events to stdout, '
+          'and stops with status 0 when the stdout reader closes', () async {
+        final status = await IOOverrides.runZoned(
+          () async {
+            final result = runner.run(['filter', '--raw']);
+            await pumpEventQueue();
+            logcat.add(utf8.encode('event-line\n'));
+            await pumpEventQueue();
+            stdoutDone.completeError(brokenPipe);
+            return result;
+          },
+          stdout: () => stdout,
+        );
+
+        expect(status, 0);
+        verify(process.kill).called(greaterThan(0));
+        final infoLines = verify(() => mockLogger.info(captureAny())).captured;
+        expect(infoLines, hasLength(1));
+        expect(infoLines.single, contains(' | add_to_cart | '));
+        verify(
+          () => mockLogger.err(
+            '📱 Connecting to adb logcat...',
+            style: any(named: 'style'),
+          ),
+        ).called(1);
+        verifyNever(() => mockLogger.err(any(that: startsWith('❌'))));
+      });
+
+      test('stops with status 0 when the stderr reader closes', () async {
+        final stderrDone = Completer<void>();
+        final stderr = pipedStdout(() => stderrDone.future);
+
+        final status = await IOOverrides.runZoned(
+          () async {
+            final result = runner.run(['filter', '--raw']);
+            await pumpEventQueue();
+            stderrDone.completeError(brokenPipe);
+            return result;
+          },
+          stdout: () => stdout,
+          stderr: () => stderr,
+        );
+
+        expect(status, 0);
+        verify(process.kill).called(greaterThan(0));
+        verifyNever(() => mockLogger.err(any(that: startsWith('❌'))));
       });
     });
 

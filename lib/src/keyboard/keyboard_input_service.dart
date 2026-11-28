@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:famon/src/keyboard/keyboard_input_interface.dart';
+import 'package:famon/src/platform/terminal.dart';
 import 'package:injectable/injectable.dart';
 
 /// Implementation of [KeyboardInputInterface] using dart:io stdin.
@@ -34,7 +35,7 @@ class KeyboardInputService implements KeyboardInputInterface {
   }
 
   @override
-  bool get isInteractive => stdin.hasTerminal;
+  bool get isInteractive => stdinIsInteractive();
 
   @override
   void start() {
@@ -67,11 +68,9 @@ class KeyboardInputService implements KeyboardInputInterface {
   void dispose() {
     if (!_isStarted) return;
 
-    // Cancel subscription
-    unawaited(_subscription?.cancel());
-    _subscription = null;
-
-    // Restore terminal settings
+    // Restore terminal settings before cancelling the stdin subscription:
+    // cancelling it closes stdin, after which the terminal mode can no
+    // longer be set (EBADF) and the shell is left in raw mode.
     if (isInteractive) {
       try {
         stdin.lineMode = _originalLineMode;
@@ -88,6 +87,10 @@ class KeyboardInputService implements KeyboardInputInterface {
         }
       }
     }
+
+    // Cancel subscription
+    unawaited(_subscription?.cancel());
+    _subscription = null;
 
     // Close controller
     unawaited(_controller?.close());

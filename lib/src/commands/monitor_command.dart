@@ -19,6 +19,7 @@ import 'package:famon/src/keyboard/keyboard_input_service.dart';
 import 'package:famon/src/keyboard/shortcut_manager.dart';
 import 'package:famon/src/platform/clipboard_service.dart';
 import 'package:famon/src/platform/file_dialog_service.dart';
+import 'package:famon/src/platform/terminal.dart';
 import 'package:famon_core/famon_core.dart';
 import 'package:injectable/injectable.dart';
 import 'package:mason_logger/mason_logger.dart';
@@ -212,15 +213,15 @@ class MonitorCommand extends Command<int> {
           '❌ Required tools not available for '
           '${_logSource.platformDisplayName}',
         )
-        ..info(_logSource.getToolsInstallationInstructions());
+        ..status(_logSource.getToolsInstallationInstructions());
       return 1;
     }
 
     _logger
-      ..info('🔥 ${lightCyan.wrap('Firebase Analytics Monitor Started')}')
-      ..info('📱 Connecting to ${_logSource.platformDisplayName}...')
-      ..detail('Platform: ${_logSource.platform.displayName}')
-      ..detail('Verbose mode: ${verbose ? 'ON' : 'OFF'}');
+      ..status('🔥 ${lightCyan.wrap('Firebase Analytics Monitor Started')}')
+      ..status('📱 Connecting to ${_logSource.platformDisplayName}...')
+      ..statusDetail('Platform: ${_logSource.platform.displayName}')
+      ..statusDetail('Verbose mode: ${verbose ? 'ON' : 'OFF'}');
 
     // Optionally enable analytics debug and raise log levels
     if (enableDebugFor != null && enableDebugFor.isNotEmpty) {
@@ -231,30 +232,32 @@ class MonitorCommand extends Command<int> {
     }
 
     if (hideEvents.isNotEmpty) {
-      _logger.info('🙈 Hiding events: ${hideEvents.join(', ')}');
+      _logger.status('🙈 Hiding events: ${hideEvents.join(', ')}');
     }
 
     if (showOnlyEvents.isNotEmpty) {
-      _logger.info('👀 Showing only: ${showOnlyEvents.join(', ')}');
+      _logger.status('👀 Showing only: ${showOnlyEvents.join(', ')}');
     }
 
     if (globalParamNames.isNotEmpty) {
-      _logger.info('🌐 Global parameters: ${globalParamNames.join(', ')}');
+      _logger.status('🌐 Global parameters: ${globalParamNames.join(', ')}');
     }
 
     if (showOnlyParamNames.isNotEmpty) {
-      _logger.info('🔎 Showing only params: ${showOnlyParamNames.join(', ')}');
+      _logger.status(
+        '🔎 Showing only params: ${showOnlyParamNames.join(', ')}',
+      );
     }
 
     // Initialize keyboard shortcuts if enabled
-    final shortcutsEnabled = !noShortcuts && stdin.hasTerminal;
+    final shortcutsEnabled = !noShortcuts && stdinIsInteractive();
     if (shortcutsEnabled) {
       await _initializeKeyboardShortcuts();
-      _logger.info('Press ? for help, Q to quit');
+      _logger.status('Press ? for help, Q to quit');
     } else {
-      _logger.info('Press Ctrl+C to stop monitoring');
+      _logger.status('Press Ctrl+C to stop monitoring');
     }
-    _logger.info('');
+    _logger.status('');
 
     try {
       // Start log stream using platform-specific log source
@@ -267,9 +270,9 @@ class MonitorCommand extends Command<int> {
         if (!sawRelevantLine) {
           _logger
             ..warn('No Firebase Analytics logs detected yet...')
-            ..info('Troubleshooting steps:');
+            ..status('Troubleshooting steps:');
           for (final tip in _logSource.getTroubleshootingTips()) {
-            _logger.info('  $tip');
+            _logger.status('  $tip');
           }
         }
       });
@@ -303,8 +306,8 @@ class MonitorCommand extends Command<int> {
         unawaited(keyboardSub?.cancel());
         _keyboardInput?.dispose();
         process.kill();
-        if (triggerQuit) {
-          _quitCompleter?.complete();
+        if (triggerQuit && !(_quitCompleter?.isCompleted ?? true)) {
+          _quitCompleter!.complete();
         }
       }
 
@@ -338,6 +341,12 @@ class MonitorCommand extends Command<int> {
       }
       // Initialize quit completer for immediate exit
       _quitCompleter = Completer<void>();
+
+      // When the reader of a stdout or stderr pipe goes away
+      // (`famon monitor 2>&1 | head`), stop through the same cleanup a
+      // SIGINT uses, then exit 0. This also fires when the pipe closed
+      // during startup.
+      unawaited(outputReaderGone().then((_) => cleanup(triggerQuit: true)));
 
       // Wire the shared monitoring pipeline: it owns UTF-8 decoding,
       // malformed-byte tracking, verbose-line emission, and parse +
@@ -411,30 +420,30 @@ class MonitorCommand extends Command<int> {
       // Handle adb process failures with specific guidance
       _logger
         ..err('❌ Failed to start adb. Make sure:')
-        ..info('   1. Android SDK platform-tools are installed')
-        ..info('   2. adb is in your PATH')
-        ..info('   3. An Android device/emulator is connected')
-        ..info('   4. USB debugging is enabled')
-        ..detail('Process error: ${e.message}')
-        ..detail('Stack trace: $stackTrace');
+        ..status('   1. Android SDK platform-tools are installed')
+        ..status('   2. adb is in your PATH')
+        ..status('   3. An Android device/emulator is connected')
+        ..status('   4. USB debugging is enabled')
+        ..statusDetail('Process error: ${e.message}')
+        ..statusDetail('Stack trace: $stackTrace');
       return 1;
     } on IOException catch (e, stackTrace) {
       // Handle I/O errors (connection issues, pipe broken, etc.)
       _logger
         ..err('❌ I/O error while communicating with adb: $e')
-        ..detail('Stack trace: $stackTrace');
+        ..statusDetail('Stack trace: $stackTrace');
       return 1;
     } on FormatException catch (e, stackTrace) {
       // Handle malformed data from logcat
       _logger
         ..err('❌ Failed to parse logcat output: $e')
-        ..detail('Stack trace: $stackTrace');
+        ..statusDetail('Stack trace: $stackTrace');
       return 1;
     } on Exception catch (e, stackTrace) {
       // Handle other known exceptions
       _logger
         ..err('❌ Unexpected error: $e')
-        ..detail('Stack trace: $stackTrace');
+        ..statusDetail('Stack trace: $stackTrace');
       return 1;
     }
 
@@ -445,17 +454,17 @@ class MonitorCommand extends Command<int> {
   void _showSessionStats() {
     final stats = _eventCache.getSessionStats();
     _logger
-      ..info('\n📊 Session Stats:')
-      ..info('   Unique Events: ${stats.totalUniqueEvents}')
-      ..info('   Total Events: ${stats.totalEventOccurrences}');
+      ..status('\n📊 Session Stats:')
+      ..status('   Unique Events: ${stats.totalUniqueEvents}')
+      ..status('   Total Events: ${stats.totalEventOccurrences}');
     final mostFrequent = stats.mostFrequentEvent;
     if (mostFrequent != null) {
-      _logger.info(
+      _logger.status(
         '   Most Frequent: $mostFrequent '
         '(${_eventCache.getEventCount(mostFrequent)})',
       );
     }
-    _logger.info('');
+    _logger.status('');
   }
 
   /// Display smart suggestions based on session data
@@ -465,18 +474,18 @@ class MonitorCommand extends Command<int> {
 
     if (topEvents.isNotEmpty) {
       _logger
-        ..info('\n💡 Smart Suggestions:')
-        ..info('   Most frequent events: ${topEvents.join(', ')}');
+        ..status('\n💡 Smart Suggestions:')
+        ..status('   Most frequent events: ${topEvents.join(', ')}');
 
       if (suggestedToHide.isNotEmpty) {
         _logger
-          ..info('   Consider hiding: ${suggestedToHide.join(', ')}')
-          ..info(
+          ..status('   Consider hiding: ${suggestedToHide.join(', ')}')
+          ..status(
             '   Use: famon monitor --hide ${suggestedToHide.join(' --hide ')}',
           );
       }
 
-      _logger.info('');
+      _logger.status('');
     }
   }
 

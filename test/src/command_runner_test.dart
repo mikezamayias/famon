@@ -10,6 +10,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:pub_updater/pub_updater.dart';
 import 'package:test/test.dart';
 
+import '../helpers/stdio_fakes.dart';
 import '../helpers/test_helpers.dart';
 
 class _MockProgress extends Mock implements Progress {}
@@ -24,7 +25,8 @@ class _MockLogParser extends Mock implements LogParserInterface {}
 
 const latestVersion = '999.0.0';
 
-final updatePrompt =
+/// The update message as the runner prints it under the current stdio.
+String updateMessage() =>
     // We need to ignore this lint in order to match the exact message format.
     // ignore: leading_newlines_in_multiline_strings
     '''${lightYellow.wrap('Update available!')} ${lightCyan.wrap(packageVersion)} \u2192 ${lightCyan.wrap(latestVersion)}
@@ -40,8 +42,13 @@ void main() {
     late PubUpdater pubUpdater;
     late Logger logger;
     late FamonCommandRunner commandRunner;
+    late String updatePrompt;
 
     setUp(() async {
+      // These tests pin the output on a terminal.
+      fakeStdio(stdoutIsTerminal: true);
+      // Built here, not inside `verify`: styling reads the stdio mocks.
+      updatePrompt = updateMessage();
       pubUpdater = MockPubUpdater();
       logger = MockLogger();
 
@@ -178,6 +185,56 @@ void main() {
       expect(result, equals(ExitCode.usage.code));
       verify(() => logger.err(exception.message)).called(1);
       verify(() => logger.info('exception usage')).called(1);
+    });
+
+    group('when stdout is piped', () {
+      setUp(() {
+        fakeStdio(stdoutIsTerminal: false);
+        when(() => logger.level).thenReturn(Level.verbose);
+      });
+
+      test('sends the update message to stderr', () async {
+        when(
+          () => pubUpdater.getLatestVersion(any()),
+        ).thenAnswer((_) async => latestVersion);
+
+        await commandRunner.run(['--version']);
+
+        verify(() => logger.err(updatePrompt, style: any(named: 'style')))
+            .called(1);
+        verifyNever(() => logger.info(updatePrompt));
+      });
+
+      test('sends the usage after a usage error to stderr', () async {
+        final result = await commandRunner.run(['monitor', '--no-such-flag']);
+
+        expect(result, equals(ExitCode.usage.code));
+        verify(
+          () => logger.err(
+            any(that: contains('Usage: famon monitor')),
+            style: any(named: 'style'),
+          ),
+        ).called(1);
+        verifyNever(() => logger.info(any()));
+      });
+
+      test('sends verbose argument information to stderr', () async {
+        await commandRunner.run(['--verbose']);
+
+        verify(
+          () => logger.err(
+            'Argument information:',
+            style: any(named: 'style'),
+          ),
+        ).called(1);
+        verifyNever(() => logger.detail(any()));
+      });
+
+      test('keeps the version on stdout', () async {
+        await commandRunner.run(['--version']);
+
+        verify(() => logger.info(packageVersion)).called(1);
+      });
     });
 
     group('--version', () {

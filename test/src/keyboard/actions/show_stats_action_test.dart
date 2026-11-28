@@ -4,6 +4,7 @@ import 'package:famon_core/famon_core.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 
+import '../../../helpers/stdio_fakes.dart';
 import '../../../helpers/test_helpers.dart';
 
 void main() {
@@ -12,6 +13,8 @@ void main() {
   late ShowStatsAction action;
 
   setUp(() {
+    // These tests pin the output on a terminal.
+    fakeStdio(stdoutIsTerminal: true);
     logger = MockLogger();
     eventCache = MockEventCache();
     action = ShowStatsAction();

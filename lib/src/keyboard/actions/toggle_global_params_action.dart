@@ -1,6 +1,7 @@
 import 'package:famon/src/keyboard/action_context.dart';
 import 'package:famon/src/keyboard/actions/shortcut_action.dart';
 import 'package:famon/src/keyboard/key_binding.dart';
+import 'package:famon_core/famon_core.dart';
 
 /// Callback type for toggling global parameters visibility.
 typedef GlobalParamsToggleCallback = void Function({
@@ -39,9 +40,9 @@ class ToggleGlobalParamsAction implements ShortcutAction {
     _onToggle(hideGlobalParams: newState);
 
     if (newState) {
-      context.logger.info('Global parameters hidden');
+      context.logger.status('Global parameters hidden');
     } else {
-      context.logger.info('Global parameters visible');
+      context.logger.status('Global parameters visible');
     }
 
     return true;
